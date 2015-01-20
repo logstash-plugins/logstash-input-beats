@@ -11,7 +11,6 @@ require "logstash/namespace"
 class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
 
   config_name "lumberjack"
-  milestone 1
 
   default :codec, "plain"
 
