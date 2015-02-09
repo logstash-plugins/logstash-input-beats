@@ -4,7 +4,7 @@ require "logstash/namespace"
 
 # Receive events using the lumberjack protocol.
 #
-# This is mainly to receive events shipped with lumberjack[http://github.com/jordansissel/lumberjack], 
+# This is mainly to receive events shipped with lumberjack[http://github.com/jordansissel/lumberjack],
 # now represented primarily via the
 # https://github.com/elasticsearch/logstash-forwarder[Logstash-forwarder].
 #
@@ -43,12 +43,35 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
 
   public
   def run(output_queue)
-    @lumberjack.run do |l|
-      @codec.decode(l.delete("line")) do |event|
-        decorate(event)
-        l.each { |k,v| event[k] = v; v.force_encoding(Encoding::UTF_8) }
-        output_queue << event
+    while true do
+      accept do |connection, codec|
+        invoke(connection, codec) do |_codec, line, fields|
+          _codec.decode(line) do |event|
+            decorate(event)
+            fields.each { |k,v| event[k] = v; v.force_encoding(Encoding::UTF_8) }
+            output_queue << event
+          end
+        end
       end
     end
+  rescue => e
+    @logger.error("Exception in lumberjack input", :exception => e)
+    shutdown(output_queue)
   end # def run
+
+  private
+  def accept(&block)
+    connection = @lumberjack.accept # Blocking call that creates a new connection
+    block.call(connection, @codec.clone)
+  end
+
+  private
+  def invoke(connection, codec, &block)
+    Thread.new(connection, codec) do |_connection, _codec|
+      _connection.run do |fields|
+        block.call(_codec, fields.delete("line"), fields)
+      end
+    end
+  end
+
 end # class LogStash::Inputs::Lumberjack
