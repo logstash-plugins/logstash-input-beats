@@ -89,8 +89,12 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
 
   def invoke(connection, codec, &block)
     @threadpool.post do
-      connection.run do |fields|
-        block.call(codec, fields.delete("line"), fields)
+      begin
+        connection.run do |fields|
+          block.call(codec, fields.delete("line"), fields)
+        end
+      rescue => e
+        @logger.error("Exception in lumberjack input thread", :exception => e)
       end
     end
   end
