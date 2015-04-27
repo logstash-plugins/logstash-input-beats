@@ -29,19 +29,35 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
   # SSL key passphrase to use.
   config :ssl_key_passphrase, :validate => :password
 
+  # Number of maximum clients that the lumberjack input will accept, this allow you
+  # to control the back pressure up to the client and stop logstash to go OOM with 
+  # connection. This settings is a temporary solution and will be deprecated really soon.
+  config :max_clients, :validate => :number, :default => 100, :deprecated => true
+
   # TODO(sissel): Add CA to authenticate clients with.
 
   public
   def register
     require "lumberjack/server"
+    require "concurrent"
+    require "concurrent/executors"
 
     @logger.info("Starting lumberjack input listener", :address => "#{@host}:#{@port}")
     @lumberjack = Lumberjack::Server.new(:address => @host, :port => @port,
       :ssl_certificate => @ssl_certificate, :ssl_key => @ssl_key,
       :ssl_key_passphrase => @ssl_key_passphrase)
+
+    # Limit the number of thread that can be created by the 
+    # lumberjack output, if the queue is full the input will 
+    # start rejecting new connection and raise an exception
+    @threadpool = Concurrent::ThreadPoolExecutor.new(
+      :min_threads => 1,
+      :max_threads => @max_clients,
+      :max_queue => 1, # in concurrent-ruby, bounded queue need to be at least 1.
+      fallback_policy: :abort
+    )
   end # def register
 
-  public
   def run(output_queue)
     while true do
       accept do |connection, codec|
@@ -62,16 +78,20 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
   private
   def accept(&block)
     connection = @lumberjack.accept # Blocking call that creates a new connection
-    block.call(connection, @codec.clone)
-  end
-
-  private
-  def invoke(connection, codec, &block)
-    Thread.new(connection, codec) do |_connection, _codec|
-      _connection.run do |fields|
-        block.call(_codec, fields.delete("line"), fields)
-      end
+    
+    if @threadpool.length < @threadpool.max_length
+      block.call(connection, @codec.clone)
+    else
+      @logger.warn("Lumberjack input, maximum connection exceeded, new connection are rejected.", :max_clients => @max_clients_queue)
+      connection.close
     end
   end
 
+  def invoke(connection, codec, &block)
+    @threadpool.post do
+      connection.run do |fields|
+        block.call(codec, fields.delete("line"), fields)
+      end
+    end
+  end
 end # class LogStash::Inputs::Lumberjack
