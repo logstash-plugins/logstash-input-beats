@@ -24,10 +24,10 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency 'logstash-codec-plain'
   s.add_runtime_dependency 'jls-lumberjack', ['>=0.0.20']
+  s.add_runtime_dependency "concurrent-ruby"
 
   s.add_development_dependency 'logstash-devutils'
   s.add_development_dependency 'stud'
   s.add_development_dependency 'logstash-codec-multiline'
-  
 end
 
