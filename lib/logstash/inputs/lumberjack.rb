@@ -47,7 +47,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
       :ssl_certificate => @ssl_certificate, :ssl_key => @ssl_key,
       :ssl_key_passphrase => @ssl_key_passphrase)
 
-    # Limit the number of thread that can be created by the 
+    # Limit the number of thread that can be created by the
     # lumberjack output, if the queue is full the input will 
     # start rejecting new connection and raise an exception
     @threadpool = Concurrent::ThreadPoolExecutor.new(
