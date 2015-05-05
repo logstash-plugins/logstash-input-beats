@@ -87,13 +87,18 @@ describe LogStash::Inputs::Lumberjack do
 
     it "stops accepting new connection" do
       client1 = Lumberjack::Socket.new(client_options)
-      client2 = Lumberjack::Socket.new(client_options)
-
+      
+      # Since the connection is stopped on the other side and OS X and 
+      # linux doesn't behave the same. The client could raise a IOError
+      # or an SSLError. On OSX I had to try to send some data to trip
+      # the error.
       expect { 
+        client2 = Lumberjack::Socket.new(client_options)
+
         (window_size + 1).times do
           client2.write_hash({"line" => "message"}) 
         end
-      }.to raise_error(IOError)
+      }.to raise_error
     end
  end
 end
