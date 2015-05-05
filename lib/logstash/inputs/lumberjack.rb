@@ -32,7 +32,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
   # Number of maximum clients that the lumberjack input will accept, this allow you
   # to control the back pressure up to the client and stop logstash to go OOM with 
   # connection. This settings is a temporary solution and will be deprecated really soon.
-  config :max_clients, :validate => :number, :default => 100, :deprecated => true
+  config :max_clients, :validate => :number, :default => 1000, :deprecated => true
 
   # TODO(sissel): Add CA to authenticate clients with.
 
