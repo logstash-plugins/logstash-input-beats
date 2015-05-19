@@ -82,7 +82,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
     if @threadpool.length < @threadpool.max_length
       block.call(connection, @codec.clone)
     else
-      @logger.warn("Lumberjack input, maximum connection exceeded, new connection are rejected.", :max_clients => @max_clients_queue)
+      @logger.warn("Lumberjack input, maximum connection exceeded, new connection are rejected.", :max_clients => @max_clients)
       connection.close
     end
   end
