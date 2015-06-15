@@ -30,5 +30,6 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'stud'
   s.add_development_dependency 'logstash-codec-multiline'
   s.add_development_dependency "flores"
+  s.add_development_dependency "stud"
 end
 
