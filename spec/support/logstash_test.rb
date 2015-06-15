@@ -21,3 +21,13 @@ module LogStashTest
     end
   end
 end
+
+def testing_thread(&block)
+  th = Thread.new do
+    block.call
+  end
+  #
+  # wait for the thread to spin
+  sleep(0.1)
+  th
+end
