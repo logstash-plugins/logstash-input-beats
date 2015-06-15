@@ -6,7 +6,6 @@ require "logstash/codecs/plain"
 require "logstash/codecs/multiline"
 require "logstash/event"
 require "lumberjack/client"
-require_relative "../support/logstash_test"
 
 describe LogStash::Inputs::Lumberjack do
   let(:connection) { double("connection") }
@@ -47,58 +46,4 @@ describe LogStash::Inputs::Lumberjack do
       end
     end
   end
-
-  context "when we have the maximum clients connected" do
-    let(:max_clients) { 1 }
-    let(:window_size) { 1 }
-    let(:config) do 
-      {
-        "port" => port,
-        "ssl_certificate" => certificate.ssl_cert,
-        "ssl_key" => certificate.ssl_key,
-        "type" => "testing",
-        "max_clients" => max_clients
-      }
-    end
-
-    let(:client_options) do
-      {
-        :port => port,
-        :address => "127.0.0.1",
-        :ssl_certificate => certificate.ssl_cert,
-        :window_size => window_size
-      }
-    end
-
-    before do
-      lumberjack.register
-
-      @server = Thread.new do
-        lumberjack.run(queue)
-      end
-
-      sleep(0.1) # wait for the server to correctly accept messages
-    end
-
-    after do
-      @server.raise(LogStash::ShutdownSignal)
-      @server.join
-    end
-
-    it "stops accepting new connection" do
-      client1 = Lumberjack::Socket.new(client_options)
-      
-      # Since the connection is stopped on the other side and OS X and 
-      # linux doesn't behave the same. The client could raise a IOError
-      # or an SSLError. On OSX I had to try to send some data to trip
-      # the error.
-      expect { 
-        client2 = Lumberjack::Socket.new(client_options)
-
-        (window_size + 1).times do
-          client2.write_hash({"line" => "message"}) 
-        end
-      }.to raise_error
-    end
- end
 end

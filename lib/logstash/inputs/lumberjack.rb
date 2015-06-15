@@ -29,18 +29,23 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
   # SSL key passphrase to use.
   config :ssl_key_passphrase, :validate => :password
 
-  # Number of maximum clients that the lumberjack input will accept, this allow you
-  # to control the back pressure up to the client and stop logstash to go OOM with 
-  # connection. This settings is a temporary solution and will be deprecated really soon.
-  config :max_clients, :validate => :number, :default => 1000, :deprecated => true
+  # The lumberjack input using a fixed thread pool to do the actual work and
+  # will accept a number of client in a queue, before starting to refuse new
+  # connection. This solve an issue when logstash-forwarder clients are 
+  # trying to connect to logstash which have a blocked pipeline and will 
+  # make logstash crash with an out of memory exception.
+  config :max_clients, :validate => :number, :default => 1000
 
   # TODO(sissel): Add CA to authenticate clients with.
 
-  public
+  BUFFERED_QUEUE_SIZE = 20
+  RECONNECT_BACKOFF_SLEEP = 0.5
+  
   def register
     require "lumberjack/server"
-    require "concurrent"
     require "concurrent/executors"
+    require "logstash/circuit_breaker"
+    require "logstash/sized_queue_timeout"
 
     @logger.info("Starting lumberjack input listener", :address => "#{@host}:#{@port}")
     @lumberjack = Lumberjack::Server.new(:address => @host, :port => @port,
@@ -48,6 +53,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
       :ssl_key_passphrase => @ssl_key_passphrase)
 
     # Limit the number of thread that can be created by the
+    # Limit the number of thread that can be created by the 
     # lumberjack output, if the queue is full the input will 
     # start rejecting new connection and raise an exception
     @threadpool = Concurrent::ThreadPoolExecutor.new(
@@ -56,37 +62,59 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
       :max_queue => 1, # in concurrent-ruby, bounded queue need to be at least 1.
       fallback_policy: :abort
     )
+    @threadpool = Concurrent::CachedThreadPool.new(:idletime => 15)
+
+    # in 1.5 the main SizeQueue doesnt have the concept of timeout
+    # We are using a small plugin buffer to move events to the internal queue
+    @buffered_queue = LogStash::SizedQueueTimeout.new(BUFFERED_QUEUE_SIZE)
+
+    @circuit_breaker = LogStash::CircuitBreaker.new("Lumberjack input",
+                            :exceptions => [LogStash::SizedQueueTimeout::TimeoutError])
+
   end # def register
 
   def run(output_queue)
+    start_buffer_broker(output_queue)
+
     while true do
-      accept do |connection, codec|
-        invoke(connection, codec) do |_codec, line, fields|
-          _codec.decode(line) do |event|
-            decorate(event)
-            fields.each { |k,v| event[k] = v; v.force_encoding(Encoding::UTF_8) }
-            output_queue << event
+      begin
+        # Wrapping the accept call into a CircuitBreaker
+        if @circuit_breaker.closed?
+          connection = @lumberjack.accept # Blocking call that creates a new connection
+
+          invoke(connection, codec.clone) do |_codec, line, fields|
+            _codec.decode(line) do |event|
+              decorate(event)
+              fields.each { |k,v| event[k] = v; v.force_encoding(Encoding::UTF_8) }
+
+              @circuit_breaker.execute { @buffered_queue << event }
+            end
           end
+        else
+          @logger.warn("Lumberjack input: the pipeline is blocked, temporary refusing new connection.")
+          sleep(RECONNECT_BACKOFF_SLEEP)
         end
+        # When too many errors happen inside the circuit breaker it will throw 
+        # this exception and start refusing connection, we need to catch it but 
+        # it's safe to ignore.
+      rescue LogStash::CircuitBreaker::OpenBreaker => e
       end
     end
+  rescue LogStash::ShutdownSignal
+    @logger.info("Lumberjack input: received ShutdownSignal")
   rescue => e
-    @logger.error("Exception in lumberjack input", :exception => e)
+    @logger.error("Lumberjack input: unhandled exception", :exception => e, :backtrace => e.backtrace)
+  ensure
     shutdown(output_queue)
   end # def run
 
   private
   def accept(&block)
     connection = @lumberjack.accept # Blocking call that creates a new connection
-    
-    if @threadpool.length < @threadpool.max_length
-      block.call(connection, @codec.clone)
-    else
-      @logger.warn("Lumberjack input, maximum connection exceeded, new connection are rejected.", :max_clients => @max_clients)
-      connection.close
-    end
+    block.call(connection, @codec.clone)
   end
 
+  private
   def invoke(connection, codec, &block)
     @threadpool.post do
       begin
@@ -95,6 +123,14 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
         end
       rescue => e
         @logger.error("Exception in lumberjack input thread", :exception => e)
+      end
+    end
+  end
+
+  def start_buffer_broker(output_queue)
+    @threadpool.post do
+      while true
+        output_queue << @buffered_queue.pop_no_timeout
       end
     end
   end
