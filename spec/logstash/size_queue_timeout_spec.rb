@@ -5,8 +5,6 @@ require "flores/random"
 describe "LogStash::SizedQueueTimeout" do
   let(:max_size) { Flores::Random.integer(2..100) }
   let(:element) { Flores::Random.text(0..100) }
-  # let(:max_size) { 3 }
-  # let(:element) { "Hello Logstash" }
 
   subject { LogStash::SizedQueueTimeout.new(max_size) }
   
@@ -63,6 +61,17 @@ describe "LogStash::SizedQueueTimeout" do
       end
 
       expect(blocked.status).to eq(false)
+    end
+  end
+
+  context "when the queue is not full" do
+    before :each { Flores::Random.iterations(0..max_size) { subject << "hurray" }  }
+
+    it "doesnt block on pop" do
+
+    end
+
+    it "doesnt block on push" do
     end
   end
 end
