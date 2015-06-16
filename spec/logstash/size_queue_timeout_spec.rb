@@ -23,9 +23,7 @@ describe "LogStash::SizedQueueTimeout" do
   
   context "when the queue is full" do
     before do
-      max_size.times do
-        subject << element
-      end
+      max_size.times { subject << element }
     end
 
     it "block with a timeout" do
@@ -35,33 +33,42 @@ describe "LogStash::SizedQueueTimeout" do
     end
 
     it "unblock when we pop" do
-      blocked = testing_thread do
+      blocked = Thread.new do
         subject << element
       end
+      sleep(0.1) until blocked.stop?
 
       expect(blocked.status).to eq("sleep")
 
-      testing_thread do
+      th = Thread.new do
         subject.pop_no_timeout
       end
+      sleep(0.1) until th.stop?
 
       expect(blocked.status).to eq(false)
+
+      blocked.join
+      th.join
     end
   end
 
   context "when the queue is empty" do
     it "block on pop" do
-      blocked = testing_thread do
+      blocked = Thread.new do
         subject.pop_no_timeout
       end
+      sleep(0.1) until blocked.stop?
 
       expect(blocked.status).to eq("sleep")
 
-      testing_thread do
+      th = Thread.new do
         subject << element
       end
+      sleep(0.1) until th.stop?
 
       expect(blocked.status).to eq(false)
+      th.join
+      blocked.join
     end
   end
 
@@ -71,19 +78,23 @@ describe "LogStash::SizedQueueTimeout" do
     end
 
     it "doesnt block on pop" do
-      blocked = testing_thread do
+      th = Thread.new do
         subject.pop_no_timeout
       end
+      sleep(0.1) until th.stop?
 
-      expect(blocked.status).to eq(false)
+      expect(th.status).to eq(false)
+      th.join
     end
 
     it "doesnt block on push" do
-      blocked = testing_thread do
+      th = Thread.new do
         subject << element
       end
+      sleep(0.1) until th.stop?
 
-      expect(blocked.status).to eq(false)
+      expect(th.status).to eq(false)
+      th.join
     end
   end
 end
