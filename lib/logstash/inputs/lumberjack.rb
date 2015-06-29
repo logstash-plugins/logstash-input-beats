@@ -29,12 +29,8 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
   # SSL key passphrase to use.
   config :ssl_key_passphrase, :validate => :password
 
-  # The lumberjack input using a fixed thread pool to do the actual work and
-  # will accept a number of client in a queue, before starting to refuse new
-  # connection. This solve an issue when logstash-forwarder clients are 
-  # trying to connect to logstash which have a blocked pipeline and will 
-  # make logstash crash with an out of memory exception.
-  config :max_clients, :validate => :number, :default => 1000
+  # This setting no longer has any effect and will be removed in a future release.
+  config :max_clients, :validate => :number, :deprecated => "This setting no longer has any effect. See https://github.com/logstash-plugins/logstash-input-lumberjack/pull/12 for the history of this change"
 
   # TODO(sissel): Add CA to authenticate clients with.
 
