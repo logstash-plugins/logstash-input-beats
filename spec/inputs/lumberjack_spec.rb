@@ -1,5 +1,5 @@
 # encoding: utf-8
-require "spec_helper"
+require_relative "../spec_helper"
 require "stud/temporary"
 require 'logstash/inputs/lumberjack'
 require "logstash/codecs/plain"
