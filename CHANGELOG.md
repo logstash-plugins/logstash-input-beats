@@ -1,3 +1,5 @@
+# 1.0.2
+  - Use a `require_relative` for loading the spec helpers. (https://github.com/logstash-plugins/logstash-input-lumberjack/pull/35)
 # 1.0.1
   - Fix a randomization issue for rspec https://github.com/logstash-plugins/logstash-input-lumberjack/issues/33
 # 1.0.0

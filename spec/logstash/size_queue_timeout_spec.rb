@@ -1,4 +1,4 @@
-require "spec_helper"
+require_relative "../spec_helper"
 require "logstash/sized_queue_timeout"
 require "flores/random"
 require "stud/try"
