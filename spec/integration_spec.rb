@@ -1,6 +1,6 @@
 # encoding: utf-8
-require "lib/lumberjack/client"
-require "lib/lumberjack/server"
+require "lumberjack/client"
+require "lumberjack/server"
 require "stud/temporary"
 require "flores/pki"
 require "fileutils"
