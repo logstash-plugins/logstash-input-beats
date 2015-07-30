@@ -1,5 +1,5 @@
-require "concurrent/atomic/condition"
 require "thread"
+require "concurrent"
 
 module LogStash
   # Minimal subset implement of a SizedQueue supporting
@@ -12,8 +12,11 @@ module LogStash
     DEFAULT_TIMEOUT = 2 # in seconds
 
     def initialize(max_size, options = {})
-      @condition_in = Concurrent::Condition.new
-      @condition_out = Concurrent::Condition.new
+      # `concurrent-ruby` are deprecating the `Condition`
+      # in favor of a Synchonization class that you need to implement.
+      # this was bit overkill to only check if the wait did a timeout.
+      @condition_in = ConditionVariable.new
+      @condition_out = ConditionVariable.new
 
       @max_size = max_size
       @queue = []
@@ -23,8 +26,11 @@ module LogStash
     def push(obj, timeout = DEFAULT_TIMEOUT)
       @mutex.synchronize do
         while full? # wake up check
-          result = @condition_out.wait(@mutex, timeout) 
-          raise TimeoutError if result.timed_out?
+          start_time = Concurrent.monotonic_time
+          @condition_out.wait(@mutex, timeout) 
+          if start_time + timeout - Concurrent.monotonic_time  < 0
+            raise TimeoutError
+          end
         end
 
         @queue << obj
