@@ -52,16 +52,9 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
       :ssl_certificate => @ssl_certificate, :ssl_key => @ssl_key,
       :ssl_key_passphrase => @ssl_key_passphrase)
 
-    # Limit the number of thread that can be created by the
-    # Limit the number of thread that can be created by the 
-    # lumberjack output, if the queue is full the input will 
-    # start rejecting new connection and raise an exception
-    @threadpool = Concurrent::ThreadPoolExecutor.new(
-      :min_threads => 1,
-      :max_threads => @max_clients,
-      :max_queue => 1, # in concurrent-ruby, bounded queue need to be at least 1.
-      fallback_policy: :abort
-    )
+    # Create a reusable threadpool, we do not limit the number of connections
+    # to the input, the circuit breaker with the timeout should take care 
+    # of `blocked` threads and prevent logstash to go oom.
     @threadpool = Concurrent::CachedThreadPool.new(:idletime => 15)
 
     # in 1.5 the main SizeQueue doesnt have the concept of timeout
