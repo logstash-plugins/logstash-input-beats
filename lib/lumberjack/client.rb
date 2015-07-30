@@ -80,7 +80,17 @@ module Lumberjack
     private
     def connection_start(opts)
       tcp_socket = TCPSocket.new(opts[:address], opts[:port])
-      @socket = OpenSSL::SSL::SSLSocket.new(tcp_socket)
+
+      certificate = OpenSSL::X509::Certificate.new(File.read(opts[:ssl_certificate]))
+
+      certificate_store = OpenSSL::X509::Store.new
+      certificate_store.add_cert(certificate)
+
+      ssl_context = OpenSSL::SSL::SSLContext.new
+      ssl_context.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      ssl_context.cert_store = certificate_store
+
+      @socket = OpenSSL::SSL::SSLSocket.new(tcp_socket, ssl_context)
       @socket.connect
       @socket.syswrite(["1", "W", @window_size].pack("AAN"))
     end

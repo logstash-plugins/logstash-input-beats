@@ -5,17 +5,14 @@ Gem::Specification.new do |gem|
   gem.summary       = gem.description
   gem.homepage      = "https://github.com/jordansissel/lumberjack"
 
-  gem.files = %w{
-    lib/lumberjack/server.rb
-    lib/lumberjack/client.rb
-  }
-    #lib/lumberjack/server2.rb
+  gem.files = Dir.glob("lib/**/*.rb")
 
-  gem.test_files    = []
+  gem.test_files    = Dir.glob("spec/**/*.rb")
   gem.name          = "jls-lumberjack"
   gem.require_paths = ["lib"]
-  gem.version       = "0.0.22"
+  gem.version       = "0.0.23"
 
-  # This isn't used yet because the new protocol isn't ready
-  #gem.add_runtime_dependency "ffi-rzmq", "~> 1.0.0"
+  gem.add_development_dependency "flores", "0.0.5"
+  gem.add_development_dependency "rspec"
+  gem.add_development_dependency "stud"
 end
