@@ -1,6 +1,7 @@
 # 1.0.3
   - Fix `concurrent-ruby` deprecation warning (https://github.com/logstash-plugins/logstash-input-lumberjack/pull/39)
   - Remove deplicate declaration of the threadpool
+  - Force `ruby-lumberjack` to be version 0.0.23 or higher to be in sync with `logstash-output-lumberjack`
 # 1.0.2
   - Use a `require_relative` for loading the spec helpers. (https://github.com/logstash-plugins/logstash-input-lumberjack/pull/35)
 # 1.0.1
