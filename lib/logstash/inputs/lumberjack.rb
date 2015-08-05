@@ -33,8 +33,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
   config :max_clients, :validate => :number, :deprecated => "This setting no longer has any effect. See https://github.com/logstash-plugins/logstash-input-lumberjack/pull/12 for the history of this change"
 
   # TODO(sissel): Add CA to authenticate clients with.
-
-  BUFFERED_QUEUE_SIZE = 20
+  BUFFERED_QUEUE_SIZE = 1
   RECONNECT_BACKOFF_SLEEP = 0.5
   
   def register
@@ -66,52 +65,50 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
     start_buffer_broker(output_queue)
 
     while true do
-      begin
-        # Wrapping the accept call into a CircuitBreaker
-        if @circuit_breaker.closed?
-          connection = @lumberjack.accept # Blocking call that creates a new connection
+      # Wrappingu the accept call into a CircuitBreaker
+      if @circuit_breaker.closed?
+        connection = @lumberjack.accept # Blocking call that creates a new connection
 
-          invoke(connection, codec.clone) do |_codec, line, fields|
-            _codec.decode(line) do |event|
+        invoke(connection, @codec.clone) do |_codec, line, fields|
+          _codec.decode(line) do |event|
+            begin
               decorate(event)
               fields.each { |k,v| event[k] = v; v.force_encoding(Encoding::UTF_8) }
-
               @circuit_breaker.execute { @buffered_queue << event }
+            rescue => e
+              raise e
             end
           end
-        else
-          @logger.warn("Lumberjack input: the pipeline is blocked, temporary refusing new connection.")
-          sleep(RECONNECT_BACKOFF_SLEEP)
         end
-        # When too many errors happen inside the circuit breaker it will throw 
-        # this exception and start refusing connection, we need to catch it but 
-        # it's safe to ignore.
-      rescue LogStash::CircuitBreaker::OpenBreaker => e
+      else
+        @logger.warn("Lumberjack input: the pipeline is blocked, temporary refusing new connection.")
+        sleep(RECONNECT_BACKOFF_SLEEP)
       end
     end
   rescue LogStash::ShutdownSignal
     @logger.info("Lumberjack input: received ShutdownSignal")
-  rescue => e
-    @logger.error("Lumberjack input: unhandled exception", :exception => e, :backtrace => e.backtrace)
   ensure
     shutdown(output_queue)
   end # def run
 
   private
-  def accept(&block)
-    connection = @lumberjack.accept # Blocking call that creates a new connection
-    block.call(connection, @codec.clone)
-  end
-
-  private
   def invoke(connection, codec, &block)
     @threadpool.post do
       begin
+        # If any errors occur in from the events the connection should be closed in the 
+        # library ensure block and the exception will be handled here
         connection.run do |fields|
           block.call(codec, fields.delete("line"), fields)
         end
-      rescue => e
-        @logger.error("Exception in lumberjack input thread", :exception => e)
+
+        # When too many errors happen inside the circuit breaker it will throw 
+        # this exception and start refusing connection, we need to catch it but 
+        # it's safe to ignore.
+      rescue LogStash::CircuitBreaker::OpenBreaker,
+        LogStash::CircuitBreaker::HalfOpenBreaker => e
+        logger.warn("Lumberjack input: connection closed, backing off", :exception => e.class)
+      rescue => e # If we have a malformed packet we should handle that so the input doesn't crash completely.
+        @logger.error("Lumberjack input: unhandled exception", :exception => e, :backtrace => e.backtrace)
       end
     end
   end

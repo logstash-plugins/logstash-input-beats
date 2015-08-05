@@ -7,6 +7,7 @@ require "logstash/codecs/multiline"
 require "logstash/event"
 require "lumberjack/client"
 
+Thread.abort_on_exception = true
 describe LogStash::Inputs::Lumberjack do
   let(:connection) { double("connection") }
   let(:certificate) { LogStashTest.certificate }
@@ -41,7 +42,7 @@ describe LogStash::Inputs::Lumberjack do
       let(:codec) { LogStash::Codecs::Multiline.new("pattern" => '\n', "what" => "previous") }
       it "clone the codec per connection" do
         expect(lumberjack.codec).to receive(:clone).once
-        expect(lumberjack).to receive(:invoke).and_throw(:msg)
+        expect(lumberjack).to receive(:invoke) { break }
         lumberjack.run(queue)
       end
     end
