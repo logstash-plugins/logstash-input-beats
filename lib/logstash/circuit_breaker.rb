@@ -4,7 +4,11 @@ require "cabin"
 module LogStash
   # Largely inspired by Martin's fowler circuit breaker
   class CircuitBreaker
+    # Raised when too many errors has occured and we refuse to execute the block
     class OpenBreaker < StandardError; end
+
+    # Raised when we catch an error that we count
+    class HalfOpenBreaker < StandardError; end
 
     # Error threshold before opening the breaker,
     # if the breaker is open it wont execute the code.
@@ -48,6 +52,8 @@ module LogStash
     rescue *@exceptions => e
       logger.warn("CircuitBreaker::rescuing exceptions", :name => @name, :exception => e.class)
       increment_errors(e)
+
+      raise HalfOpenBreaker
     end
 
     def closed?
