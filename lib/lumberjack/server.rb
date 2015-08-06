@@ -207,11 +207,12 @@ module Lumberjack
   end # class Parser
 
   class Connection
+    READ_SIZE = 16384
+
     def initialize(fd)
       super()
       @parser = Parser.new
       @fd = fd
-      @last_ack = 0
 
       # a safe default until we are told by the client what window size to use
       @window_size = 1 
@@ -219,40 +220,54 @@ module Lumberjack
 
     def run(&block)
       while true
-        # TODO(sissel): Ack on idle.
-        # X: - if any unacked, IO.select
-        # X:   - on timeout, ack all.
-        # X: Doing so will prevent slow streams from retransmitting
-        # X: too many events after errors.
-        @parser.feed(@fd.sysread(16384)) do |event, *args|
-          case event
-          when :window_size; window_size(*args, &block)
-          when :data; data(*args, &block)
-          end
-          #send(event, *args)
-        end # feed
-      end # while true
+        read_socket(&block)
+      end
     rescue EOFError, OpenSSL::SSL::SSLError, IOError, Errno::ECONNRESET
+
       # EOF or other read errors, only action is to shutdown which we'll do in
       # 'ensure'
     ensure
       close rescue 'Already closed stream'
     end # def run
 
+    def read_socket(&block)
+      # TODO(sissel): Ack on idle.
+      # X: - if any unacked, IO.select
+      # X:   - on timeout, ack all.
+      # X: Doing so will prevent slow streams from retransmitting
+      # X: too many events after errors.
+      @parser.feed(@fd.sysread(READ_SIZE)) do |event, *args|
+        case event
+        when :window_size; window_size(*args, &block)
+        when :data
+          data(*args, &block)
+        end
+        #send(event, *args)
+      end # feed
+    end # while true
+
     def close
       @fd.close
     end
 
     def window_size(size)
+      @next_ack = nil
       @window_size = size
     end
 
     def data(sequence, map, &block)
+      @next_ack = compute_next_ack(sequence) if @next_ack.nil?
       block.call(map) if block_given?
-      if (sequence - @last_ack) >= @window_size
-        @fd.syswrite(["1A", sequence].pack("A*N"))
-        @last_ack = sequence
-      end
+      ack(sequence) if sequence == @next_ack
+    end
+    
+    def compute_next_ack(sequence)
+      sequence + @window_size - 1
+    end
+
+    def ack(sequence)
+      @next_ack = compute_next_ack(sequence)
+      @fd.syswrite(["1A", sequence].pack("A*N"))
     end
   end # class Connection
 

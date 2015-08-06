@@ -14,7 +14,6 @@ module Lumberjack
         :port => 0,
         :addresses => [],
         :ssl_certificate => nil,
-        :window_size => 5000
       }.merge(opts)
 
       @opts[:addresses] = [@opts[:addresses]] if @opts[:addresses].class == String
@@ -60,7 +59,6 @@ module Lumberjack
     # * :address - the host/address to bind to
     # * :ssl_certificate - the path to the ssl cert to use
     attr_reader :sequence
-    attr_reader :window_size
     attr_reader :host
     def initialize(opts={})
       @sequence = 0
@@ -69,10 +67,9 @@ module Lumberjack
         :port => 0,
         :address => "127.0.0.1",
         :ssl_certificate => nil,
-        :window_size => 5000
       }.merge(opts)
       @host = @opts[:address]
-      @window_size = @opts[:window_size]
+      @window_size = 1
 
       connection_start(opts)
     end
@@ -92,13 +89,22 @@ module Lumberjack
 
       @socket = OpenSSL::SSL::SSLSocket.new(tcp_socket, ssl_context)
       @socket.connect
-      @socket.syswrite(["1", "W", @window_size].pack("AAN"))
     end
 
     private 
     def inc
       @sequence = 0 if @sequence + 1 > Lumberjack::SEQUENCE_MAX
       @sequence = @sequence + 1
+    end
+
+    private
+    def send_window_size
+      # We have to send the windows before transmitting an actual event,
+      # this allow the server to know when to send the `ack` for the payload
+      # Since the Ruby client doesn't support bulk send, we ack every messages.
+      # This will make things a bit slower... but, make sure we don't lose events in
+      # transit.
+      @socket.syswrite(["1", "W", @window_size].pack("AAN"))
     end
 
     private
@@ -115,6 +121,8 @@ module Lumberjack
 
     public
     def write_hash(hash)
+      send_window_size
+
       frame = Encoder.to_compressed_frame(hash, inc)
       ack if unacked_sequence_size >= @window_size
       write frame

@@ -17,6 +17,7 @@ describe "Lumberjack::Client" do
 
     before do
       allow_any_instance_of(Lumberjack::Socket).to receive(:connection_start).and_return(true)
+      allow(socket).to receive(:send_window_size).and_return(true)
     end
 
     context "sequence" do
@@ -46,10 +47,10 @@ describe "Lumberjack::Client" do
 
       it "increments the sequence per windows size" do
         allow(socket).to receive(:read_version_and_type).and_return([1, 'A'])
-        expect(socket).to receive(:ack).twice.and_call_original
+        expect(socket).to receive(:ack).at_most(3).and_call_original
 
         [5000, 10000].each do |last_ack|
-          windows_size = 5001
+          windows_size = 2
 
           allow(socket).to receive(:read_last_ack).and_return(last_ack)
 
