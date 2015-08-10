@@ -9,7 +9,7 @@ module LogStash
   class SizedQueueTimeout
     class TimeoutError < StandardError; end
 
-    DEFAULT_TIMEOUT = 2 # in seconds
+    DEFAULT_TIMEOUT = 10 # in seconds
 
     def initialize(max_size, options = {})
       # `concurrent-ruby` are deprecating the `Condition`
