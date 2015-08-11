@@ -31,6 +31,10 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
 
   # This setting no longer has any effect and will be removed in a future release.
   config :max_clients, :validate => :number, :deprecated => "This setting no longer has any effect. See https://github.com/logstash-plugins/logstash-input-lumberjack/pull/12 for the history of this change"
+  
+  # The number of seconds before we raise a timeout,
+  # this option is useful to control how much time to wait if something is blocking the pipeline.
+  config :timeout, :validate => :number, :default => 5
 
   # TODO(sissel): Add CA to authenticate clients with.
   BUFFERED_QUEUE_SIZE = 1
@@ -74,7 +78,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
             begin
               decorate(event)
               fields.each { |k,v| event[k] = v; v.force_encoding(Encoding::UTF_8) }
-              @circuit_breaker.execute { @buffered_queue << event }
+              @circuit_breaker.execute { @buffered_queue.push(event, @timeout) }
             rescue => e
               raise e
             end
