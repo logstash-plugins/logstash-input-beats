@@ -1,4 +1,5 @@
 # encoding: utf-8
+require "lumberjack"
 require "socket"
 require "thread"
 require "openssl"
@@ -223,7 +224,6 @@ module Lumberjack
         read_socket(&block)
       end
     rescue EOFError, OpenSSL::SSL::SSLError, IOError, Errno::ECONNRESET
-
       # EOF or other read errors, only action is to shutdown which we'll do in
       # 'ensure'
     ensure
@@ -238,37 +238,42 @@ module Lumberjack
       # X: too many events after errors.
       @parser.feed(@fd.sysread(READ_SIZE)) do |event, *args|
         case event
-        when :window_size; window_size(*args, &block)
+        when :window_size
+          # We receive a new payload
+          window_size(*args)
+          reset_next_ack
         when :data
           data(*args, &block)
         end
-        #send(event, *args)
-      end # feed
-    end # while true
+      end
+    end
 
     def close
       @fd.close
     end
 
     def window_size(size)
-      @next_ack = nil
       @window_size = size
     end
 
+    def reset_next_ack
+      @next_ack = nil
+    end
+
     def data(sequence, map, &block)
-      @next_ack = compute_next_ack(sequence) if @next_ack.nil?
       block.call(map) if block_given?
-      ack(sequence) if sequence == @next_ack
+      ack_if_needed(sequence)
     end
     
     def compute_next_ack(sequence)
-      sequence + @window_size - 1
+      (sequence + @window_size - 1) % SEQUENCE_MAX
     end
 
-    def ack(sequence)
-      @next_ack = compute_next_ack(sequence)
-      @fd.syswrite(["1A", sequence].pack("A*N"))
+    def ack_if_needed(sequence)
+      # The first encoded event will contain the sequence number 
+      # this is needed to know when we should ack.
+      @next_ack = compute_next_ack(sequence) if @next_ack.nil?
+      @fd.syswrite(["1A", sequence].pack("A*N")) if sequence == @next_ack
     end
   end # class Connection
-
 end # module Lumberjack

@@ -15,4 +15,5 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "flores", "~>0.0.6"
   gem.add_development_dependency "rspec"
   gem.add_development_dependency "stud"
+  gem.add_development_dependency "pry"
 end

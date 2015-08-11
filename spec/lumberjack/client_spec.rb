@@ -17,48 +17,23 @@ describe "Lumberjack::Client" do
 
     before do
       allow_any_instance_of(Lumberjack::Socket).to receive(:connection_start).and_return(true)
-      allow(socket).to receive(:send_window_size).and_return(true)
+      # mock any network call
+      allow(socket).to receive(:send_window_size).with(kind_of(Integer)).and_return(true)
+      allow(socket).to receive(:send_payload).with(kind_of(String)).and_return(true)
     end
 
     context "sequence" do
-
      let(:hash)   { {:a => 1, :b => 2}}
      let(:max_unsigned_int) { (2**32)-1 }
 
       before(:each) do
         allow(socket).to receive(:ack).and_return(true)
-        allow(socket).to receive(:write).and_return(true)
       end
 
       it "force sequence to be an unsigned 32 bits int" do
         socket.instance_variable_set(:@sequence, max_unsigned_int)
-        socket.write_hash(hash)
+        socket.write_sync(hash)
         expect(socket.sequence).to eq(1)
-      end
-    end
-
-    context "ack" do
-
-      let(:hash)   { {:a => 1, :b => 2}}
-
-      before(:each) do
-        allow(socket).to receive(:write).and_return(true)
-      end
-
-      it "increments the sequence per windows size" do
-        allow(socket).to receive(:read_version_and_type).and_return([1, 'A'])
-        expect(socket).to receive(:ack).at_most(3).and_call_original
-
-        [5000, 10000].each do |last_ack|
-          windows_size = 2
-
-          allow(socket).to receive(:read_last_ack).and_return(last_ack)
-
-          windows_size.times do
-            socket.write_hash(hash)
-          end
-        end
-
       end
     end
   end
@@ -82,16 +57,6 @@ describe "Lumberjack::Client" do
       }
       parser = Lumberjack::Parser.new
       parser.feed(Lumberjack::Encoder.to_frame(content, 0)) do |code, sequence, data|
-        expect(data["message"].force_encoding('UTF-8')).to eq(content["message"])
-      end
-    end
-
-    it 'should creates compressed frames' do
-      content = {
-        "message" => "国際ホッケー連盟" # International Hockey Federation
-      }
-      parser = Lumberjack::Parser.new
-      parser.feed(Lumberjack::Encoder.to_compressed_frame(content, 0)) do |code, sequence, data|
         expect(data["message"].force_encoding('UTF-8')).to eq(content["message"])
       end
     end

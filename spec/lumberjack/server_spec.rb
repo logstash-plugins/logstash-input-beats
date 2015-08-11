@@ -12,7 +12,6 @@ describe "Server" do
 
   before do
     expect(socket).to receive(:sysread).at_least(:once).with(Lumberjack::Connection::READ_SIZE).and_return("")
-
     allow(socket).to receive(:syswrite).with(anything).and_return(true)
     allow(socket).to receive(:close)
 
@@ -27,7 +26,7 @@ describe "Server" do
 
   describe "Connnection" do
     it "should ack the end of a sequence" do
-      expect(connection).to receive(:ack).with(random_number_of_events + start_sequence)
+      expect(socket).to receive(:syswrite).with(["1A", random_number_of_events + start_sequence].pack("A*N"))
       connection.read_socket
     end
   end

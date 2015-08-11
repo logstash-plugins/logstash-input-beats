@@ -1,13 +1,11 @@
 # encoding: utf-8
+require "lumberjack"
 require "socket"
 require "thread"
 require "openssl"
 require "zlib"
 
 module Lumberjack
-
-  SEQUENCE_MAX = (2**32-1).freeze
-
   class Client
     def initialize(opts={})
       @opts = {
@@ -39,8 +37,8 @@ module Lumberjack
     end
 
     public
-    def write(hash)
-      @socket.write_hash(hash)
+    def write(elements)
+      @socket.write_sync(elements)
     end
 
     public
@@ -50,7 +48,6 @@ module Lumberjack
   end
 
   class Socket
-
     # Create a new Lumberjack Socket.
     #
     # - options is a hash. Valid options are:
@@ -69,7 +66,6 @@ module Lumberjack
         :ssl_certificate => nil,
       }.merge(opts)
       @host = @opts[:address]
-      @window_size = 1
 
       connection_start(opts)
     end
@@ -98,19 +94,12 @@ module Lumberjack
     end
 
     private
-    def send_window_size
-      # We have to send the windows before transmitting an actual event,
-      # this allow the server to know when to send the `ack` for the payload
-      # Since the Ruby client doesn't support bulk send, we ack every messages.
-      # This will make things a bit slower... but, make sure we don't lose events in
-      # transit.
-      @socket.syswrite(["1", "W", @window_size].pack("AAN"))
+    def send_window_size(size)
+      @socket.syswrite(["1", "W", size].pack("AAN"))
     end
 
     private
-    def write(msg)
-      compress = Zlib::Deflate.deflate(msg)
-      payload = ["1","C",compress.length,compress].pack("AANA#{compress.length}")
+    def send_payload(payload)
       # SSLSocket has a limit of 16k per message
       # execute multiple writes if needed
       bytes_written = 0
@@ -120,20 +109,28 @@ module Lumberjack
     end
 
     public
-    def write_hash(hash)
-      send_window_size
+    def write_sync(elements)
+      elements = [elements] if elements.is_a?(Hash)
+      send_window_size(elements.size)
 
-      frame = Encoder.to_compressed_frame(hash, inc)
-      ack if unacked_sequence_size >= @window_size
-      write frame
+      payload = elements.map { |element| Encoder.to_frame(element, inc) }.join
+      compress = compress_payload(payload)
+      send_payload(compress)
+
+      ack(elements.size)
+    end
+
+    private 
+    def compress_payload(payload)
+      compress = Zlib::Deflate.deflate(payload)
+      ["1", "C", compress.bytesize, compress].pack("AANA*")
     end
 
     private
-    def ack
+    def ack(size)
       _, type = read_version_and_type
       raise "Whoa we shouldn't get this frame: #{type}" if type != "A"
       @last_ack = read_last_ack
-      ack if unacked_sequence_size >= @window_size
     end
 
     private
@@ -147,6 +144,7 @@ module Lumberjack
       type    = @socket.read(1)
       [version, type]
     end
+
     private
     def read_last_ack
       @socket.read(4).unpack("N").first
@@ -154,11 +152,6 @@ module Lumberjack
   end
 
   module Encoder
-    def self.to_compressed_frame(hash, sequence)
-      compress = Zlib::Deflate.deflate(to_frame(hash, sequence))
-      ["1", "C", compress.bytesize, compress].pack("AANA#{compress.length}")
-    end
-
     def self.to_frame(hash, sequence)
       frame = ["1", "D", sequence]
       pack = "AAN"
