@@ -112,7 +112,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
         # his payload.
       rescue LogStash::CircuitBreaker::OpenBreaker,
         LogStash::CircuitBreaker::HalfOpenBreaker => e
-        logger.warn("Lumberjack input: connection closed, backing off", :exception => e.class)
+        logger.warn("Lumberjack input: The circuit breaker has detected a slowdown or stall in the pipeline, the input is closing the current connection and rejecting new connection until the pipeline recover.", :exception => e.class)
       rescue => e # If we have a malformed packet we should handle that so the input doesn't crash completely.
         @logger.error("Lumberjack input: unhandled exception", :exception => e, :backtrace => e.backtrace)
       end
