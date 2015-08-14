@@ -34,7 +34,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
   
   # The number of seconds before we raise a timeout,
   # this option is useful to control how much time to wait if something is blocking the pipeline.
-  config :timeout, :validate => :number, :default => 5
+  config :congestion_threshold, :validate => :number, :default => 5
 
   # TODO(sissel): Add CA to authenticate clients with.
   BUFFERED_QUEUE_SIZE = 1
@@ -78,7 +78,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
             begin
               decorate(event)
               fields.each { |k,v| event[k] = v; v.force_encoding(Encoding::UTF_8) }
-              @circuit_breaker.execute { @buffered_queue.push(event, @timeout) }
+              @circuit_breaker.execute { @buffered_queue.push(event, @congestion_threshold) }
             rescue => e
               raise e
             end
@@ -106,8 +106,10 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
         end
 
         # When too many errors happen inside the circuit breaker it will throw 
-        # this exception and start refusing connection, we need to catch it but 
-        # it's safe to ignore.
+        # this exception and start refusing connection. The bubbling of theses
+        # exceptions make sure that the lumberjack library will close the current 
+        # connection which will force the client to reconnect and restransmit
+        # his payload.
       rescue LogStash::CircuitBreaker::OpenBreaker,
         LogStash::CircuitBreaker::HalfOpenBreaker => e
         logger.warn("Lumberjack input: connection closed, backing off", :exception => e.class)
