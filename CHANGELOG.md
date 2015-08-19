@@ -1,3 +1,7 @@
+# 1.0.5
+  - fix the wrong require for concurrent ruby
+# 1.0.4
+  - Update `ruby-lumberjack` to 0.0.24
 # 1.0.3
   - Fix `concurrent-ruby` deprecation warning (https://github.com/logstash-plugins/logstash-input-lumberjack/pull/39)
   - Remove deplicate declaration of the threadpool

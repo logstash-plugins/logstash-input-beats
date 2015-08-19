@@ -42,7 +42,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
   
   def register
     require "lumberjack/server"
-    require "concurrent/executors"
+    require "concurrent"
     require "logstash/circuit_breaker"
     require "logstash/sized_queue_timeout"
 
