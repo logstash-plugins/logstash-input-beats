@@ -4,9 +4,12 @@ require "socket"
 require "thread"
 require "openssl"
 require "zlib"
+require "concurrent"
 
 module Lumberjack
   class Server
+    SOCKET_TIMEOUT = 1 # seconds
+
     attr_reader :port
 
     # Create a new Lumberjack server.
@@ -36,48 +39,91 @@ module Lumberjack
         end
       end
 
-      tcp_server = TCPServer.new(@options[:address], @options[:port])
+      @server = TCPServer.new(@options[:address], @options[:port])
+
+      @close = Concurrent::AtomicBoolean.new
 
       # Query the port in case the port number is '0'
       # TCPServer#addr == [ address_family, port, address, address ]
-      @port = tcp_server.addr[1]
+      @port = @server.addr[1]
 
-      if !@options[:ssl]
-        @server = tcp_server
-      else
+      if @options[:ssl]
         # load SSL certificate
-        ssl = OpenSSL::SSL::SSLContext.new
-        ssl.cert = OpenSSL::X509::Certificate.new(File.read(@options[:ssl_certificate]))
-        ssl.key = OpenSSL::PKey::RSA.new(File.read(@options[:ssl_key]),
+        @ssl = OpenSSL::SSL::SSLContext.new
+        @ssl.cert = OpenSSL::X509::Certificate.new(File.read(@options[:ssl_certificate]))
+        @ssl.key = OpenSSL::PKey::RSA.new(File.read(@options[:ssl_key]),
           @options[:ssl_key_passphrase])
-
-        @server = OpenSSL::SSL::SSLServer.new(tcp_server, ssl)
       end
-
     end # def initialize
 
     def run(&block)
-      while true
+      while !closed?
         connection = accept
+
+        # Some exception may occur in the accept loop
+        # we will try again in the next iteration
+        # unless the server is closing
+        next unless connection
+
+
         Thread.new(connection) do |connection|
           connection.run(&block)
         end
       end
     end # def run
 
+    def ssl?
+      @ssl
+    end
+
     def accept(&block)
       begin
-        fd = @server.accept
-      rescue EOFError, OpenSSL::SSL::SSLError, IOError
-        # ssl handshake or other accept-related failure.
-        # TODO(sissel): Make it possible to log this.
-        retry
+        socket = @server.accept_nonblock
+        # update the socket with a SSL layer
+        socket = accept_ssl(socket) if ssl?
+
+        if block_given?
+          block.call(socket, self)
+        else
+          return Connection.new(socket, self)
+        end
+      rescue OpenSSL::SSL::SSLError, IOError, EOFError, Errno::EBADF
+        socket.close rescue nil
+        retry unless closed?
+      rescue IO::WaitReadable, Errno::EAGAIN # Resource not ready yet, so lets try again
+        begin
+          IO.select([@server], nil, nil, SOCKET_TIMEOUT)
+          retry unless closed?
+        rescue IOError => e # we currently closing
+          raise e unless closed?
+        end
       end
-      if block_given?
-        block.call(fd)
-      else
-        Connection.new(fd)
+    end
+
+    def accept_ssl(tcp_socket)
+      ssl_socket = OpenSSL::SSL::SSLSocket.new(tcp_socket, @ssl)
+      ssl_socket.sync_close
+
+      begin
+        ssl_socket.accept_nonblock
+
+        return ssl_socket
+      rescue IO::WaitReadable # handshake
+        IO.select([ssl_socket], nil, nil, SOCKET_TIMEOUT)
+        retry unless closed?
+      rescue IO::WaitWritable # handshake
+        IO.select(nil, [ssl_socket], nil, SOCKET_TIMEOUT)
+        retry unless closed?
       end
+    end
+
+    def closed?
+      @close.value
+    end
+
+    def close
+      @close.make_true
+      @server.close unless @server.closed?
     end
   end # class Server
 
@@ -221,17 +267,19 @@ module Lumberjack
   class Connection
     READ_SIZE = 16384
 
-    def initialize(fd)
-      super()
+    attr_accessor :server
+
+    def initialize(fd, server)
       @parser = Parser.new
       @fd = fd
 
+      @server = server
       # a safe default until we are told by the client what window size to use
       @window_size = 1 
     end
 
     def run(&block)
-      while true
+      while !server.closed?
         read_socket(&block)
       end
     rescue EOFError, OpenSSL::SSL::SSLError, IOError, Errno::ECONNRESET
@@ -260,7 +308,7 @@ module Lumberjack
     end
 
     def close
-      @fd.close
+      @fd.close unless @fd.closed?
     end
 
     def window_size(size)

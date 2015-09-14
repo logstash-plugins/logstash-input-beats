@@ -10,10 +10,13 @@ Gem::Specification.new do |gem|
   gem.test_files    = Dir.glob("spec/**/*.rb")
   gem.name          = "jls-lumberjack"
   gem.require_paths = ["lib"]
-  gem.version       = "0.0.24"
+  gem.version       = "0.0.25"
+
+  gem.add_runtime_dependency "concurrent-ruby"
 
   gem.add_development_dependency "flores", "~>0.0.6"
   gem.add_development_dependency "rspec"
   gem.add_development_dependency "stud"
   gem.add_development_dependency "pry"
+  gem.add_development_dependency "rspec-wait"
 end

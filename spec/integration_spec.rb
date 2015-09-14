@@ -7,8 +7,6 @@ require "fileutils"
 require "thread"
 require "spec_helper"
 
-Thread.abort_on_exception = true
-
 describe "A client" do
   let(:certificate) { Flores::PKI.generate }
   let(:certificate_file_crt) { "certificate.crt" }
@@ -25,14 +23,14 @@ describe "A client" do
     tcp_server = Lumberjack::Server.new(:port => tcp_port, :address => host, :ssl => false)
 
     ssl_server = Lumberjack::Server.new(:port => port,
-                                    :address => host,
-                                    :ssl_certificate => certificate_file_crt,
-                                    :ssl_key => certificate_file_key)
+                                        :address => host,
+                                        :ssl_certificate => certificate_file_crt,
+                                        :ssl_key => certificate_file_key)
 
     @tcp_server = Thread.new do
       while true
         tcp_server.accept do |socket|
-          con = Lumberjack::Connection.new(socket)
+          con = Lumberjack::Connection.new(socket, tcp_server)
           begin
             con.run { |data| queue << data }
           rescue
