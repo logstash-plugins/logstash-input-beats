@@ -24,11 +24,14 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
   # The port to listen on.
   config :port, :validate => :number, :required => true
 
+  # SSL enablement
+  config :ssl, :validate => :boolean, :default => true
+
   # SSL certificate to use.
-  config :ssl_certificate, :validate => :path, :required => true
+  config :ssl_certificate, :validate => :path
 
   # SSL key to use.
-  config :ssl_key, :validate => :path, :required => true
+  config :ssl_key, :validate => :path
 
   # SSL key passphrase to use.
   config :ssl_key_passphrase, :validate => :password
@@ -52,7 +55,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
 
     @logger.info("Starting lumberjack input listener", :address => "#{@host}:#{@port}")
     @lumberjack = Lumberjack::Server.new(:address => @host, :port => @port,
-      :ssl_certificate => @ssl_certificate, :ssl_key => @ssl_key,
+      :ssl => @ssl, :ssl_certificate => @ssl_certificate, :ssl_key => @ssl_key,
       :ssl_key_passphrase => @ssl_key_passphrase)
 
     # Create a reusable threadpool, we do not limit the number of connections
