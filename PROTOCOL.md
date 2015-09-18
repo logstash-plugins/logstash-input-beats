@@ -62,6 +62,21 @@ Payload:
 Sequence number roll-over: If you receive a sequence number less than the
 previous value, this signals that the sequence number has rolled over.
 
+### 'json' frame type
+
+* SENT FROM WRITER ONLY
+* frame type value: ASCII 'J' aka byte value 0x4a
+
+data is json encoded.
+
+Payload:
+* 32bit unsigned sequence number
+* 32bit payload length (length in bytes of embedded json document)
+* 'length' bytes of json payload
+
+Sequence number roll-over: If you receive a sequence number less than the
+previous value, this signals that the sequence number has rolled over.
+
 ### 'ack' frame type
 
 * SENT FROM READER ONLY
