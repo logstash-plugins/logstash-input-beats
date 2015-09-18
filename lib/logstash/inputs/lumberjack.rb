@@ -79,13 +79,15 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
             break
           end
 
-          _codec.decode(line) do |event|
+        invoke(connection, @codec.clone) do |code, _codec, fields|
+          handler = code == :json ? json_event : data_event
+          handler(_codec, fields) do |event|
             begin
-              decorate(event)
-              fields.each { |k,v| event[k] = v; v.force_encoding(Encoding::UTF_8) }
-              @circuit_breaker.execute { @buffered_queue.push(event, @congestion_threshold) }
-            rescue => e
-              raise e
+              @circuit_breaker.execute {
+                @buffered_queue.push(event, @congestion_threshold)
+              }
+              rescue => e
+                raise e
             end
           end
         end
@@ -102,13 +104,49 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
   end
 
   private
+  def data_event(line_codec, fields)
+    line = fields.delete("line")
+    line_codec.decode(line) do |event|
+      begin
+        decorate(event)
+        fields.each { |k,v| event[k] = v; v.force_encoding(Encoding::UTF_8) }
+        yield event
+      rescue => e
+        raise e
+      end
+    end
+  end
+
+  private
+  def json_event(line_codec, map)
+    if field.is_a?(Array)
+      fields.each do |item|
+        json_event(line_codec, item) { |event| yield event }
+      end
+    else
+      line = map.delete("line")
+      if line.nil?
+        event = LogStash::Event.new(map)
+        decorate(event)
+        yield event
+      else
+        line_codec.decode(line) do |event|
+          decorate(event)
+          map.each { |k,v| event[k] = v }
+          yield event
+        end
+      end
+    end
+  end
+
+  private
   def invoke(connection, codec, &block)
     @threadpool.post do
       begin
         # If any errors occur in from the events the connection should be closed in the 
         # library ensure block and the exception will be handled here
-        connection.run do |fields|
-          block.call(codec, fields.delete("line"), fields)
+        connection.run do |code, fields|
+          block.call(code, codec, fields)
         end
 
         # When too many errors happen inside the circuit breaker it will throw 
