@@ -14,20 +14,27 @@ describe "A client" do
   let(:certificate_file_crt) { "certificate.crt" }
   let(:certificate_file_key) { "certificate.key" }
   let(:port) { Flores::Random.integer(1024..65335) }
+  let(:tcp_port) { port + 1 }
   let(:host) { "127.0.0.1" }
   let(:queue) { [] }
 
   before do
     expect(File).to receive(:read).at_least(1).with(certificate_file_crt) { certificate.first.to_s }
     expect(File).to receive(:read).at_least(1).with(certificate_file_key) { certificate.last.to_s }
-    
-    server = Lumberjack::Server.new(:port => port,
+
+    tcp_server = Lumberjack::Server.new(:port => tcp_port, :address => host, :ssl => false)
+
+    ssl_server = Lumberjack::Server.new(:port => port,
                                     :address => host,
                                     :ssl_certificate => certificate_file_crt,
                                     :ssl_key => certificate_file_key)
 
-    @server = Thread.new do
-      server.run { |data| queue << data }
+    @tcp_server = Thread.new do
+      tcp_server.run { |data| queue << data }
+    end
+
+    @ssl_server = Thread.new do
+      ssl_server.run { |data| queue << data }
     end
   end
 
@@ -79,6 +86,44 @@ describe "A client" do
       expect(queue).to match_array(batch_payload)
     end
   end
+
+  context "using plain tcp connection" do
+    it "should successfully connect to the server if ssl explicitely disabled" do
+      expect {
+        Lumberjack::Client.new(:port => tcp_port, :host => host, :addresses => host, :ssl => false)
+      }.not_to raise_error
+    end
+
+    it "should fail to connect to the server if ssl not explicitely disabled" do
+      expect {
+        Lumberjack::Client.new(:port => tcp_port, :host => host, :addresses => host)
+      }.to raise_error(RuntimeError, /Must set a ssl certificate/)
+    end
+
+    context "When transmitting a payload" do
+      let(:random_number_of_events) { Flores::Random.integer(2..10) }
+      let(:payload) { { "line" => "foobar" } }
+      let(:client) do
+        Lumberjack::Client.new(:port => tcp_port, :host => host, :addresses => host, :ssl => false)
+      end
+      let(:batch_size) { Flores::Random.integer(1..1024) }
+      let(:batch_payload) do
+        batch = []
+        batch_size.times do |n|
+          batch <<  { "line" => "foobar #{n}" }
+        end
+        batch
+      end
+
+      context "when sequence start at 0" do
+        let(:sequence_start) { 0 }
+
+        include_examples "send payload"
+      end
+
+    end
+  end
+
 
   context "When transmitting a payload" do
     let(:random_number_of_events) { Flores::Random.integer(2..10) }

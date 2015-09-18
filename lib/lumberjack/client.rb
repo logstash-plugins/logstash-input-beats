@@ -12,12 +12,13 @@ module Lumberjack
         :port => 0,
         :addresses => [],
         :ssl_certificate => nil,
+        :ssl => true,
       }.merge(opts)
 
       @opts[:addresses] = [@opts[:addresses]] if @opts[:addresses].class == String
       raise "Must set a port." if @opts[:port] == 0
       raise "Must set atleast one address" if @opts[:addresses].empty? == 0
-      raise "Must set a ssl certificate or path" if @opts[:ssl_certificate].nil?
+      raise "Must set a ssl certificate or path" if @opts[:ssl_certificate].nil? && @opts[:ssl]
 
       @socket = connect
 
@@ -54,7 +55,10 @@ module Lumberjack
     #
     # * :port - the port to listen on
     # * :address - the host/address to bind to
-    # * :ssl_certificate - the path to the ssl cert to use
+    # * :ssl - enable/disable ssl support
+    # * :ssl_certificate - the path to the ssl cert to use.
+    #                      If ssl_certificate is not set, a plain tcp connection
+    #                      will be used.
     attr_reader :sequence
     attr_reader :host
     def initialize(opts={})
@@ -64,6 +68,7 @@ module Lumberjack
         :port => 0,
         :address => "127.0.0.1",
         :ssl_certificate => nil,
+        :ssl => true,
       }.merge(opts)
       @host = @opts[:address]
 
@@ -73,18 +78,21 @@ module Lumberjack
     private
     def connection_start(opts)
       tcp_socket = TCPSocket.new(opts[:address], opts[:port])
+      if !opts[:ssl]
+        @socket = tcp_socket
+      else
+        certificate = OpenSSL::X509::Certificate.new(File.read(opts[:ssl_certificate]))
 
-      certificate = OpenSSL::X509::Certificate.new(File.read(opts[:ssl_certificate]))
+        certificate_store = OpenSSL::X509::Store.new
+        certificate_store.add_cert(certificate)
 
-      certificate_store = OpenSSL::X509::Store.new
-      certificate_store.add_cert(certificate)
+        ssl_context = OpenSSL::SSL::SSLContext.new
+        ssl_context.verify_mode = OpenSSL::SSL::VERIFY_PEER
+        ssl_context.cert_store = certificate_store
 
-      ssl_context = OpenSSL::SSL::SSLContext.new
-      ssl_context.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      ssl_context.cert_store = certificate_store
-
-      @socket = OpenSSL::SSL::SSLSocket.new(tcp_socket, ssl_context)
-      @socket.connect
+        @socket = OpenSSL::SSL::SSLSocket.new(tcp_socket, ssl_context)
+        @socket.connect
+      end
     end
 
     private 

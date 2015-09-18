@@ -22,27 +22,38 @@ module Lumberjack
       @options = {
         :port => 0,
         :address => "0.0.0.0",
+        :ssl => true,
         :ssl_certificate => nil,
         :ssl_key => nil,
         :ssl_key_passphrase => nil
       }.merge(options)
 
-      [:ssl_certificate, :ssl_key].each do |k|
-        if @options[k].nil?
-          raise "You must specify #{k} in Lumberjack::Server.new(...)"
+      if @options[:ssl]
+        [:ssl_certificate, :ssl_key].each do |k|
+          if @options[k].nil?
+            raise "You must specify #{k} in Lumberjack::Server.new(...)"
+          end
         end
       end
 
-      @tcp_server = TCPServer.new(@options[:address], @options[:port])
+      tcp_server = TCPServer.new(@options[:address], @options[:port])
 
       # Query the port in case the port number is '0'
       # TCPServer#addr == [ address_family, port, address, address ]
-      @port = @tcp_server.addr[1]
-      @ssl = OpenSSL::SSL::SSLContext.new
-      @ssl.cert = OpenSSL::X509::Certificate.new(File.read(@options[:ssl_certificate]))
-      @ssl.key = OpenSSL::PKey::RSA.new(File.read(@options[:ssl_key]),
-                                        @options[:ssl_key_passphrase])
-      @ssl_server = OpenSSL::SSL::SSLServer.new(@tcp_server, @ssl)
+      @port = tcp_server.addr[1]
+
+      if !@options[:ssl]
+        @server = tcp_server
+      else
+        # load SSL certificate
+        ssl = OpenSSL::SSL::SSLContext.new
+        ssl.cert = OpenSSL::X509::Certificate.new(File.read(@options[:ssl_certificate]))
+        ssl.key = OpenSSL::PKey::RSA.new(File.read(@options[:ssl_key]),
+          @options[:ssl_key_passphrase])
+
+        @server = OpenSSL::SSL::SSLServer.new(tcp_server, ssl)
+      end
+
     end # def initialize
 
     def run(&block)
@@ -56,7 +67,7 @@ module Lumberjack
 
     def accept(&block)
       begin
-        fd = @ssl_server.accept
+        fd = @server.accept
       rescue EOFError, OpenSSL::SSL::SSLError, IOError
         # ssl handshake or other accept-related failure.
         # TODO(sissel): Make it possible to log this.
