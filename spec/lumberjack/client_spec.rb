@@ -38,14 +38,14 @@ describe "Lumberjack::Client" do
     end
   end
 
-  describe Lumberjack::Encoder do
+  describe Lumberjack::FrameEncoder do
     it 'should creates frames without truncating accentued characters' do
       content = {
         "message" => "Le Canadien de Montréal est la meilleure équipe au monde!",
         "other" => "éléphant"
       }
       parser = Lumberjack::Parser.new
-      parser.feed(Lumberjack::Encoder.to_frame(content, 0)) do |code, sequence, data|
+      parser.feed(Lumberjack::FrameEncoder.to_frame(content, 0)) do |code, sequence, data|
         expect(data["message"].force_encoding('UTF-8')).to eq(content["message"])
         expect(data["other"].force_encoding('UTF-8')).to eq(content["other"])
       end
@@ -56,8 +56,48 @@ describe "Lumberjack::Client" do
         "message" => "国際ホッケー連盟" # International Hockey Federation
       }
       parser = Lumberjack::Parser.new
-      parser.feed(Lumberjack::Encoder.to_frame(content, 0)) do |code, sequence, data|
+      parser.feed(Lumberjack::FrameEncoder.to_frame(content, 0)) do |code, sequence, data|
         expect(data["message"].force_encoding('UTF-8')).to eq(content["message"])
+      end
+    end
+  end
+
+  describe Lumberjack::JsonEncoder do
+    it 'should create frames from nested hash' do
+      content = {
+        "number" => 1,
+        "string" => "hello world",
+        "array" => [1,2,3],
+        "sub" => {
+          "a" => 1
+        }
+      }
+      parser = Lumberjack::Parser.new
+      frame = Lumberjack::JsonEncoder.to_frame(content, 0)
+      parser.feed(frame) do |code, sequence, data|
+        expect(data).to eq(content)
+      end
+    end
+
+    it 'should creates frames without truncating accentued characters' do
+      content = {
+        "message" => "Le Canadien de Montréal est la meilleure équipe au monde!",
+        "other" => "éléphant"
+      }
+      parser = Lumberjack::Parser.new
+      parser.feed(Lumberjack::JsonEncoder.to_frame(content, 0)) do |code, sequence, data|
+        expect(data["message"]).to eq(content["message"])
+        expect(data["other"]).to eq(content["other"])
+      end
+    end
+
+    it 'should creates frames without dropping multibytes characters' do
+      content = {
+        "message" => "国際ホッケー連盟" # International Hockey Federation
+      }
+      parser = Lumberjack::Parser.new
+      parser.feed(Lumberjack::JsonEncoder.to_frame(content, 0)) do |code, sequence, data|
+        expect(data["message"]).to eq(content["message"])
       end
     end
   end

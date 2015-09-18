@@ -4,6 +4,7 @@ require "socket"
 require "thread"
 require "openssl"
 require "zlib"
+require "json"
 
 module Lumberjack
   class Client
@@ -13,6 +14,7 @@ module Lumberjack
         :addresses => [],
         :ssl_certificate => nil,
         :ssl => true,
+        :json => false,
       }.merge(opts)
 
       @opts[:addresses] = [@opts[:addresses]] if @opts[:addresses].class == String
@@ -39,7 +41,7 @@ module Lumberjack
 
     public
     def write(elements)
-      @socket.write_sync(elements)
+      @socket.write_sync(elements, :json => @opts[:json])
     end
 
     public
@@ -117,11 +119,16 @@ module Lumberjack
     end
 
     public
-    def write_sync(elements)
+    def write_sync(elements, opts={})
+      options = {
+        :json => false,
+      }.merge(opts)
+
       elements = [elements] if elements.is_a?(Hash)
       send_window_size(elements.size)
 
-      payload = elements.map { |element| Encoder.to_frame(element, inc) }.join
+      encoder = options[:json] ? JsonEncoder : FrameEncoder
+      payload = elements.map { |element| encoder.to_frame(element, inc) }.join
       compress = compress_payload(payload)
       send_payload(compress)
 
@@ -159,7 +166,17 @@ module Lumberjack
     end
   end
 
-  module Encoder
+  module JsonEncoder
+    def self.to_frame(hash, sequence)
+      json = hash.to_json
+      json_length = json.bytesize
+      pack = "AANNA#{json_length}"
+      frame = ["1", "J", sequence, json_length, json]
+      frame.pack(pack)
+    end
+  end # JsonEncoder
+
+  module FrameEncoder
     def self.to_frame(hash, sequence)
       frame = ["1", "D", sequence]
       pack = "AAN"

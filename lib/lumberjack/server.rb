@@ -4,6 +4,7 @@ require "socket"
 require "thread"
 require "openssl"
 require "zlib"
+require "json"
 require "concurrent"
 
 module Lumberjack
@@ -196,6 +197,7 @@ module Lumberjack
 
     FRAME_WINDOW = "W".ord
     FRAME_DATA = "D".ord
+    FRAME_JSON_DATA = "J".ord
     FRAME_COMPRESSED = "C".ord
     def header(&block)
       version, frame_type = get.bytes.to_a[0..1]
@@ -203,6 +205,7 @@ module Lumberjack
       case frame_type
       when FRAME_WINDOW; transition(:window_size, 4)
       when FRAME_DATA; transition(:data_lead, 8)
+      when FRAME_JSON_DATA; transition(:json_data_lead, 8)
       when FRAME_COMPRESSED; transition(:compressed_lead, 4)
       else; raise "Unknown frame type: #{frame_type}"
       end
@@ -213,6 +216,16 @@ module Lumberjack
       transition(:header, 2)
       yield :window_size, @window_size
     end # def window_size
+
+    def json_data_lead(&block)
+      @sequence, payload_size = get.unpack("NN")
+      transition(:json_data_payload, payload_size)
+    end
+
+    def json_data_payload(&block)
+      payload = get
+      yield :json, @sequence, JSON.parse(payload)
+    end
 
     def data_lead(&block)
       @sequence, @data_count = get.unpack("NN")
@@ -301,8 +314,8 @@ module Lumberjack
           # We receive a new payload
           window_size(*args)
           reset_next_ack
-        when :data
-          data(*args, &block)
+        when :data, :json
+          data(event, *args, &block)
         end
       end
     end
@@ -319,8 +332,8 @@ module Lumberjack
       @next_ack = nil
     end
 
-    def data(sequence, map, &block)
-      block.call(map) if block_given?
+    def data(code, sequence, map, &block)
+      block.call(code, map) if block_given?
       ack_if_needed(sequence)
     end
     
