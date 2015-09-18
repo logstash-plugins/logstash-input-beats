@@ -30,7 +30,18 @@ describe "A client" do
                                     :ssl_key => certificate_file_key)
 
     @tcp_server = Thread.new do
-      tcp_server.run { |data| queue << data }
+      while true
+        tcp_server.accept do |socket|
+          con = Lumberjack::Connection.new(socket)
+          begin
+            con.run { |data| queue << data }
+          rescue
+            # Close connection on failure. For example SSL client will make
+            # parser for TCP based server trip.
+            # Connection is closed by Server connection object
+          end
+        end
+      end
     end
 
     @ssl_server = Thread.new do
@@ -38,37 +49,6 @@ describe "A client" do
     end
   end
 
-  context "with a valid certificate" do
-    it "successfully connect to the server" do
-      expect { 
-        Lumberjack::Client.new(:port => port, 
-                               :host => host,
-                               :addresses => host,
-                               :ssl_certificate => certificate_file_crt)
-
-      }.not_to raise_error
-    end
-  end
-
-  context "with an invalid certificate" do
-    let(:invalid_certificate) { Flores::PKI.generate }
-    let(:invalid_certificate_file) { "invalid.crt" }
-
-    before do
-      expect(File).to receive(:read).with(invalid_certificate_file) { invalid_certificate.first.to_s }
-    end
-
-    it "should refuse to connect" do
-      expect { 
-        Lumberjack::Client.new(:port => port, 
-                               :host => host,
-                               :addresses => host,
-                               :ssl_certificate => invalid_certificate_file)
-
-      }.to raise_error(OpenSSL::SSL::SSLError, /certificate verify failed/)
-    end
-  end
-  
   shared_examples "send payload" do
     it "supports single element" do
       (1..random_number_of_events).each do |n|
@@ -87,53 +67,9 @@ describe "A client" do
     end
   end
 
-  context "using plain tcp connection" do
-    it "should successfully connect to the server if ssl explicitely disabled" do
-      expect {
-        Lumberjack::Client.new(:port => tcp_port, :host => host, :addresses => host, :ssl => false)
-      }.not_to raise_error
-    end
-
-    it "should fail to connect to the server if ssl not explicitely disabled" do
-      expect {
-        Lumberjack::Client.new(:port => tcp_port, :host => host, :addresses => host)
-      }.to raise_error(RuntimeError, /Must set a ssl certificate/)
-    end
-
-    context "When transmitting a payload" do
-      let(:random_number_of_events) { Flores::Random.integer(2..10) }
-      let(:payload) { { "line" => "foobar" } }
-      let(:client) do
-        Lumberjack::Client.new(:port => tcp_port, :host => host, :addresses => host, :ssl => false)
-      end
-      let(:batch_size) { Flores::Random.integer(1..1024) }
-      let(:batch_payload) do
-        batch = []
-        batch_size.times do |n|
-          batch <<  { "line" => "foobar #{n}" }
-        end
-        batch
-      end
-
-      context "when sequence start at 0" do
-        let(:sequence_start) { 0 }
-
-        include_examples "send payload"
-      end
-
-    end
-  end
-
-
-  context "When transmitting a payload" do
+  shared_examples "transmit payloads" do
     let(:random_number_of_events) { Flores::Random.integer(2..10) }
     let(:payload) { { "line" => "foobar" } }
-    let(:client) do
-      Lumberjack::Client.new(:port => port, 
-                             :host => host,
-                             :addresses => host,
-                             :ssl_certificate => certificate_file_crt)
-    end
     let(:batch_size) { Flores::Random.integer(1..1024) }
     let(:batch_payload) do
       batch = []
@@ -173,6 +109,88 @@ describe "A client" do
         expect(queue.size).to eq(batch_size)
         expect(queue).to match_array(batch_payload)
       end
+    end
+  end
+
+  context "using plain tcp connection" do
+    it "should successfully connect to tcp server if ssl explicitely disabled" do
+      expect {
+        Lumberjack::Client.new(:port => tcp_port, :host => host, :addresses => host, :ssl => false)
+      }.not_to raise_error
+    end
+
+    it "should fail to connect to tcp server if ssl not explicitely disabled" do
+      expect {
+        Lumberjack::Client.new(:port => tcp_port, :host => host, :addresses => host)
+      }.to raise_error(RuntimeError, /Must set a ssl certificate/)
+    end
+
+    it "should fail to communicate to ssl based server" do
+      expect {
+        client = Lumberjack::Client.new(:port => port,
+                                        :host => host,
+                                        :addresses => host,
+                                        :ssl => false)
+        client.write({ "line" => "foobar" })
+      }.to raise_error(RuntimeError)
+    end
+
+    context "When transmitting a payload" do
+      let(:client) do
+        Lumberjack::Client.new(:port => tcp_port, :host => host, :addresses => host, :ssl => false)
+      end
+      include_examples "transmit payloads"
+    end
+  end
+
+  context "using ssl encrypted connection" do
+    context "with a valid certificate" do
+      it "successfully connect to the server" do
+        expect { 
+          Lumberjack::Client.new(:port => port,
+                                 :host => host,
+                                 :addresses => host,
+                                 :ssl_certificate => certificate_file_crt)
+        }.not_to raise_error
+      end
+
+      it "should fail connecting to plain tcp server" do
+        expect { 
+          Lumberjack::Client.new(:port => tcp_port,
+                                 :host => host,
+                                 :addresses => host,
+                                 :ssl_certificate => certificate_file_crt)
+        }.to raise_error(OpenSSL::SSL::SSLError)
+      end
+    end
+
+    context "with an invalid certificate" do
+      let(:invalid_certificate) { Flores::PKI.generate }
+      let(:invalid_certificate_file) { "invalid.crt" }
+
+      before do
+        expect(File).to receive(:read).with(invalid_certificate_file) { invalid_certificate.first.to_s }
+      end
+
+      it "should refuse to connect" do
+        expect {
+          Lumberjack::Client.new(:port => port,
+                                 :host => host,
+                                 :addresses => host,
+                                 :ssl_certificate => invalid_certificate_file)
+
+        }.to raise_error(OpenSSL::SSL::SSLError, /certificate verify failed/)
+      end
+    end
+
+    context "When transmitting a payload" do
+      let(:client) do
+        Lumberjack::Client.new(:port => port,
+                               :host => host,
+                               :addresses => host,
+                               :ssl_certificate => certificate_file_crt)
+      end
+      include_examples "transmit payloads"
     end
   end
 end
