@@ -4,12 +4,9 @@ require "socket"
 require "thread"
 require "openssl"
 require "zlib"
-require "json"
 
 module Lumberjack
   class Client
-    @@json = Proc.new { |value| value.to_json }
-
     def initialize(opts={})
       @opts = {
         :port => 0,
@@ -25,16 +22,6 @@ module Lumberjack
       raise "Must set a ssl certificate or path" if @opts[:ssl_certificate].nil? && @opts[:ssl]
 
       @socket = connect
-    end
-
-    public
-    def self.json
-      return @@json
-    end
-
-    public
-    def self.json=(json)
-      @@json = json
     end
 
     private
@@ -180,8 +167,7 @@ module Lumberjack
 
   module JsonEncoder
     def self.to_frame(hash, sequence)
-      encoder = Lumberjack::Client.json
-      json = encoder.call(hash)
+      json = Lumberjack::json.dump(hash)
       json_length = json.bytesize
       pack = "AANNA#{json_length}"
       frame = ["1", "J", sequence, json_length, json]

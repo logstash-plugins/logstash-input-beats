@@ -13,8 +13,6 @@ module Lumberjack
 
     attr_reader :port
 
-    @@json = JSON.method(:parse)
-
     # Create a new Lumberjack server.
     #
     # - options is a hash. Valid options are:
@@ -59,16 +57,6 @@ module Lumberjack
       end
     end # def initialize
 
-    public
-    def self.json
-      return @@json
-    end
-
-    public
-    def self.json=(json)
-      @@json = json
-    end
-
     def run(&block)
       while !closed?
         connection = accept
@@ -77,7 +65,6 @@ module Lumberjack
         # we will try again in the next iteration
         # unless the server is closing
         next unless connection
-
 
         Thread.new(connection) do |connection|
           connection.run(&block)
@@ -236,7 +223,8 @@ module Lumberjack
 
     def json_data_payload(&block)
       payload = get
-      yield :json, @sequence, Lumberjack::Server.json.call(payload)
+      yield :json, @sequence, Lumberjack::json.load(payload)
+      transition(:header, 2)
     end
 
     def data_lead(&block)
@@ -307,7 +295,7 @@ module Lumberjack
       while !server.closed?
         read_socket(&block)
       end
-    rescue EOFError, OpenSSL::SSL::SSLError, IOError, Errno::ECONNRESET
+    rescue EOFError, OpenSSL::SSL::SSLError, IOError, Errno::ECONNRESET => e
       # EOF or other read errors, only action is to shutdown which we'll do in
       # 'ensure'
     ensure
@@ -326,8 +314,19 @@ module Lumberjack
           # We receive a new payload
           window_size(*args)
           reset_next_ack
-        when :data, :json
+        when :data
           data(event, *args, &block)
+        when :json
+          # If the payload is an array of items we will emit multiple events
+          # this behavior was moved from the plugin to the library.
+          # see this commit: https://github.com/logstash-plugins/logstash-input-lumberjack/pull/57/files#diff-1b9590423b15f04f215635164e7376ecR158
+          sequence, map = args
+
+          if map.is_a?(Array)
+            map.each { |e| data(event, sequence, e, &block) }
+          else
+            data(event, sequence, map, &block)
+          end
         end
       end
     end
@@ -345,7 +344,7 @@ module Lumberjack
     end
 
     def data(code, sequence, map, &block)
-      block.call(code, map) if block_given?
+      block.call(map) if block_given?
       ack_if_needed(sequence)
     end
     
@@ -357,7 +356,9 @@ module Lumberjack
       # The first encoded event will contain the sequence number 
       # this is needed to know when we should ack.
       @next_ack = compute_next_ack(sequence) if @next_ack.nil?
-      @fd.syswrite(["1A", sequence].pack("A*N")) if sequence == @next_ack
+      if sequence == @next_ack
+        @fd.syswrite(["1A", sequence].pack("A*N"))
+      end
     end
   end # class Connection
 end # module Lumberjack

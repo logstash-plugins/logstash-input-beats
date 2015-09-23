@@ -32,7 +32,7 @@ describe "A client" do
         tcp_server.accept do |socket|
           con = Lumberjack::Connection.new(socket, tcp_server)
           begin
-            con.run { |_, data| queue << data }
+            con.run { |data| queue << data }
           rescue
             # Close connection on failure. For example SSL client will make
             # parser for TCP based server trip.
@@ -43,7 +43,7 @@ describe "A client" do
     end
 
     @ssl_server = Thread.new do
-      ssl_server.run { |_, data| queue << data }
+      ssl_server.run { |data| queue << data }
     end
   end
 
@@ -134,10 +134,17 @@ describe "A client" do
     end
 
     context "When transmitting a payload" do
-      let(:client) do
-        Lumberjack::Client.new(:port => tcp_port, :host => host, :addresses => host, :ssl => false)
+      let(:options) { {:port => tcp_port, :host => host, :addresses => host, :ssl => false } }
+      let(:client) { Lumberjack::Client.new(options) }
+
+      context "json" do
+        let(:options) { super.merge({ :json => true }) }
+        include_examples "transmit payloads"
       end
-      include_examples "transmit payloads"
+
+      context "v1 frame" do
+        include_examples "transmit payloads"
+      end
     end
   end
 
@@ -188,7 +195,15 @@ describe "A client" do
                                :addresses => host,
                                :ssl_certificate => certificate_file_crt)
       end
-      include_examples "transmit payloads"
+
+      context "json" do
+        let(:options) { super.merge({ :json => true }) }
+        include_examples "transmit payloads"
+      end
+
+      context "v1 frame" do
+        include_examples "transmit payloads"
+      end
     end
   end
 end
