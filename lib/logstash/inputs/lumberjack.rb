@@ -1,6 +1,10 @@
 # encoding: utf-8
 require "logstash/inputs/base"
 require "logstash/namespace"
+require "lumberjack"
+
+# use Logstash provided json decoder
+Lumberjack::json = LogStash::Json
 
 # Receive events using the lumberjack protocol.
 #
