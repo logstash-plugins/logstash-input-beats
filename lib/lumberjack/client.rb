@@ -51,8 +51,8 @@ module Lumberjack
     end
 
     public
-    def write(elements)
-      @socket.write_sync(elements, :json => @opts[:json])
+    def write(elements, opts={})
+      @socket.write_sync(elements, opts)
     end
 
     public
@@ -82,6 +82,7 @@ module Lumberjack
         :address => "127.0.0.1",
         :ssl_certificate => nil,
         :ssl => true,
+        :json => false,
       }.merge(opts)
       @host = @opts[:address]
 
@@ -132,7 +133,7 @@ module Lumberjack
     public
     def write_sync(elements, opts={})
       options = {
-        :json => false,
+        :json => @opts[:json],
       }.merge(opts)
 
       elements = [elements] if elements.is_a?(Hash)
