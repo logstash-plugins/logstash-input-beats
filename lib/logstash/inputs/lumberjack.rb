@@ -53,6 +53,12 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
     require "logstash/circuit_breaker"
     require "logstash/sized_queue_timeout"
 
+    ssl_configured = !(@ssl_certificate.nil? && @ssl_key.nil?)
+    @logger.warn("SSL Certificate will not be used") if ssl_configured && !@ssl
+    if @ssl && !ssl_configured
+      raise LogStash::ConfigurationError, "Certificate or Certificate Key not configured"
+    end
+
     @logger.info("Starting lumberjack input listener", :address => "#{@host}:#{@port}")
     @lumberjack = Lumberjack::Server.new(:address => @host, :port => @port,
       :ssl => @ssl, :ssl_certificate => @ssl_certificate, :ssl_key => @ssl_key,
