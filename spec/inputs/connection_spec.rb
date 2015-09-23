@@ -5,17 +5,17 @@ require 'logstash/inputs/lumberjack'
 require "logstash/inputs/base"
 require "logstash/codecs/plain"
 
-describe LogStash::Inputs::Lumberjack::Client do
-  let(:decoration) { LogStash::Inputs::Lumberjack::Decoration.new }
+describe LogStash::Inputs::Lumberjack::ConnectionDecorator do
+  let(:decoration) { LogStash::Inputs::Lumberjack::EventDecoration.new }
   let(:codec) { LogStash::Codecs::Plain.new }
   let(:events) { Array.new }
   let(:receiver) { Proc.new { |event| events << event.to_hash } }
   let(:connection) {double("connection")}
   let(:client) {
-    LogStash::Inputs::Lumberjack::Client.new(decoration, codec.clone, connection)
+    LogStash::Inputs::Lumberjack::ConnectionDecorator.new(decoration, codec.clone, connection)
   }
 
-  context "With data frame" do
+  context "Receiving data frame" do
     it "should accept event with line field" do
       allow(connection).to receive(:run).and_yield(:data, {
         "line" => "foobar line",
@@ -36,7 +36,7 @@ describe LogStash::Inputs::Lumberjack::Client do
     end
   end
 
-  context "With json data frame" do
+  context "Receiving json data frame" do
     it "should accept and decode event with line field (backwards compatibility)" do
       allow(connection).to receive(:run).and_yield(:json, {
         "line" => "foobar line",
