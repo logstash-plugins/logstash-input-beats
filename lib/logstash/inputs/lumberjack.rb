@@ -110,7 +110,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
       begin
         # If any errors occur in from the events the connection should be closed in the
         # library ensure block and the exception will be handled here
-        client = ConnectionDecorator.new(EventDecoration.new, code, connection)
+        client = ConnectionDecorator.new(EventDecoration.new, codec, connection)
         client.run(&block)
 
         # When too many errors happen inside the circuit breaker it will throw
