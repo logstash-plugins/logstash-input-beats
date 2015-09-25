@@ -22,6 +22,53 @@ describe LogStash::Inputs::Lumberjack do
       plugin = LogStash::Inputs::Lumberjack.new(config)
       expect { plugin.register }.not_to raise_error
     end
+
+    context "with ssl enabled" do
+      context "without certificate configuration" do
+        let(:config) {{ "port" => 0, "ssl_key" => certificate.ssl_key, "type" => "example", "tags" => "lumberjack" }}
+
+        it "should fail to register the plugin with ConfigurationError" do
+          plugin = LogStash::Inputs::Lumberjack.new(config)
+          expect {plugin.register}.to raise_error(LogStash::ConfigurationError)
+        end
+      end
+
+      context "without key configuration" do
+        let(:config)   { { "port" => 0, "ssl_certificate" => certificate.ssl_cert, "type" => "example", "tags" => "lumberjack" } }
+        it "should fail to register the plugin with ConfigurationError" do
+          plugin = LogStash::Inputs::Lumberjack.new(config)
+          expect {plugin.register}.to raise_error(LogStash::ConfigurationError)
+        end
+      end
+    end
+
+    context "with ssl disabled" do
+      context "and certificate configuration" do
+        let(:config)   { { "port" => 0, "ssl" => false, "ssl_certificate" => certificate.ssl_cert, "type" => "example", "tags" => "lumberjack" } }
+
+        it "should not fail" do
+          plugin = LogStash::Inputs::Lumberjack.new(config)
+          expect {plugin.register}.not_to raise_error
+        end
+      end
+
+      context "and certificate key configuration" do
+        let(:config) {{ "port" => 0, "ssl" => false, "ssl_key" => certificate.ssl_key, "type" => "example", "tags" => "lumberjack" }}
+
+        it "should not fail" do
+          plugin = LogStash::Inputs::Lumberjack.new(config)
+          expect {plugin.register}.not_to raise_error
+        end
+      end
+
+      context "and no certificate or key configured" do
+        let(:config) {{ "ssl" => false, "port" => 0, "type" => "example", "tags" => "lumberjack" }}
+        it "should work just fine" do
+          plugin = LogStash::Inputs::Lumberjack.new(config)
+          expect {plugin.register}.not_to raise_error
+        end
+      end
+    end
   end
 
   describe "#processing of events" do
