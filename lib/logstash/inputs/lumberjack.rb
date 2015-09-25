@@ -53,9 +53,10 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
     require "logstash/circuit_breaker"
     require "logstash/sized_queue_timeout"
 
-    ssl_configured = !(@ssl_certificate.nil? && @ssl_key.nil?)
-    @logger.warn("SSL Certificate will not be used") if ssl_configured && !@ssl
-    if @ssl && !ssl_configured
+    if !@ssl
+      @logger.warn("SSL Certificate will not be used") unless @ssl_certificate.nil?
+      @logger.warn("SSL Key will not be used") unless @ssl_key.nil?
+    elsif !ssl_configured?
       raise LogStash::ConfigurationError, "Certificate or Certificate Key not configured"
     end
 
@@ -77,6 +78,10 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
                             :exceptions => [LogStash::SizedQueueTimeout::TimeoutError])
 
   end # def register
+
+  def ssl_configured?
+    !(@ssl_certificate.nil? || @ssl_key.nil?)
+  end
 
   def run(output_queue)
     start_buffer_broker(output_queue)
