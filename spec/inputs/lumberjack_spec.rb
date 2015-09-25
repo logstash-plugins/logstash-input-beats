@@ -47,4 +47,8 @@ describe LogStash::Inputs::Lumberjack do
       end
     end
   end
+
+  context "when interrupting the plugin" do
+    it_behaves_like "an interruptible input plugin"
+  end
 end

@@ -68,12 +68,17 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
   def run(output_queue)
     start_buffer_broker(output_queue)
 
-    while true do
+    while !stop? do
       # Wrappingu the accept call into a CircuitBreaker
       if @circuit_breaker.closed?
         connection = @lumberjack.accept # Blocking call that creates a new connection
 
         invoke(connection, @codec.clone) do |_codec, line, fields|
+          if stop?
+            connection.close
+            return
+          end
+
           _codec.decode(line) do |event|
             begin
               decorate(event)
@@ -89,11 +94,12 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
         sleep(RECONNECT_BACKOFF_SLEEP)
       end
     end
-  rescue LogStash::ShutdownSignal
-    @logger.info("Lumberjack input: received ShutdownSignal")
-  ensure
-    shutdown(output_queue)
   end # def run
+
+  public
+  def stop
+    @lumberjack.close
+  end
 
   private
   def invoke(connection, codec, &block)
@@ -121,7 +127,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
 
   def start_buffer_broker(output_queue)
     @threadpool.post do
-      while true
+      while !stop?
         output_queue << @buffered_queue.pop_no_timeout
       end
     end
