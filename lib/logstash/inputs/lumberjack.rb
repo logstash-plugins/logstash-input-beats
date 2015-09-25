@@ -142,16 +142,16 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
     end
   end # class EventDecoration
 
-  class ConnectionDecorator
+  class ConnectionDecorator < SimpleDelegator
     def initialize(event_decoration, codec, connection)
+      super(connection)
       @event_decoration = event_decoration
-      @connection = connection
       @codec = codec
     end
 
     public
     def run(&block)
-      @connection.run do |type, event|
+      super do |type, event|
         case type
         when :json; json_event(event, &block)
         when :data; data_event(event, &block)
