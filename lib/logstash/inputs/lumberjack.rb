@@ -75,15 +75,17 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
     while !stop? do
       # Wrappingu the accept call into a CircuitBreaker
       if @circuit_breaker.closed?
-        connection = @lumberjack.accept # call that creates a new connection
-        next if connection.nil? # if the connection is nil the connection was close.
-        invoke(connection, @codec.clone) do |_codec, line, fields|
-          if stop?
+        connection = @lumberjack.accept # Blocking call that creates a new connection
+		next if connection.nil? # if the connection is nil the connection was close.
+
+        connection = ConnectionDecorator.new(EventDecoration.new,
+                                             @codec.clone, connection)
+        invoke(connection) do |event|
+   	      if stop?
             connection.close
             break
           end
 
-        invoke(connection, @codec.clone) do |event|
           begin
             @circuit_breaker.execute {
               @buffered_queue.push(event, @congestion_threshold)
@@ -105,13 +107,12 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
   end
 
   private
-  def invoke(connection, codec, &block)
+  def invoke(connection, &block)
     @threadpool.post do
       begin
         # If any errors occur in from the events the connection should be closed in the
         # library ensure block and the exception will be handled here
-        client = ConnectionDecorator.new(EventDecoration.new, codec, connection)
-        client.run(&block)
+        connection.run(&block)
 
         # When too many errors happen inside the circuit breaker it will throw
         # this exception and start refusing connection. The bubbling of theses
@@ -119,7 +120,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
         # connection which will force the client to reconnect and restransmit
         # his payload.
       rescue LogStash::CircuitBreaker::OpenBreaker,
-        LogStash::CircuitBreaker::HalfOpenBreaker => e
+             LogStash::CircuitBreaker::HalfOpenBreaker => e
         logger.warn("Lumberjack input: The circuit breaker has detected a slowdown or stall in the pipeline, the input is closing the current connection and rejecting new connection until the pipeline recover.", :exception => e.class)
       rescue => e # If we have a malformed packet we should handle that so the input doesn't crash completely.
         @logger.error("Lumberjack input: unhandled exception", :exception => e, :backtrace => e.backtrace)
