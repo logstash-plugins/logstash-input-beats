@@ -71,8 +71,8 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
     while !stop? do
       # Wrappingu the accept call into a CircuitBreaker
       if @circuit_breaker.closed?
-        connection = @lumberjack.accept # Blocking call that creates a new connection
-
+        connection = @lumberjack.accept # call that creates a new connection
+        next if connection.nil? # if the connection is nil the connection was close.
         invoke(connection, @codec.clone) do |_codec, line, fields|
           if stop?
             connection.close
