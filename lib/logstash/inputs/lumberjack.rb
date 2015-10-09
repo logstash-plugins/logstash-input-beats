@@ -76,7 +76,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
         invoke(connection, @codec.clone) do |_codec, line, fields|
           if stop?
             connection.close
-            return
+            break
           end
 
           _codec.decode(line) do |event|
