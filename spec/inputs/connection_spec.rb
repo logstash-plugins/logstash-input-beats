@@ -1,18 +1,18 @@
 # encoding: utf-8
 
 require_relative "../spec_helper"
-require 'logstash/inputs/lumberjack'
+require "logstash/inputs/beats"
 require "logstash/inputs/base"
 require "logstash/codecs/plain"
 
-describe LogStash::Inputs::Lumberjack::ConnectionDecorator do
-  let(:decoration) { LogStash::Inputs::Lumberjack::EventDecoration.new }
+describe LogStash::Inputs::Beats::ConnectionDecorator do
+  let(:decoration) { LogStash::Inputs::Beats::EventDecoration.new }
   let(:codec) { LogStash::Codecs::Plain.new }
   let(:events) { Array.new }
   let(:receiver) { Proc.new { |event| events << event.to_hash } }
   let(:connection) {double("connection")}
   let(:client) {
-    LogStash::Inputs::Lumberjack::ConnectionDecorator.new(decoration, codec.clone, connection)
+    LogStash::Inputs::Beats::ConnectionDecorator.new(decoration, codec.clone, connection)
   }
 
   context "Receiving data frame" do
@@ -74,5 +74,4 @@ describe LogStash::Inputs::Lumberjack::ConnectionDecorator do
       expect(events[2]["message"]).to eq("event2")
     end
   end
-
 end
