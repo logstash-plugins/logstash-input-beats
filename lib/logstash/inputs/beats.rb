@@ -6,14 +6,12 @@ require "lumberjack"
 # use Logstash provided json decoder
 Lumberjack::json = LogStash::Json
 
-# Receive events using the lumberjack protocol.
+# Allow Logstash to receive events from Filebeat
 #
-# This is mainly to receive events shipped with lumberjack[http://github.com/jordansissel/lumberjack],
-# now represented primarily via the
-# https://github.com/elasticsearch/logstash-forwarder[Logstash-forwarder].
+# https://github.com/elastic/filebeat[filebeat]
 #
-class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
-  config_name "lumberjack"
+class LogStash::Inputs::Beats < LogStash::Inputs::Base
+  config_name "beats"
 
   default :codec, "plain"
 
@@ -58,7 +56,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
       raise LogStash::ConfigurationError, "Certificate or Certificate Key not configured"
     end
 
-    @logger.info("Starting lumberjack input listener", :address => "#{@host}:#{@port}")
+    @logger.info("Starting Beats input listener", :address => "#{@host}:#{@port}")
     @lumberjack = Lumberjack::Server.new(:address => @host, :port => @port,
       :ssl => @ssl, :ssl_certificate => @ssl_certificate, :ssl_key => @ssl_key,
       :ssl_key_passphrase => @ssl_key_passphrase)
@@ -72,7 +70,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
     # We are using a small plugin buffer to move events to the internal queue
     @buffered_queue = LogStash::SizedQueueTimeout.new(BUFFERED_QUEUE_SIZE)
 
-    @circuit_breaker = LogStash::CircuitBreaker.new("Lumberjack input",
+    @circuit_breaker = LogStash::CircuitBreaker.new("Beats input",
                             :exceptions => [LogStash::SizedQueueTimeout::TimeoutError])
 
   end # def register
@@ -106,7 +104,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
           end
         end
       else
-        @logger.warn("Lumberjack input: the pipeline is blocked, temporary refusing new connection.")
+        @logger.warn("Beats input: the pipeline is blocked, temporary refusing new connection.")
         sleep(RECONNECT_BACKOFF_SLEEP)
       end
     end
@@ -132,9 +130,9 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
         # his payload.
       rescue LogStash::CircuitBreaker::OpenBreaker,
              LogStash::CircuitBreaker::HalfOpenBreaker => e
-        logger.warn("Lumberjack input: The circuit breaker has detected a slowdown or stall in the pipeline, the input is closing the current connection and rejecting new connection until the pipeline recover.", :exception => e.class)
+        logger.warn("Beats input: The circuit breaker has detected a slowdown or stall in the pipeline, the input is closing the current connection and rejecting new connection until the pipeline recover.", :exception => e.class)
       rescue => e # If we have a malformed packet we should handle that so the input doesn't crash completely.
-        @logger.error("Lumberjack input: unhandled exception", :exception => e, :backtrace => e.backtrace)
+        @logger.error("Beats input: unhandled exception", :exception => e, :backtrace => e.backtrace)
       end
     end
   end
@@ -211,4 +209,4 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
       @event_decoration.decorate(event)
     end
   end # ConnectionDecorator
-end # class LogStash::Inputs::Lumberjack
+end # class LogStash::Inputs::Beats
