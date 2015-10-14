@@ -24,8 +24,11 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
   # The port to listen on.
   config :port, :validate => :number, :required => true
 
-  # SSL enablement
-  config :ssl, :validate => :boolean, :default => true
+  # SSL
+  # Event are by default send in plain text, you can
+  # enable encryption by using the `ssl_certificate` and `ssl_key` 
+  # option.
+  config :ssl, :validate => :boolean, :default => false
 
   # SSL certificate to use.
   config :ssl_certificate, :validate => :path
