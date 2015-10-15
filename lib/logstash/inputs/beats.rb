@@ -1,6 +1,7 @@
 # encoding: utf-8
 require "logstash/inputs/base"
 require "logstash/namespace"
+require "logstash/compatibility_layer_api_v1"
 require "lumberjack"
 
 # use Logstash provided json decoder
@@ -11,6 +12,8 @@ Lumberjack::json = LogStash::Json
 # https://github.com/elastic/filebeat[filebeat]
 #
 class LogStash::Inputs::Beats < LogStash::Inputs::Base
+  include LogStash::CompatibilityLayerApiV1
+
   config_name "beats"
 
   default :codec, "plain"
