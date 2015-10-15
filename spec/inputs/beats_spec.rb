@@ -2,6 +2,7 @@
 require_relative "../spec_helper"
 require "stud/temporary"
 require "logstash/inputs/beats"
+require "logstash/compatibility_layer_api_v1"
 require "logstash/codecs/plain"
 require "logstash/codecs/multiline"
 require "logstash/event"
@@ -95,7 +96,9 @@ describe LogStash::Inputs::Beats do
     end
   end
 
-  context "when interrupting the plugin" do
-    it_behaves_like "an interruptible input plugin"
+  unless LogStash::CompatibilityLayerApiV1.is_v1?
+    context "when interrupting the plugin" do
+      it_behaves_like "an interruptible input plugin"
+    end
   end
 end
