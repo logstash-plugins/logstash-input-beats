@@ -7,6 +7,7 @@ require "fileutils"
 require "thread"
 require "spec_helper"
 
+Thread.abort_on_exception = true
 describe "A client" do
   let(:certificate) { Flores::PKI.generate }
   let(:certificate_file_crt) { "certificate.crt" }

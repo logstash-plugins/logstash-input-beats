@@ -94,7 +94,7 @@ module Lumberjack
         begin
           IO.select([@server], nil, nil, SOCKET_TIMEOUT)
           retry unless closed?
-        rescue IOError => e # we currently closing
+        rescue IOError, Errno::EBADF => e # we currently closing
           raise e unless closed?
         end
       end
@@ -128,8 +128,9 @@ module Lumberjack
   end # class Server
 
   class Parser
-    PROTOCOL_VERSION_1 = 1
-    PROTOCOL_VERSION_2 = 2
+    PROTOCOL_VERSION_1 = "1".ord
+    PROTOCOL_VERSION_2 = "2".ord
+
     SUPPORTED_PROTOCOLS = [PROTOCOL_VERSION_1, PROTOCOL_VERSION_2]
 
     def initialize
@@ -198,13 +199,13 @@ module Lumberjack
       @need = length
     end # def need
 
-    FRAME_WINDOW = "W"
-    FRAME_DATA = "D"
-    FRAME_JSON_DATA = "J"
-    FRAME_COMPRESSED = "C"
+    FRAME_WINDOW = "W".ord
+    FRAME_DATA = "D".ord
+    FRAME_JSON_DATA = "J".ord
+    FRAME_COMPRESSED = "C".ord
     def header(&block)
-      version = get(1).to_i
-      frame_type = get 1
+      version, frame_type = get.bytes.to_a[0..1]
+      version ||= PROTOCOL_VERSION_1
 
       handle_version(version, &block)
 
@@ -213,12 +214,12 @@ module Lumberjack
       when FRAME_DATA; transition(:data_lead, 8)
       when FRAME_JSON_DATA; transition(:json_data_lead, 8)
       when FRAME_COMPRESSED; transition(:compressed_lead, 4)
-      else; raise "Unknown frame type: #{frame_type}"
+      else; raise "Unknown frame type: `#{frame_type}`"
       end
     end
 
     def handle_version(version, &block)
-      if supported_protocol?(version.to_i)
+      if supported_protocol?(version)
         yield :version, version
       else
         raise "unsupported protocol #{version}"
@@ -306,8 +307,6 @@ module Lumberjack
       @fd = fd
 
       @server = server
-      # a safe default until we are told by the client what window size to use
-      @window_size = 1 
       @ack_handler = nil
     end
 
@@ -315,7 +314,7 @@ module Lumberjack
       while !server.closed?
         read_socket(&block)
       end
-    rescue EOFError, OpenSSL::SSL::SSLError, IOError, Errno::ECONNRESET => e
+    rescue EOFError, OpenSSL::SSL::SSLError, IOError, Errno::ECONNRESET
       # EOF or other read errors, only action is to shutdown which we'll do in
       # 'ensure'
     ensure
@@ -331,55 +330,96 @@ module Lumberjack
       @parser.feed(@fd.sysread(READ_SIZE)) do |event, *args|
         case event
         when :version
+          version(*args)
         when :window_size
-          # We receive a new payload
-          window_size(*args)
-          reset_next_ack
+          reset_next_ack(*args)
         when :data
-          data(event, *args, &block)
+          sequence, map = args
+          ack_if_needed(sequence) { data(map, &block) }
         when :json
           # If the payload is an array of items we will emit multiple events
           # this behavior was moved from the plugin to the library.
           # see this commit: https://github.com/logstash-plugins/logstash-input-lumberjack/pull/57/files#diff-1b9590423b15f04f215635164e7376ecR158
           sequence, map = args
 
-          if map.is_a?(Array)
-            map.each { |e| data(event, sequence, e, &block) }
-          else
-            data(event, sequence, map, &block)
+          ack_if_needed(sequence) do
+            if map.is_a?(Array)
+              map.each { |e| data(e, &block) }
+            else
+              data(map, &block)
+            end
           end
         end
       end
+    end
+
+    def version(version)
+      @version = version
+    end
+
+    def ack_if_needed(sequence, &block)
+      block.call
+      send_ack(sequence) if @ack_handler.ack?(sequence)
     end
 
     def close
       @fd.close unless @fd.closed?
     end
 
-    def window_size(size)
-      @window_size = size
-    end
-
-    def reset_next_ack
-      @next_ack = nil
-    end
-
-    def data(code, sequence, map, &block)
+    def data(map, &block)
       block.call(map) if block_given?
-      ack_if_needed(sequence)
-    end
-    
-    def compute_next_ack(sequence)
-      (sequence + @window_size - 1) % SEQUENCE_MAX
     end
 
-    def ack_if_needed(sequence)
+    def reset_next_ack(window_size)
+      klass = (@version == Parser::PROTOCOL_VERSION_1) ? AckingProtocolV1 : AckingProtocolV2
+      @ack_handler = klass.new(window_size)
+    end
+
+    def send_ack(sequence)
+      @fd.syswrite(["1A", sequence].pack("A*N"))
+    end
+  end # class Connection
+
+  class AckingProtocolV1
+    def initialize(window_size)
+      @next_ack = nil
+      @window_size = window_size
+    end
+
+    def ack?(sequence)
       # The first encoded event will contain the sequence number 
       # this is needed to know when we should ack.
       @next_ack = compute_next_ack(sequence) if @next_ack.nil?
-      if sequence == @next_ack
-        @fd.syswrite(["1A", sequence].pack("A*N"))
+      sequence == @next_ack
+    end
+
+    private
+    def compute_next_ack(sequence)
+      (sequence + @window_size - 1) % SEQUENCE_MAX
+    end
+  end
+
+  # Allow lumberjack to send partial ack back to the producer
+  # only V2 client support partial Acks
+  #
+  # Send Ack on every 20% of the data, so with default settings every 200 events
+  # This should reduce the congestion on retransmit.
+  class AckingProtocolV2
+    ACK_RATIO = 5
+
+    def initialize(window_size)
+      @window_size = window_size
+      @every = (window_size / ACK_RATIO).round
+    end
+
+    def ack?(sequence)
+      if @window_size == sequence
+        true
+      elsif sequence % @every == 0
+        true
+      else
+        false
       end
     end
-  end # class Connection
+  end
 end # module Lumberjack

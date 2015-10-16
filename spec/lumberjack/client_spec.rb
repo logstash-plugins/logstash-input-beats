@@ -8,9 +8,7 @@ require "openssl"
 require "zlib"
 
 describe "Lumberjack::Client" do
-
   describe "Lumberjack::Socket" do
-
     let(:port)   { 5000 }
 
     subject(:socket) { Lumberjack::Socket.new(:port => port, :ssl_certificate => "" ) }
@@ -46,8 +44,10 @@ describe "Lumberjack::Client" do
       }
       parser = Lumberjack::Parser.new
       parser.feed(Lumberjack::FrameEncoder.to_frame(content, 0)) do |code, sequence, data|
-        expect(data["message"].force_encoding('UTF-8')).to eq(content["message"])
-        expect(data["other"].force_encoding('UTF-8')).to eq(content["other"])
+        if code == :data
+          expect(data["message"].force_encoding('UTF-8')).to eq(content["message"])
+          expect(data["other"].force_encoding('UTF-8')).to eq(content["other"])
+        end
       end
     end
 
@@ -57,7 +57,7 @@ describe "Lumberjack::Client" do
       }
       parser = Lumberjack::Parser.new
       parser.feed(Lumberjack::FrameEncoder.to_frame(content, 0)) do |code, sequence, data|
-        expect(data["message"].force_encoding('UTF-8')).to eq(content["message"])
+        expect(data["message"].force_encoding('UTF-8')).to eq(content["message"]) if code == :data
       end
     end
   end
@@ -75,7 +75,7 @@ describe "Lumberjack::Client" do
       parser = Lumberjack::Parser.new
       frame = Lumberjack::JsonEncoder.to_frame(content, 0)
       parser.feed(frame) do |code, sequence, data|
-        expect(data).to eq(content)
+        expect(data).to eq(content) if code == :json
       end
     end
 
@@ -86,8 +86,10 @@ describe "Lumberjack::Client" do
       }
       parser = Lumberjack::Parser.new
       parser.feed(Lumberjack::JsonEncoder.to_frame(content, 0)) do |code, sequence, data|
-        expect(data["message"]).to eq(content["message"])
-        expect(data["other"]).to eq(content["other"])
+        if code == :json
+          expect(data["message"]).to eq(content["message"])
+          expect(data["other"]).to eq(content["other"])
+        end
       end
     end
 
@@ -97,7 +99,7 @@ describe "Lumberjack::Client" do
       }
       parser = Lumberjack::Parser.new
       parser.feed(Lumberjack::JsonEncoder.to_frame(content, 0)) do |code, sequence, data|
-        expect(data["message"]).to eq(content["message"])
+        expect(data["message"]).to eq(content["message"]) if code == :json
       end
     end
   end

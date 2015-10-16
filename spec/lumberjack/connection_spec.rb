@@ -17,8 +17,10 @@ describe "Connnection" do
       allow(socket).to receive(:syswrite).with(anything).and_return(true)
       allow(socket).to receive(:close)
 
+
       expectation = receive(:feed)
         .with("")
+        .and_yield(:version, Lumberjack::Parser::PROTOCOL_VERSION_1)
         .and_yield(:window_size, random_number_of_events)
 
       random_number_of_events.times { |n| expectation.and_yield(:data, start_sequence + n + 1, payload) }
