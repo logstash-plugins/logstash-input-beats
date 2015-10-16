@@ -128,6 +128,10 @@ module Lumberjack
   end # class Server
 
   class Parser
+    PROTOCOL_VERSION_1 = 1
+    PROTOCOL_VERSION_2 = 2
+    SUPPORTED_PROTOCOLS = [PROTOCOL_VERSION_1, PROTOCOL_VERSION_2]
+
     def initialize
       @buffer_offset = 0
       @buffer = ""
@@ -194,12 +198,15 @@ module Lumberjack
       @need = length
     end # def need
 
-    FRAME_WINDOW = "W".ord
-    FRAME_DATA = "D".ord
-    FRAME_JSON_DATA = "J".ord
-    FRAME_COMPRESSED = "C".ord
+    FRAME_WINDOW = "W"
+    FRAME_DATA = "D"
+    FRAME_JSON_DATA = "J"
+    FRAME_COMPRESSED = "C"
     def header(&block)
-      version, frame_type = get.bytes.to_a[0..1]
+      version = get(1).to_i
+      frame_type = get 1
+
+      handle_version(version, &block)
 
       case frame_type
       when FRAME_WINDOW; transition(:window_size, 4)
@@ -208,6 +215,18 @@ module Lumberjack
       when FRAME_COMPRESSED; transition(:compressed_lead, 4)
       else; raise "Unknown frame type: #{frame_type}"
       end
+    end
+
+    def handle_version(version, &block)
+      if supported_protocol?(version.to_i)
+        yield :version, version
+      else
+        raise "unsupported protocol #{version}"
+      end
+    end
+
+    def supported_protocol?(version)
+      SUPPORTED_PROTOCOLS.include?(version)
     end
 
     def window_size(&block)
@@ -289,6 +308,7 @@ module Lumberjack
       @server = server
       # a safe default until we are told by the client what window size to use
       @window_size = 1 
+      @ack_handler = nil
     end
 
     def run(&block)
@@ -310,6 +330,7 @@ module Lumberjack
       # X: too many events after errors.
       @parser.feed(@fd.sysread(READ_SIZE)) do |event, *args|
         case event
+        when :version
         when :window_size
           # We receive a new payload
           window_size(*args)
