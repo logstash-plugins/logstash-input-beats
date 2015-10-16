@@ -7,7 +7,7 @@ require "lumberjack"
 # use Logstash provided json decoder
 Lumberjack::json = LogStash::Json
 
-# Allow Logstash to receive events from Filebeat
+# Allow Logstash to receive events from Beats
 #
 # https://github.com/elastic/filebeat[filebeat]
 #
@@ -82,18 +82,21 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     !(@ssl_certificate.nil? || @ssl_key.nil?)
   end
 
+  def target_codec_on_field?
+    !@target_codec_on_field.empty?
+  end
+
   def run(output_queue)
     start_buffer_broker(output_queue)
 
     while !stop? do
-      # Wrappingu the accept call into a CircuitBreaker
+      # Wrapping the accept call into a CircuitBreaker
       if @circuit_breaker.closed?
         connection = @lumberjack.accept # call that creates a new connection
         next if connection.nil? # if the connection is nil the connection was close.
-        connection = ConnectionDecorator.new(EventDecoration.new,
-                                             @codec.clone, connection)
-        invoke(connection) do |event|
-   	      if stop?
+
+        invoke(connection, @codec.clone) do |event|
+          if stop?
             connection.close
             break
           end
@@ -119,12 +122,26 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end
 
   private
-  def invoke(connection, &block)
+  def create_event(codec, map)
+    # Filebeats uses the `message` key and LSF `line`
+    message = map.delete("message")
+
+    @codec.decode(message) do |decoded|
+      decorate(decoded)
+      map.each { |k, v| decoded[k] = v; v.force_encoding(Encoding::UTF_8) }
+      return decoded
+    end
+  end
+
+  private
+  def invoke(connection, codec, &block)
     @threadpool.post do
       begin
         # If any errors occur in from the events the connection should be closed in the
         # library ensure block and the exception will be handled here
-        connection.run(&block)
+        connection.run do
+          block.call(create_event(codec, map))
+        end
 
         # When too many errors happen inside the circuit breaker it will throw
         # this exception and start refusing connection. The bubbling of theses
@@ -140,6 +157,12 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     end
   end
 
+  # The default Logstash Sizequeue doesn't support timeouts.
+  # This is problematic because this will make the client timeouts
+  # and reconnect creating multiples threads and OOMing the jvm.
+  #
+  # We are using a proxy queue supporting blocking with a timeout and
+  # this thread take the element from one queue into another one.
   def start_buffer_broker(output_queue)
     @threadpool.post do
       while !stop?
@@ -147,69 +170,4 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       end
     end
   end
-
-  class EventDecoration < LogStash::Inputs::Base
-    public
-    def decorate(event)
-      super(event)
-    end
-  end # class EventDecoration
-
-  class ConnectionDecorator < SimpleDelegator
-    def initialize(event_decoration, codec, connection)
-      super(connection)
-      @event_decoration = event_decoration
-      @codec = codec
-    end
-
-    public
-    def run(&block)
-      super do |type, event|
-        case type
-        when :json; json_event(event, &block)
-        when :data; data_event(event, &block)
-        else; raise "unknown event type received"
-        end
-      end
-    end
-
-    private
-    def json_event(map, &block)
-      if map.is_a?(Array)
-        map.each { |item| json_event(item, &block) }
-      else
-        line = map.delete("line")
-        if line.nil?
-          event = LogStash::Event.new(map)
-          decorate(event)
-          yield event
-        else
-          @codec.decode(line) do |decoded|
-            decorate(decoded)
-            map.each { |k,v| decoded[k] = v }
-            yield decoded
-          end
-        end
-      end
-    end
-
-    private
-    def data_event(fields)
-      line = fields.delete("line")
-      @codec.decode(line) do |event|
-        begin
-          decorate(event)
-          fields.each { |k,v| event[k] = v; v.force_encoding(Encoding::UTF_8) }
-          yield event
-        rescue => e
-          raise e
-        end
-      end
-    end
-
-    private
-    def decorate(event)
-      @event_decoration.decorate(event)
-    end
-  end # ConnectionDecorator
 end # class LogStash::Inputs::Beats
