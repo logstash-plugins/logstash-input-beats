@@ -15,7 +15,7 @@ module LogStash::CompatibilityLayerApiV1
     LOGSTASH_CORE_VERSION < V2_VERSION
   end
   
-  # This allo this plugin to work both in V1 and v2 of logstash-core
+  # This allow this plugin to work both in V1 and v2 of logstash-core
   module InstanceMethods
     def do_stop
     end
