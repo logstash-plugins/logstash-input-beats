@@ -42,6 +42,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # this option is useful to control how much time to wait if something is blocking the pipeline.
   config :congestion_threshold, :validate => :number, :default => 5
 
+  # This is the default field that the specified codec will be applied
+  config :target_field_for_codec, :validate => :string, :default => "message"
+
   # TODO(sissel): Add CA to authenticate clients with.
   BUFFERED_QUEUE_SIZE = 1
   RECONNECT_BACKOFF_SLEEP = 0.5
@@ -124,12 +127,16 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   private
   def create_event(codec, map)
     # Filebeats uses the `message` key and LSF `line`
-    message = map.delete("message")
+    target_field = map.delete(target_field_for_codec)
 
-    @codec.decode(message) do |decoded|
-      decorate(decoded)
-      map.each { |k, v| decoded[k] = v; v.force_encoding(Encoding::UTF_8) }
-      return decoded
+    if target_field.nil?
+      @codec.decode(target_field) do |decoded|
+        decorate(decoded)
+        map.each { |k, v| decoded[k] }
+        return decoded
+      end
+    else
+      return LogStash::Event.new(map)
     end
   end
 
@@ -139,9 +146,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       begin
         # If any errors occur in from the events the connection should be closed in the
         # library ensure block and the exception will be handled here
-        connection.run do
-          block.call(create_event(codec, map))
-        end
+        connection.run { |map| block.call(create_event(codec, map)) }
 
         # When too many errors happen inside the circuit breaker it will throw
         # this exception and start refusing connection. The bubbling of theses
