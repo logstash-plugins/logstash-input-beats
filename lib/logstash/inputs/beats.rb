@@ -56,8 +56,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     require "logstash/sized_queue_timeout"
 
     if !@ssl
-      @logger.warn("SSL Certificate will not be used") unless @ssl_certificate.nil?
-      @logger.warn("SSL Key will not be used") unless @ssl_key.nil?
+      @logger.warn("Beats: SSL Certificate will not be used") unless @ssl_certificate.nil?
+      @logger.warn("Beats: SSL Key will not be used") unless @ssl_key.nil?
     elsif !ssl_configured?
       raise LogStash::ConfigurationError, "Certificate or Certificate Key not configured"
     end
@@ -126,17 +126,19 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   private
   def create_event(codec, map)
+    require "pry"
+    binding.pry
     # Filebeats uses the `message` key and LSF `line`
     target_field = map.delete(target_field_for_codec)
 
     if target_field.nil?
+      return LogStash::Event.new(map)
+    else
       @codec.decode(target_field) do |decoded|
         decorate(decoded)
         map.each { |k, v| decoded[k] }
         return decoded
       end
-    else
-      return LogStash::Event.new(map)
     end
   end
 
