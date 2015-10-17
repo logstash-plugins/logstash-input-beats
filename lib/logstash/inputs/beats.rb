@@ -126,17 +126,16 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   private
   def create_event(codec, map)
-    require "pry"
-    binding.pry
     # Filebeats uses the `message` key and LSF `line`
     target_field = map.delete(target_field_for_codec)
 
     if target_field.nil?
       return LogStash::Event.new(map)
     else
-      @codec.decode(target_field) do |decoded|
+      # All codes expects to work on string
+      @codec.decode(target_field.to_s) do |decoded|
         decorate(decoded)
-        map.each { |k, v| decoded[k] }
+        map.each { |k, v| decoded[k] = v }
         return decoded
       end
     end
