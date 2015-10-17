@@ -17,15 +17,12 @@ module LogStash::CompatibilityLayerApiV1
   
   # This allow this plugin to work both in V1 and v2 of logstash-core
   module InstanceMethods
-    def do_stop
-    end
-
     def stop?
       false
     end
 
     def teardown
-      close
+      stop
     end
   end
 end
