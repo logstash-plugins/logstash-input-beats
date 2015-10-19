@@ -12,7 +12,7 @@ describe Lumberjack::AckingProtocolV2 do
 
     it "should return multiples partial acks" do
       expect(results.size).to eq(number_of_events)
-      expect(results.count(true)).to eq((number_of_events / number_of_events * Lumberjack::AckingProtocolV2::ACK_RATIO).ceil + 1)
+      expect(results.count(true)).to be_within(1).of((number_of_events / number_of_events * Lumberjack::AckingProtocolV2::ACK_RATIO).ceil)
     end
 
     it "last ack should be true" do
