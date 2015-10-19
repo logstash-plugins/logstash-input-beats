@@ -376,7 +376,7 @@ module Lumberjack
     end
 
     def send_ack(sequence)
-      @fd.syswrite(["1A", sequence].pack("A*N"))
+      @fd.syswrite(@ack_handler.ack_frame(sequence))
     end
   end # class Connection
 
@@ -391,6 +391,10 @@ module Lumberjack
       # this is needed to know when we should ack.
       @next_ack = compute_next_ack(sequence) if @next_ack.nil?
       sequence == @next_ack
+    end
+
+    def ack_frame(sequence)
+      ["1A", sequence].pack("A*N")
     end
 
     private
@@ -420,6 +424,10 @@ module Lumberjack
       else
         false
       end
+    end
+
+    def ack_frame(sequence)
+      ["2A", sequence].pack("A*N")
     end
   end
 end # module Lumberjack
