@@ -1,7 +1,9 @@
 # encoding: utf-8
-require 'spec_helper'
-require 'lumberjack/beats/client'
-require 'lumberjack/beats/server'
+require "spec_helper"
+require "logstash/util"
+require "lumberjack/beats"
+require "lumberjack/beats/client"
+require "lumberjack/beats/server"
 require "socket"
 require "thread"
 require "openssl"
@@ -75,7 +77,7 @@ describe Lumberjack::Beats::Client do
       parser = Lumberjack::Beats::Parser.new
       frame = Lumberjack::Beats::JsonEncoder.to_frame(content, 0)
       parser.feed(frame) do |code, sequence, data|
-        expect(data).to eq(content) if code == :json
+        expect(LogStash::Util.normalize(data)).to eq(content) if code == :json
       end
     end
 
