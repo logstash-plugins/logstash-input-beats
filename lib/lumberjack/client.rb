@@ -5,7 +5,7 @@ require "thread"
 require "openssl"
 require "zlib"
 
-module Lumberjack
+module Lumberjack module Beats
   class Client
     def initialize(opts={})
       @opts = {
@@ -216,4 +216,4 @@ module Lumberjack
       keys.flatten
     end
   end # module Encoder
-end
+end; end

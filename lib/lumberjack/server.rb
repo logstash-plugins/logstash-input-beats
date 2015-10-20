@@ -7,7 +7,7 @@ require "zlib"
 require "json"
 require "concurrent"
 
-module Lumberjack
+module Lumberjack module Beats
   class Server
     SOCKET_TIMEOUT = 1 # seconds
 
@@ -430,4 +430,4 @@ module Lumberjack
       ["2A", sequence].pack("A*N")
     end
   end
-end # module Lumberjack
+end; end# module Lumberjack

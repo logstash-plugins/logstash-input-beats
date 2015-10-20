@@ -1,6 +1,6 @@
 require "json"
 
-module Lumberjack
+module Lumberjack module Beats
   SEQUENCE_MAX = (2**32-1).freeze
 
   @@json = Class.new do
@@ -19,4 +19,4 @@ module Lumberjack
   def self.json=(j)
     @@json = j
   end
-end
+end; end
