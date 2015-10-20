@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name            = "logstash-input-beats"
-  s.version         = "0.9"
+  s.version         = "0.9.1"
   s.licenses        = ["Apache License (2.0)"]
   s.summary         = "Receive events using the lumberjack protocol."
   s.description     = "This gem is a logstash plugin required to be installed on top of the Logstash core pipeline using $LS_HOME/bin/plugin install gemname. This gem is not a stand-alone program"
@@ -22,12 +22,14 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "logstash-core", ">= 1.5.4", "< 3.0.0"
 
   s.add_runtime_dependency "logstash-codec-plain"
-  s.add_runtime_dependency "jls-lumberjack", [">=0.0.26"]
   s.add_runtime_dependency "concurrent-ruby"
 
-  s.add_development_dependency "logstash-devutils"
-  s.add_development_dependency "logstash-codec-multiline"
-  s.add_development_dependency "flores"
+  s.add_development_dependency "flores", "~>0.0.6"
+  s.add_development_dependency "rspec"
   s.add_development_dependency "stud"
+  s.add_development_dependency "pry"
+  s.add_development_dependency "rspec-wait"
+  s.add_development_dependency "logstash-devutils", "~> 0.0.18"
+  s.add_development_dependency "logstash-codec-multiline"
 end
 

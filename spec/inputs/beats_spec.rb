@@ -6,7 +6,7 @@ require "logstash/compatibility_layer_api_v1"
 require "logstash/codecs/plain"
 require "logstash/codecs/multiline"
 require "logstash/event"
-require "lumberjack/client"
+require "lumberjack/beats/client"
 
 describe LogStash::Inputs::Beats do
   let(:connection) { double("connection") }
@@ -78,7 +78,7 @@ describe LogStash::Inputs::Beats do
     before do
       allow(connection).to receive(:run).and_yield(lines)
       beats.register
-      expect_any_instance_of(Lumberjack::Server).to receive(:accept).and_return(connection)
+      expect_any_instance_of(Lumberjack::Beats::Server).to receive(:accept).and_return(connection)
     end
 
     context "#codecs" do

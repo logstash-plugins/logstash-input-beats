@@ -2,10 +2,11 @@
 require "logstash/inputs/base"
 require "logstash/namespace"
 require "logstash/compatibility_layer_api_v1"
-require "lumberjack"
+require "lumberjack/beats"
+require "lumberjack/beats/server"
 
 # use Logstash provided json decoder
-Lumberjack::json = LogStash::Json
+Lumberjack::Beats::json = LogStash::Json
 
 # Allow Logstash to receive events from Beats
 #
@@ -50,7 +51,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   RECONNECT_BACKOFF_SLEEP = 0.5
   
   def register
-    require "lumberjack/server"
     require "concurrent"
     require "logstash/circuit_breaker"
     require "logstash/sized_queue_timeout"
@@ -63,7 +63,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     end
 
     @logger.info("Starting Beats input listener", :address => "#{@host}:#{@port}")
-    @lumberjack = Lumberjack::Server.new(:address => @host, :port => @port,
+    @lumberjack = Lumberjack::Beats::Server.new(:address => @host, :port => @port,
       :ssl => @ssl, :ssl_certificate => @ssl_certificate, :ssl_key => @ssl_key,
       :ssl_key_passphrase => @ssl_key_passphrase)
 
