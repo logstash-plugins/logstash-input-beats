@@ -1,5 +1,5 @@
+# encoding: utf-8
 require "json"
-
 module Lumberjack module Beats
   SEQUENCE_MAX = (2**32-1).freeze
 

@@ -1,20 +1,20 @@
 # encoding: utf-8
 require 'spec_helper'
-require 'lumberjack/client'
-require 'lumberjack/server'
+require 'lumberjack/beats/client'
+require 'lumberjack/beats/server'
 require "socket"
 require "thread"
 require "openssl"
 require "zlib"
 
-describe "Lumberjack::Client" do
-  describe "Lumberjack::Socket" do
+describe Lumberjack::Beats::Client do
+  describe Lumberjack::Beats::Socket do
     let(:port)   { 5000 }
 
-    subject(:socket) { Lumberjack::Socket.new(:port => port, :ssl_certificate => "" ) }
+    subject(:socket) { Lumberjack::Beats::Socket.new(:port => port, :ssl_certificate => "" ) }
 
     before do
-      allow_any_instance_of(Lumberjack::Socket).to receive(:connection_start).and_return(true)
+      allow_any_instance_of(Lumberjack::Beats::Socket).to receive(:connection_start).and_return(true)
       # mock any network call
       allow(socket).to receive(:send_window_size).with(kind_of(Integer)).and_return(true)
       allow(socket).to receive(:send_payload).with(kind_of(String)).and_return(true)
@@ -36,14 +36,14 @@ describe "Lumberjack::Client" do
     end
   end
 
-  describe Lumberjack::FrameEncoder do
+  describe Lumberjack::Beats::FrameEncoder do
     it 'should creates frames without truncating accentued characters' do
       content = {
         "message" => "Le Canadien de Montréal est la meilleure équipe au monde!",
         "other" => "éléphant"
       }
-      parser = Lumberjack::Parser.new
-      parser.feed(Lumberjack::FrameEncoder.to_frame(content, 0)) do |code, sequence, data|
+      parser = Lumberjack::Beats::Parser.new
+      parser.feed(Lumberjack::Beats::FrameEncoder.to_frame(content, 0)) do |code, sequence, data|
         if code == :data
           expect(data["message"].force_encoding('UTF-8')).to eq(content["message"])
           expect(data["other"].force_encoding('UTF-8')).to eq(content["other"])
@@ -55,14 +55,14 @@ describe "Lumberjack::Client" do
       content = {
         "message" => "国際ホッケー連盟" # International Hockey Federation
       }
-      parser = Lumberjack::Parser.new
-      parser.feed(Lumberjack::FrameEncoder.to_frame(content, 0)) do |code, sequence, data|
+      parser = Lumberjack::Beats::Parser.new
+      parser.feed(Lumberjack::Beats::FrameEncoder.to_frame(content, 0)) do |code, sequence, data|
         expect(data["message"].force_encoding('UTF-8')).to eq(content["message"]) if code == :data
       end
     end
   end
 
-  describe Lumberjack::JsonEncoder do
+  describe Lumberjack::Beats::JsonEncoder do
     it 'should create frames from nested hash' do
       content = {
         "number" => 1,
@@ -72,8 +72,8 @@ describe "Lumberjack::Client" do
           "a" => 1
         }
       }
-      parser = Lumberjack::Parser.new
-      frame = Lumberjack::JsonEncoder.to_frame(content, 0)
+      parser = Lumberjack::Beats::Parser.new
+      frame = Lumberjack::Beats::JsonEncoder.to_frame(content, 0)
       parser.feed(frame) do |code, sequence, data|
         expect(data).to eq(content) if code == :json
       end
@@ -84,8 +84,8 @@ describe "Lumberjack::Client" do
         "message" => "Le Canadien de Montréal est la meilleure équipe au monde!",
         "other" => "éléphant"
       }
-      parser = Lumberjack::Parser.new
-      parser.feed(Lumberjack::JsonEncoder.to_frame(content, 0)) do |code, sequence, data|
+      parser = Lumberjack::Beats::Parser.new
+      parser.feed(Lumberjack::Beats::JsonEncoder.to_frame(content, 0)) do |code, sequence, data|
         if code == :json
           expect(data["message"]).to eq(content["message"])
           expect(data["other"]).to eq(content["other"])
@@ -97,8 +97,8 @@ describe "Lumberjack::Client" do
       content = {
         "message" => "国際ホッケー連盟" # International Hockey Federation
       }
-      parser = Lumberjack::Parser.new
-      parser.feed(Lumberjack::JsonEncoder.to_frame(content, 0)) do |code, sequence, data|
+      parser = Lumberjack::Beats::Parser.new
+      parser.feed(Lumberjack::Beats::JsonEncoder.to_frame(content, 0)) do |code, sequence, data|
         expect(data["message"]).to eq(content["message"]) if code == :json
       end
     end

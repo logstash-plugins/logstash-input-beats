@@ -1,6 +1,6 @@
 # encoding: utf-8
-require "lumberjack/client"
-require "lumberjack/server"
+require "lumberjack/beats/client"
+require "lumberjack/beats/server"
 require "stud/temporary"
 require "flores/pki"
 require "fileutils"
@@ -21,9 +21,9 @@ describe "A client" do
     expect(File).to receive(:read).at_least(1).with(certificate_file_crt) { certificate.first.to_s }
     expect(File).to receive(:read).at_least(1).with(certificate_file_key) { certificate.last.to_s }
 
-    tcp_server = Lumberjack::Server.new(:port => tcp_port, :address => host, :ssl => false)
+    tcp_server = Lumberjack::Beats::Server.new(:port => tcp_port, :address => host, :ssl => false)
 
-    ssl_server = Lumberjack::Server.new(:port => port,
+    ssl_server = Lumberjack::Beats::Server.new(:port => port,
                                         :address => host,
                                         :ssl_certificate => certificate_file_crt,
                                         :ssl_key => certificate_file_key)
@@ -31,7 +31,7 @@ describe "A client" do
     @tcp_server = Thread.new do
       while true
         tcp_server.accept do |socket|
-          con = Lumberjack::Connection.new(socket, tcp_server)
+          con = Lumberjack::Beats::Connection.new(socket, tcp_server)
           begin
             con.run { |data| queue << data }
           rescue
@@ -96,7 +96,7 @@ describe "A client" do
 
     context "when the sequence rollover" do
       let(:batch_size) { 100 }
-      let(:sequence_start) { Lumberjack::SEQUENCE_MAX - batch_size / 2 }
+      let(:sequence_start) { Lumberjack::Beats::SEQUENCE_MAX - batch_size / 2 }
 
       before do
         client.instance_variable_get(:@socket).instance_variable_set(:@sequence, sequence_start)
@@ -114,29 +114,29 @@ describe "A client" do
   context "using plain tcp connection" do
     it "should successfully connect to tcp server if ssl explicitely disabled" do
       expect {
-        Lumberjack::Client.new(:port => tcp_port, :host => host, :addresses => host, :ssl => false)
+        Lumberjack::Beats::Client.new(:port => tcp_port, :host => host, :addresses => host, :ssl => false)
       }.not_to raise_error
     end
 
     it "should fail to connect to tcp server if ssl not explicitely disabled" do
       expect {
-        Lumberjack::Client.new(:port => tcp_port, :host => host, :addresses => host)
+        Lumberjack::Beats::Client.new(:port => tcp_port, :host => host, :addresses => host)
       }.to raise_error(RuntimeError, /Must set a ssl certificate/)
     end
 
     it "should fail to communicate to ssl based server" do
       expect {
-        client = Lumberjack::Client.new(:port => port,
-                                        :host => host,
-                                        :addresses => host,
-                                        :ssl => false)
+        client = Lumberjack::Beats::Client.new(:port => port,
+                                               :host => host,
+                                               :addresses => host,
+                                               :ssl => false)
         client.write({ "line" => "foobar" })
       }.to raise_error(RuntimeError)
     end
 
     context "When transmitting a payload" do
       let(:options) { {:port => tcp_port, :host => host, :addresses => host, :ssl => false } }
-      let(:client) { Lumberjack::Client.new(options) }
+      let(:client) { Lumberjack::Beats::Client.new(options) }
 
       context "json" do
         let(:options) { super.merge({ :json => true }) }
@@ -153,7 +153,7 @@ describe "A client" do
     context "with a valid certificate" do
       it "successfully connect to the server" do
         expect { 
-          Lumberjack::Client.new(:port => port,
+          Lumberjack::Beats::Client.new(:port => port,
                                  :host => host,
                                  :addresses => host,
                                  :ssl_certificate => certificate_file_crt)
@@ -162,7 +162,7 @@ describe "A client" do
 
       it "should fail connecting to plain tcp server" do
         expect { 
-          Lumberjack::Client.new(:port => tcp_port,
+          Lumberjack::Beats::Client.new(:port => tcp_port,
                                  :host => host,
                                  :addresses => host,
                                  :ssl_certificate => certificate_file_crt)
@@ -180,10 +180,10 @@ describe "A client" do
 
       it "should refuse to connect" do
         expect {
-          Lumberjack::Client.new(:port => port,
-                                 :host => host,
-                                 :addresses => host,
-                                 :ssl_certificate => invalid_certificate_file)
+          Lumberjack::Beats::Client.new(:port => port,
+                                        :host => host,
+                                        :addresses => host,
+                                        :ssl_certificate => invalid_certificate_file)
 
         }.to raise_error(OpenSSL::SSL::SSLError, /certificate verify failed/)
       end
@@ -191,10 +191,10 @@ describe "A client" do
 
     context "When transmitting a payload" do
       let(:client) do
-        Lumberjack::Client.new(:port => port,
-                               :host => host,
-                               :addresses => host,
-                               :ssl_certificate => certificate_file_crt)
+        Lumberjack::Beats::Client.new(:port => port,
+                                      :host => host,
+                                      :addresses => host,
+                                      :ssl_certificate => certificate_file_crt)
       end
 
       context "json" do

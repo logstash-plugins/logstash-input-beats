@@ -1,5 +1,5 @@
 # encoding: utf-8
-require "lumberjack"
+require "lumberjack/beats"
 require "socket"
 require "thread"
 require "openssl"
@@ -243,7 +243,7 @@ module Lumberjack module Beats
 
     def json_data_payload(&block)
       payload = get
-      yield :json, @sequence, Lumberjack::json.load(payload)
+      yield :json, @sequence, Lumberjack::Beats::json.load(payload)
       transition(:header, 2)
     end
 

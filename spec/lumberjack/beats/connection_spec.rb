@@ -1,31 +1,31 @@
 # encoding: utf-8
-require "lumberjack/server"
+require "lumberjack/beats/server"
 require "spec_helper"
 require "flores/random"
 
 describe "Connnection" do
   let(:server) { double("server", :closed? => false) }
   let(:socket) { double("socket", :closed? => false) }
-  let(:connection) { Lumberjack::Connection.new(socket, server) }
+  let(:connection) { Lumberjack::Beats::Connection.new(socket, server) }
   let(:payload) { {"line" => "foobar" } }
   let(:start_sequence) { Flores::Random.integer(0..2000) }
   let(:random_number_of_events) { Flores::Random.integer(2..200) }
 
   context "when the server is running" do
     before do
-      expect(socket).to receive(:sysread).at_least(:once).with(Lumberjack::Connection::READ_SIZE).and_return("")
+      expect(socket).to receive(:sysread).at_least(:once).with(Lumberjack::Beats::Connection::READ_SIZE).and_return("")
       allow(socket).to receive(:syswrite).with(anything).and_return(true)
       allow(socket).to receive(:close)
 
 
       expectation = receive(:feed)
         .with("")
-        .and_yield(:version, Lumberjack::Parser::PROTOCOL_VERSION_1)
+        .and_yield(:version, Lumberjack::Beats::Parser::PROTOCOL_VERSION_1)
         .and_yield(:window_size, random_number_of_events)
 
       random_number_of_events.times { |n| expectation.and_yield(:data, start_sequence + n + 1, payload) }
 
-      expect_any_instance_of(Lumberjack::Parser).to expectation
+      expect_any_instance_of(Lumberjack::Beats::Parser).to expectation
     end
 
     it "should ack the end of a sequence" do

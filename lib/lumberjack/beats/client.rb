@@ -1,5 +1,5 @@
 # encoding: utf-8
-require "lumberjack"
+require "lumberjack/beats"
 require "socket"
 require "thread"
 require "openssl"
@@ -31,7 +31,7 @@ module Lumberjack module Beats
         raise "Could not connect to any hosts" if addrs.empty?
         opts = @opts
         opts[:address] = addrs.pop
-        Lumberjack::Socket.new(opts)
+        Lumberjack::Beats::Socket.new(opts)
       rescue *[Errno::ECONNREFUSED,SocketError]
         retry
       end
@@ -98,7 +98,7 @@ module Lumberjack module Beats
 
     private 
     def inc
-      @sequence = 0 if @sequence + 1 > Lumberjack::SEQUENCE_MAX
+      @sequence = 0 if @sequence + 1 > Lumberjack::Beats::SEQUENCE_MAX
       @sequence = @sequence + 1
     end
 
@@ -167,7 +167,7 @@ module Lumberjack module Beats
 
   module JsonEncoder
     def self.to_frame(hash, sequence)
-      json = Lumberjack::json.dump(hash)
+      json = Lumberjack::Beats::json.dump(hash)
       json_length = json.bytesize
       pack = "AANNA#{json_length}"
       frame = ["1", "J", sequence, json_length, json]

@@ -1,6 +1,6 @@
 # encoding: utf-8
-require "lumberjack/client"
-require "lumberjack/server"
+require "lumberjack/beats/client"
+require "lumberjack/beats/server"
 require "flores/random"
 require "flores/pki"
 require "spec_helper"
@@ -22,7 +22,7 @@ describe "Server" do
   end
 
   subject do
-    Lumberjack::Server.new(:port => port,
+    Lumberjack::Beats::Server.new(:port => port,
                            :address => host,
                            :ssl_certificate => certificate_file_crt,
                            :ssl_key => certificate_file_key)
