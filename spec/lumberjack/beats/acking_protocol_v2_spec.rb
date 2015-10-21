@@ -28,4 +28,13 @@ describe Lumberjack::Beats::AckingProtocolV2 do
       expect(results.count(true)).to eq(1)
     end
   end
+
+  context "when the windows size is lower than the ack_ratio" do
+    let(:number_of_events) { 2 }
+
+    it "should return true only once" do
+      expect(results.size).to eq(number_of_events)
+      expect(results.count(true)).to eq(1)
+    end
+  end
 end
