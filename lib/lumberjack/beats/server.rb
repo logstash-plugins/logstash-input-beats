@@ -419,7 +419,7 @@ module Lumberjack module Beats
     def ack?(sequence)
       if @window_size == sequence
         true
-      elsif sequence % @every == 0
+      elsif @every != 0 && sequence % @every == 0
         true
       else
         false
