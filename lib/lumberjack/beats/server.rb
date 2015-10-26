@@ -314,7 +314,7 @@ module Lumberjack module Beats
       while !server.closed?
         read_socket(&block)
       end
-    rescue EOFError, OpenSSL::SSL::SSLError, IOError, Errno::ECONNRESET
+    rescue EOFError, OpenSSL::SSL::SSLError, IOError, Errno::ECONNRESET, Errno::EPIPE
       # EOF or other read errors, only action is to shutdown which we'll do in
       # 'ensure'
     ensure
