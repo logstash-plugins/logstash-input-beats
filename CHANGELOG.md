@@ -1,5 +1,6 @@
 # 0.9.3
   - Connection#run should rescue `Broken Pipe Error` #5
+  - Fix a `SystemCallErr` issue on windows when shutting down the server #9
 
 # 0.9.2
   - fix an issue with the incorrectly calculated ack when the window_size was smaller than the ACK_RATIO see  https://github.com/logstash-plugins/logstash-input-beats/issues/3
