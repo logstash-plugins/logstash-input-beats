@@ -314,9 +314,17 @@ module Lumberjack module Beats
       while !server.closed?
         read_socket(&block)
       end
-    rescue EOFError, OpenSSL::SSL::SSLError, IOError, Errno::ECONNRESET, Errno::EPIPE
+    rescue EOFError,
+      OpenSSL::SSL::SSLError,
+      IOError,
+      Errno::ECONNRESET,
+      Errno::EPIPE
       # EOF or other read errors, only action is to shutdown which we'll do in
       # 'ensure'
+    rescue
+      # when the server is shutting down we can safely ignore any exceptions
+      # On windows, we can get a `SystemCallErr`
+      raise unless server.closed?
     ensure
       close rescue 'Already closed stream'
     end # def run

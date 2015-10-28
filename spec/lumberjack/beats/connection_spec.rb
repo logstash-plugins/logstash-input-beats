@@ -36,12 +36,20 @@ describe "Connnection" do
 
   context "when the server stop" do
     let(:server) { double("server", :closed? => true) }
+
     before do
       expect(socket).to receive(:close).and_return(true)
     end
 
     it "stop reading from the socket" do
       expect { |b| connection.run(&b) }.not_to yield_control
+    end
+
+    it "should ignore any exception raised by `#sysread`" do
+      expect(server).to receive(:closed?).and_return(false)
+      expect(server).to receive(:closed?).and_return(true)
+      expect(connection).to receive(:read_socket).and_raise("Something went wrong")
+      expect { |b| connection.run(&b) }.not_to raise_error
     end
   end
 end
