@@ -156,7 +156,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   rescue LogStash::TimestampParserError => e
     LOGGER.warn("Error parsing @timestamp string, setting current time to @timestamp",
       :value => ts.inspect, :exception => e.message)
-    end
   end
 
   private
