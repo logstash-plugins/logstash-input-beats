@@ -7,13 +7,6 @@ bin
 *.bz2
 *.gz
 src/github.com/alecthomas/gozmq
-vendor/jemalloc/*/
-vendor/libuuid/*/
-vendor/lz4/lz4-r74/
-vendor/openssl/*/
-vendor/zeromq/*/
-vendor/libsodium/*/
-vendor/zlib/*/
 nacl.public
 nacl.secret
 .logstash-forwarder
@@ -26,3 +19,5 @@ logstash-forwarder
 *.crt
 *.key
 *.json
+vendor/
+.bundle/
