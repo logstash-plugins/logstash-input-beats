@@ -1,6 +1,7 @@
 # encoding: utf-8
 require "logstash/inputs/base"
 require "logstash/namespace"
+require "logstash/timestamp"
 require "logstash/compatibility_layer_api_v1"
 require "lumberjack/beats"
 require "lumberjack/beats/server"
@@ -127,17 +128,34 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   private
   def create_event(codec, map)
     # Filebeats uses the `message` key and LSF `line`
-    target_field = map.delete(target_field_for_codec)
+    target_field = target_field_for_codec ? map.delete(target_field_for_codec) : nil
 
     if target_field.nil?
       return LogStash::Event.new(map)
     else
+
       # All codes expects to work on string
       @codec.decode(target_field.to_s) do |decoded|
         decorate(decoded)
+        ts = coerce_ts(map.delete("@timestamp"))
+        decoded["@timestamp"] = ts unless ts.nil?
         map.each { |k, v| decoded[k] = v }
         return decoded
       end
+    end
+  end
+
+  private
+  def coerce_ts(ts)
+    return nil if ts.nil?
+    timestamp = LogStash::Timestamp.coerce(ts)
+    return timestamp if timestamp
+
+    LOGGER.warn("Unrecognized @timestamp value, setting current time to @timestamp",
+      :value => ts.inspect)
+  rescue LogStash::TimestampParserError => e
+    LOGGER.warn("Error parsing @timestamp string, setting current time to @timestamp",
+      :value => ts.inspect, :exception => e.message)
     end
   end
 
