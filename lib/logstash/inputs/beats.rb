@@ -125,13 +125,15 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     @lumberjack.close
   end
 
-  private
+  public
   def create_event(codec, map)
     # Filebeats uses the `message` key and LSF `line`
     target_field = target_field_for_codec ? map.delete(target_field_for_codec) : nil
 
     if target_field.nil?
-      return LogStash::Event.new(map) 
+      event = LogStash::Event.new(map) 
+      decorate(event)
+      return event
     else
       # All codecs expects to work on string
       @codec.decode(target_field.to_s) do |decoded|
