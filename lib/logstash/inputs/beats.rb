@@ -131,10 +131,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     target_field = target_field_for_codec ? map.delete(target_field_for_codec) : nil
 
     if target_field.nil?
-      return LogStash::Event.new(map)
+      return LogStash::Event.new(map) 
     else
-
-      # All codes expects to work on string
+      # All codecs expects to work on string
       @codec.decode(target_field.to_s) do |decoded|
         decorate(decoded)
         ts = coerce_ts(map.delete("@timestamp"))
@@ -151,10 +150,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     timestamp = LogStash::Timestamp.coerce(ts)
     return timestamp if timestamp
 
-    LOGGER.warn("Unrecognized @timestamp value, setting current time to @timestamp",
+    @logger.warn("Unrecognized @timestamp value, setting current time to @timestamp",
       :value => ts.inspect)
   rescue LogStash::TimestampParserError => e
-    LOGGER.warn("Error parsing @timestamp string, setting current time to @timestamp",
+    @logger.warn("Error parsing @timestamp string, setting current time to @timestamp",
       :value => ts.inspect, :exception => e.message)
   end
 
