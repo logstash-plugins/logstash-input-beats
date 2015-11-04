@@ -72,26 +72,51 @@ describe LogStash::Inputs::Beats do
 
   describe "#processing of events" do
     subject(:beats) { LogStash::Inputs::Beats.new(config) }
+    let(:codec) { LogStash::Codecs::Multiline.new("pattern" => '\n', "what" => "previous") }
 
-    let(:lines) { {"line" => "one\ntwo\n  two.2\nthree\n", "tags" => ["syslog"]} }
-
-    before do
-      allow(connection).to receive(:run).and_yield(lines)
-      beats.register
-      expect_any_instance_of(Lumberjack::Beats::Server).to receive(:accept).and_return(connection)
+    let(:config) do
+      { "port" => port, "ssl_certificate" => certificate.ssl_cert, "ssl_key" => certificate.ssl_key,
+        "type" => "example", "codec" => codec }
     end
 
-    context "#codecs" do
-      let(:config) do
-        { "port" => port, "ssl_certificate" => certificate.ssl_cert, "ssl_key" => certificate.ssl_key,
-          "type" => "example", "codec" => codec }
-      end
 
-      let(:codec) { LogStash::Codecs::Multiline.new("pattern" => '\n', "what" => "previous") }
+    context "#codecs" do
+      let(:lines) { {"line" => "one\ntwo\n  two.2\nthree\n", "tags" => ["syslog"]} }
+
+      before do
+        allow(connection).to receive(:run).and_yield(lines)
+        beats.register
+        expect_any_instance_of(Lumberjack::Beats::Server).to receive(:accept).and_return(connection)
+      end
+      
       it "clone the codec per connection" do
         expect(beats.codec).to receive(:clone).once
         expect(beats).to receive(:invoke) { break }
         beats.run(queue)
+      end
+    end
+
+    context "#create_event" do
+      let(:config) { super.merge({ "add_field" => { "foo" => "bar" }, "tags" => ["bonjour"]}) }
+      let(:event_map) { { "hello" => "world" } }
+      let(:codec) { LogStash::Codecs::Plain.new }
+
+      context "without a `target_field` defined" do
+        it "decorates the event" do
+          event = beats.create_event(codec, event_map)
+          expect(event["foo"]).to eq("bar")
+          expect(event["tags"]).to include("bonjour")
+        end
+      end
+
+      context "with a `target_field` defined" do
+        let(:event_map) { super.merge({"message" => "with a field"}) }
+
+        it "decorates the event" do
+          event = beats.create_event(beats.codec, event_map)
+          expect(event["foo"]).to eq("bar")
+          expect(event["tags"]).to include("bonjour")
+        end
       end
     end
   end
