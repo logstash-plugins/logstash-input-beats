@@ -97,7 +97,7 @@ describe LogStash::Inputs::Beats do
     end
 
     context "#create_event" do
-      let(:config) { super.merge({ "add_field" => { "foo" => "bar" }, "tags" => ["bonjour"]}) }
+      let(:config) { super.merge({ "add_field" => { "foo" => "bar", "[@metadata][hidden]" => "secret"}, "tags" => ["bonjour"]}) }
       let(:event_map) { { "hello" => "world" } }
       let(:codec) { LogStash::Codecs::Plain.new }
 
@@ -105,6 +105,7 @@ describe LogStash::Inputs::Beats do
         it "decorates the event" do
           event = beats.create_event(codec, event_map)
           expect(event["foo"]).to eq("bar")
+          expect(event["[@metadata][hidden]"]).to eq("secret")
           expect(event["tags"]).to include("bonjour")
         end
       end
@@ -115,6 +116,7 @@ describe LogStash::Inputs::Beats do
         it "decorates the event" do
           event = beats.create_event(beats.codec, event_map)
           expect(event["foo"]).to eq("bar")
+          expect(event["[@metadata][hidden]"]).to eq("secret")
           expect(event["tags"]).to include("bonjour")
         end
       end
