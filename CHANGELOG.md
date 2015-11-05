@@ -1,3 +1,5 @@
+# 0.9.4
+  - Correctly decorate the event with the `add_field` and `tags` option from the config #12
 # 0.9.3
   - Connection#run should rescue `Broken Pipe Error` #5
   - Fix a `SystemCallErr` issue on windows when shutting down the server #9
