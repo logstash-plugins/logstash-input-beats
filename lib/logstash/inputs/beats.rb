@@ -137,10 +137,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     else
       # All codecs expects to work on string
       @codec.decode(target_field.to_s) do |decoded|
-        decorate(decoded)
         ts = coerce_ts(map.delete("@timestamp"))
         decoded["@timestamp"] = ts unless ts.nil?
         map.each { |k, v| decoded[k] = v }
+        decorate(decoded)
         return decoded
       end
     end
