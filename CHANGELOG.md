@@ -1,3 +1,5 @@
+# 0.9.6
+  - Fix an issue with rogue events created by buffered codecs #19
 # 0.9.5
   - Set concurrent-ruby to 0.9.1 see https://github.com/elastic/logstash/issues/4141
 # 0.9.4
