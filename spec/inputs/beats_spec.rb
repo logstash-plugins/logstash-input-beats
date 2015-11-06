@@ -120,6 +120,16 @@ describe LogStash::Inputs::Beats do
           expect(event["tags"]).to include("bonjour")
         end
       end
+
+      context "when data is buffered in the codec" do
+        let(:codec) { LogStash::Codecs::Multiline.new("pattern" => '^\s', "what" => "previous") }
+        let(:event_map) { {"message" => "hello?", "tags" => ["syslog"]} }
+
+        it "retuns nil" do
+          event = beats.create_event(beats.codec, event_map)
+          expect(event).to be_nil
+        end
+      end
     end
   end
 
