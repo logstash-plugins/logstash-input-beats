@@ -144,6 +144,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
         return decoded
       end
     end
+    return nil
   end
 
   private
@@ -165,7 +166,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       begin
         # If any errors occur in from the events the connection should be closed in the
         # library ensure block and the exception will be handled here
-        connection.run { |map| block.call(create_event(codec, map)) }
+        connection.run do |map|
+          event = create_event(codec, map)
+          block.call(event) unless event.nil?
+        end
 
         # When too many errors happen inside the circuit breaker it will throw
         # this exception and start refusing connection. The bubbling of theses
