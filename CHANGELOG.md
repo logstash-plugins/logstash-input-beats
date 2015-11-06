@@ -1,3 +1,5 @@
+# 0.9.5
+  - Set concurrent-ruby to 0.9.1 see https://github.com/elastic/logstash/issues/4141
 # 0.9.4
   - Correctly decorate the event with the `add_field` and `tags` option from the config #12
 # 0.9.3
