@@ -4,12 +4,63 @@ require "spec_helper"
 require "flores/random"
 
 describe "Connnection" do
+  let(:ip) { "192.168.1.2" }
+  let(:port) { 4444 }
   let(:server) { double("server", :closed? => false) }
   let(:socket) { double("socket", :closed? => false) }
   let(:connection) { Lumberjack::Beats::Connection.new(socket, server) }
   let(:payload) { {"line" => "foobar" } }
   let(:start_sequence) { Flores::Random.integer(0..2000) }
   let(:random_number_of_events) { Flores::Random.integer(2..200) }
+
+  subject { Lumberjack::Beats::Connection.new(socket, server) }
+
+  before do
+    allow(socket).to receive(:peeraddr).and_return(["AF_INET", port, "test.elastic.co", ip])
+  end
+
+  context "#peer" do
+    let(:socket) { double("socket", :closed? => false) }
+
+    it "return the ip and the port" do
+      expect(subject.peer).to eq("#{ip}:#{port}")
+    end
+  end
+
+  context "#identity_stream" do
+    let(:map) { { "message" => "Hello world" } }
+
+    context "with a map containing the beats.id and the file_id" do
+      let(:map) { super.merge({
+        "beat" => { "name" => "testing-host", "id" => "abc1234" },
+        "type" => "log",
+        "resource_id" => "123",
+        "input_type" => "propector",
+        "source" => "/var/log/message" }) }
+
+      it "generate a identity stream from an event start" do
+        expect(subject.identity_stream(map)).to eq("#{map["beat"]["id"]}-#{map["resource_id"]}")
+      end
+    end
+
+    context "with a map containing all the information" do
+      let(:map) { super.merge({
+        "beat" => { "name" => "testing-host" },
+        "type" => "log",
+        "input_type" => "propector",
+        "source" => "/var/log/message" }) }
+
+      it "generate a identity stream from an event start" do
+        expect(subject.identity_stream(map)).to eq("#{map["beat"]["name"]}-#{map["source"]}")
+      end
+    end
+
+    context "with a map containing no information" do
+      it "use the ip and the port" do
+        expect(subject.identity_stream(map)).to eq("")
+      end
+    end
+  end
 
   context "when the server is running" do
     before do

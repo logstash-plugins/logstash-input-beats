@@ -2,7 +2,6 @@
 require_relative "../spec_helper"
 require "stud/temporary"
 require "logstash/inputs/beats"
-require "logstash/compatibility_layer_api_v1"
 require "logstash/codecs/plain"
 require "logstash/codecs/multiline"
 require "logstash/event"
@@ -79,31 +78,19 @@ describe LogStash::Inputs::Beats do
         "type" => "example", "codec" => codec }
     end
 
-
-    context "#codecs" do
-      let(:lines) { {"line" => "one\ntwo\n  two.2\nthree\n", "tags" => ["syslog"]} }
-
-      before do
-        allow(connection).to receive(:run).and_yield(lines)
-        beats.register
-        expect_any_instance_of(Lumberjack::Beats::Server).to receive(:accept).and_return(connection)
-      end
-      
-      it "clone the codec per connection" do
-        expect(beats.codec).to receive(:clone).once
-        expect(beats).to receive(:invoke) { break }
-        beats.run(queue)
-      end
+    before do
+      beats.register
     end
 
     context "#create_event" do
       let(:config) { super.merge({ "add_field" => { "foo" => "bar", "[@metadata][hidden]" => "secret"}, "tags" => ["bonjour"]}) }
       let(:event_map) { { "hello" => "world" } }
       let(:codec) { LogStash::Codecs::Plain.new }
+      let(:identity_stream) { "custom-type-input_type-source" }
 
       context "without a `target_field` defined" do
         it "decorates the event" do
-          event = beats.create_event(codec, event_map)
+          event = beats.create_event(event_map, identity_stream)
           expect(event["foo"]).to eq("bar")
           expect(event["[@metadata][hidden]"]).to eq("secret")
           expect(event["tags"]).to include("bonjour")
@@ -114,7 +101,7 @@ describe LogStash::Inputs::Beats do
         let(:event_map) { super.merge({"message" => "with a field"}) }
 
         it "decorates the event" do
-          event = beats.create_event(beats.codec, event_map)
+          event = beats.create_event(event_map, identity_stream)
           expect(event["foo"]).to eq("bar")
           expect(event["[@metadata][hidden]"]).to eq("secret")
           expect(event["tags"]).to include("bonjour")
@@ -126,16 +113,14 @@ describe LogStash::Inputs::Beats do
         let(:event_map) { {"message" => "hello?", "tags" => ["syslog"]} }
 
         it "retuns nil" do
-          event = beats.create_event(beats.codec, event_map)
+          event = beats.create_event(event_map, identity_stream)
           expect(event).to be_nil
         end
       end
     end
   end
 
-  unless LogStash::CompatibilityLayerApiV1.is_v1?
-    context "when interrupting the plugin" do
-      it_behaves_like "an interruptible input plugin"
-    end
+  context "when interrupting the plugin" do
+    it_behaves_like "an interruptible input plugin"
   end
 end
