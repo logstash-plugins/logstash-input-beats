@@ -150,17 +150,17 @@ module Lumberjack module Beats
     end # def transition
 
     # Feed data to this parser.
-    # 
+    #
     # Currently, it will return the raw payload of websocket messages.
     # Otherwise, it returns nil if no complete message has yet been consumed.
     #
-    # @param [String] the string data to feed into the parser. 
+    # @param [String] the string data to feed into the parser.
     # @return [String, nil] the websocket message payload, if any, nil otherwise.
     def feed(data, &block)
       @buffer << data
       #p :need => @need
       while have?(@need)
-        send(@state, &block) 
+        send(@state, &block)
         #case @state
         #when :header; header(&block)
         #when :window_size; window_size(&block)
@@ -310,6 +310,10 @@ module Lumberjack module Beats
       @ack_handler = nil
     end
 
+    def peer
+      "#{@fd.peeraddr[3]}:#{@fd.peeraddr[1]}"
+    end
+
     def run(&block)
       while !server.closed?
         read_socket(&block)
@@ -375,16 +379,33 @@ module Lumberjack module Beats
     end
 
     def data(map, &block)
-      block.call(map) if block_given?
+      block.call(map, identity_stream(map)) if block_given?
     end
 
     def reset_next_ack(window_size)
-      klass = (@version == Parser::PROTOCOL_VERSION_1) ? AckingProtocolV1 : AckingProtocolV2
+      klass = version_1? ? AckingProtocolV1 : AckingProtocolV2
       @ack_handler = klass.new(window_size)
     end
 
     def send_ack(sequence)
       @fd.syswrite(@ack_handler.ack_frame(sequence))
+    end
+
+    def version_1?
+      @version == Parser::PROTOCOL_VERSION_1
+    end
+
+    def identity_stream(map)
+      id = map.fetch("beat", {})["id"]
+
+      if id && map["resource_id"]
+        identity_values = [id, map["resource_id"]]
+      else
+        identity_values = [map.fetch("beat", {})["name"],
+                          map["source"]]
+      end
+
+      identity_values.compact.join("-")
     end
   end # class Connection
 
@@ -395,7 +416,7 @@ module Lumberjack module Beats
     end
 
     def ack?(sequence)
-      # The first encoded event will contain the sequence number 
+      # The first encoded event will contain the sequence number
       # this is needed to know when we should ack.
       @next_ack = compute_next_ack(sequence) if @next_ack.nil?
       sequence == @next_ack

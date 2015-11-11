@@ -33,7 +33,7 @@ describe "A client" do
         tcp_server.accept do |socket|
           con = Lumberjack::Beats::Connection.new(socket, tcp_server)
           begin
-            con.run { |data| queue << data }
+            con.run { |data, identity_stream| queue << [data, identity_stream] }
           rescue
             # Close connection on failure. For example SSL client will make
             # parser for TCP based server trip.
@@ -44,7 +44,7 @@ describe "A client" do
     end
 
     @ssl_server = Thread.new do
-      ssl_server.run { |data| queue << data }
+      ssl_server.run { |data, identity_stream| queue << [data, identity_stream] }
     end
   end
 
@@ -55,6 +55,7 @@ describe "A client" do
       end
       sleep(0.5) # give time to the server to read the events
       expect(queue.size).to eq(random_number_of_events)
+      expect(queue.collect(&:last).uniq.size).to eq(1)
     end
 
     it "support sending multiple elements in one payload" do
@@ -62,7 +63,7 @@ describe "A client" do
       sleep(0.5)
 
       expect(queue.size).to eq(batch_size)
-      expect(queue).to match_array(batch_payload)
+      expect(queue.collect(&:last).uniq.size).to eq(1)
     end
   end
 
@@ -106,7 +107,7 @@ describe "A client" do
         expect(client.write(batch_payload)).to eq(batch_size / 2)
         sleep(0.5)
         expect(queue.size).to eq(batch_size)
-        expect(queue).to match_array(batch_payload)
+        expect(queue.collect(&:first)).to match_array(batch_payload)
       end
     end
   end
@@ -152,7 +153,7 @@ describe "A client" do
   context "using ssl encrypted connection" do
     context "with a valid certificate" do
       it "successfully connect to the server" do
-        expect { 
+        expect {
           Lumberjack::Beats::Client.new(:port => port,
                                  :host => host,
                                  :addresses => host,
@@ -161,7 +162,7 @@ describe "A client" do
       end
 
       it "should fail connecting to plain tcp server" do
-        expect { 
+        expect {
           Lumberjack::Beats::Client.new(:port => tcp_port,
                                  :host => host,
                                  :addresses => host,

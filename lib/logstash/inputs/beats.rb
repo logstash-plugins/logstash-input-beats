@@ -2,9 +2,9 @@
 require "logstash/inputs/base"
 require "logstash/namespace"
 require "logstash/timestamp"
-require "logstash/compatibility_layer_api_v1"
 require "lumberjack/beats"
 require "lumberjack/beats/server"
+require "logstash/codecs/identity_map_codec"
 
 # use Logstash provided json decoder
 Lumberjack::Beats::json = LogStash::Json
@@ -14,8 +14,6 @@ Lumberjack::Beats::json = LogStash::Json
 # https://github.com/elastic/filebeat[filebeat]
 #
 class LogStash::Inputs::Beats < LogStash::Inputs::Base
-  include LogStash::CompatibilityLayerApiV1
-
   config_name "beats"
 
   default :codec, "plain"
@@ -50,7 +48,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # TODO(sissel): Add CA to authenticate clients with.
   BUFFERED_QUEUE_SIZE = 1
   RECONNECT_BACKOFF_SLEEP = 0.5
-  
+
   def register
     require "concurrent"
     require "logstash/circuit_breaker"
@@ -69,7 +67,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       :ssl_key_passphrase => @ssl_key_passphrase)
 
     # Create a reusable threadpool, we do not limit the number of connections
-    # to the input, the circuit breaker with the timeout should take care 
+    # to the input, the circuit breaker with the timeout should take care
     # of `blocked` threads and prevent logstash to go oom.
     @threadpool = Concurrent::CachedThreadPool.new(:idletime => 15)
 
@@ -80,6 +78,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     @circuit_breaker = LogStash::CircuitBreaker.new("Beats input",
                             :exceptions => [LogStash::SizedQueueTimeout::TimeoutError])
 
+    # wrap the configured codec to support identity stream
+    # from the producers
+    @codec = LogStash::Codecs::IdentityMapCodec.new(@codec)
   end # def register
 
   def ssl_configured?
@@ -99,7 +100,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
         connection = @lumberjack.accept # call that creates a new connection
         next if connection.nil? # if the connection is nil the connection was close.
 
-        invoke(connection, @codec.clone) do |event|
+        invoke(connection) do |event|
           if stop?
             connection.close
             break
@@ -126,17 +127,17 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end
 
   public
-  def create_event(codec, map)
+  def create_event(map, identity_stream)
     # Filebeats uses the `message` key and LSF `line`
     target_field = target_field_for_codec ? map.delete(target_field_for_codec) : nil
 
     if target_field.nil?
-      event = LogStash::Event.new(map) 
+      event = LogStash::Event.new(map)
       decorate(event)
       return event
     else
       # All codecs expects to work on string
-      @codec.decode(target_field.to_s) do |decoded|
+      @codec.decode(target_field.to_s, identity_stream) do |decoded|
         ts = coerce_ts(map.delete("@timestamp"))
         decoded["@timestamp"] = ts unless ts.nil?
         map.each { |k, v| decoded[k] = v }
@@ -161,13 +162,13 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end
 
   private
-  def invoke(connection, codec, &block)
+  def invoke(connection, &block)
     @threadpool.post do
       begin
         # If any errors occur in from the events the connection should be closed in the
         # library ensure block and the exception will be handled here
-        connection.run do |map|
-          event = create_event(codec, map)
+        connection.run do |map, identity_stream|
+          event = create_event(map, identity_stream)
           block.call(event) unless event.nil?
         end
 
