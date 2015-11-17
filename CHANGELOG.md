@@ -1,3 +1,6 @@
+# 2.0.0
+  - Add support for stream identity, the ID will be generated from beat.id+resource_id or beat.name + beat.source if not present #22 #13
+    The identity allow the multiline codec to correctly merge string from multiples files.
 # 0.9.6
   - Fix an issue with rogue events created by buffered codecs #19
 # 0.9.5
