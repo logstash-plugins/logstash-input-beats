@@ -92,7 +92,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end
 
   def run(output_queue)
-    start_buffer_broker(output_queue)
+    @output_queue = output_queue
+    start_buffer_broker
 
     while !stop? do
       # Wrapping the accept call into a CircuitBreaker
@@ -123,12 +124,13 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   public
   def stop
-    @lumberjack.close
+    # we may have some stuff in the buffer
+    @codec.flush { |event| @output_queue << event }
+    @lumberjack.close rescue nil
   end
 
   public
-  def create_event(map, identity_stream)
-
+  def create_event(map, identity_stream, &block)
     # Filebeats uses the `message` key and LSF `line`
     target_field = target_field_for_codec ? map.delete(target_field_for_codec) : nil
 
@@ -136,7 +138,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       event = LogStash::Event.new(map)
       copy_beat_hostname(event)
       decorate(event)
-      return event
+      block.call(event)
     else
       # All codecs expects to work on string
       @codec.decode(target_field.to_s, identity_stream) do |decoded|
@@ -145,10 +147,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
         map.each { |k, v| decoded[k] = v }
         copy_beat_hostname(decoded)
         decorate(decoded)
-        return decoded
+        block.call(decoded)
       end
     end
-    return nil
   end
 
   # Copies the beat.hostname field into the host field unless
@@ -181,8 +182,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
         # If any errors occur in from the events the connection should be closed in the
         # library ensure block and the exception will be handled here
         connection.run do |map, identity_stream|
-          event = create_event(map, identity_stream)
-          block.call(event) unless event.nil?
+          create_event(map, identity_stream, &block)
         end
 
         # When too many errors happen inside the circuit breaker it will throw
@@ -205,10 +205,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   #
   # We are using a proxy queue supporting blocking with a timeout and
   # this thread take the element from one queue into another one.
-  def start_buffer_broker(output_queue)
+  def start_buffer_broker
     @threadpool.post do
       while !stop?
-        output_queue << @buffered_queue.pop_no_timeout
+        @output_queue << @buffered_queue.pop_no_timeout
       end
     end
   end

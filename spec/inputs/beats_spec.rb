@@ -91,10 +91,11 @@ describe LogStash::Inputs::Beats do
 
       context "without a `target_field` defined" do
         it "decorates the event" do
-          event = beats.create_event(event_map, identity_stream)
-          expect(event["foo"]).to eq("bar")
-          expect(event["[@metadata][hidden]"]).to eq("secret")
-          expect(event["tags"]).to include("bonjour")
+          beats.create_event(event_map, identity_stream) do |event|
+            expect(event["foo"]).to eq("bar")
+            expect(event["[@metadata][hidden]"]).to eq("secret")
+            expect(event["tags"]).to include("bonjour")
+          end
         end
       end
 
@@ -102,10 +103,11 @@ describe LogStash::Inputs::Beats do
         let(:event_map) { super.merge({"message" => "with a field"}) }
 
         it "decorates the event" do
-          event = beats.create_event(event_map, identity_stream)
-          expect(event["foo"]).to eq("bar")
-          expect(event["[@metadata][hidden]"]).to eq("secret")
-          expect(event["tags"]).to include("bonjour")
+          beats.create_event(event_map, identity_stream) do |event|
+            expect(event["foo"]).to eq("bar")
+            expect(event["[@metadata][hidden]"]).to eq("secret")
+            expect(event["tags"]).to include("bonjour")
+          end
         end
       end
 
@@ -113,9 +115,42 @@ describe LogStash::Inputs::Beats do
         let(:codec) { LogStash::Codecs::Multiline.new("pattern" => '^\s', "what" => "previous") }
         let(:event_map) { {"message" => "hello?", "tags" => ["syslog"]} }
 
-        it "retuns nil" do
-          event = beats.create_event(event_map, identity_stream)
-          expect(event).to be_nil
+        it "returns nil" do
+          expect { |b| beats.create_event(event_map, identity_stream, &b) }.not_to yield_control
+        end
+      end
+
+      context "multiline" do
+        let(:codec) { LogStash::Codecs::Multiline.new("pattern" => '^2015', "what" => "previous", "negate" => true) }
+        let(:events_map) do
+          [
+            { "beat" => { "id" => "main", "resource_id" => "md5"},  "message" => "2015-11-10 10:14:38,907 line 1" },
+            { "beat" => { "id" => "main", "resource_id" => "md5"}, "message" => "line 1.1" },
+            { "beat" => { "id" => "main", "resource_id" => "md5"}, "message" => "2015-11-10 10:16:38,907 line 2" },
+            { "beat" => { "id" => "main", "resource_id" => "md5"}, "message" => "line 2.1" },
+            { "beat" => { "id" => "main", "resource_id" => "md5"}, "message" => "line 2.2" },
+            { "beat" => { "id" => "main", "resource_id" => "md5"}, "message" => "line 2.3" },
+            { "beat" => { "id" => "main", "resource_id" => "md5"}, "message" => "2015-11-10 10:18:38,907 line 3" }
+          ]
+        end
+
+        let(:queue) { [] }
+        before do
+          Thread.new { beats.run(queue) }
+          sleep(0.1)
+        end
+
+        it "should correctly merge multiple events" do
+          events_map.each { |map| beats.create_event(map, identity_stream) { |e| queue << e } }
+          # This cannot currently work without explicitely call a flush
+          # the flush is never timebased, if no new data is coming in we wont flush the buffer
+          # https://github.com/logstash-plugins/logstash-codec-multiline/issues/11
+          beats.stop
+          expect(queue.size).to eq(3)
+          
+          expect(queue.collect { |e| e["message"] }).to include("2015-11-10 10:14:38,907 line 1\nline 1.1",
+                                                           "2015-11-10 10:16:38,907 line 2\nline 2.1\nline 2.2\nline 2.3",
+                                                           "2015-11-10 10:18:38,907 line 3")
         end
       end
 
