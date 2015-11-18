@@ -128,17 +128,13 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   public
   def create_event(map, identity_stream)
-    # Copy beat.hostname into host
-    host = map.fetch("beat", {})["hostname"]
-    if host
-      map["host"] = host
-    end
 
     # Filebeats uses the `message` key and LSF `line`
     target_field = target_field_for_codec ? map.delete(target_field_for_codec) : nil
 
     if target_field.nil?
       event = LogStash::Event.new(map)
+      copy_beat_hostname(event)
       decorate(event)
       return event
     else
@@ -147,11 +143,22 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
         ts = coerce_ts(map.delete("@timestamp"))
         decoded["@timestamp"] = ts unless ts.nil?
         map.each { |k, v| decoded[k] = v }
+        copy_beat_hostname(decoded)
         decorate(decoded)
         return decoded
       end
     end
     return nil
+  end
+
+  # Copies the beat.hostname field into the host field unless
+  # the host field is already defined
+  private
+  def copy_beat_hostname(event)
+    host = event["beat"] ? event["beat"]["hostname"] : nil
+    if host and not event["host"]
+      event["host"] = host
+    end
   end
 
   private

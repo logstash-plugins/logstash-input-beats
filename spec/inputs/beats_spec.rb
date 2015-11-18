@@ -3,6 +3,7 @@ require_relative "../spec_helper"
 require "stud/temporary"
 require "logstash/inputs/beats"
 require "logstash/codecs/plain"
+require "logstash/codecs/json"
 require "logstash/codecs/multiline"
 require "logstash/event"
 require "lumberjack/beats/client"
@@ -134,6 +135,25 @@ describe LogStash::Inputs::Beats do
           event = beats.create_event(event_map, identity_stream)
           expect(event["beat"]["name"]).to eq("linux01")
           expect(event["host"]).to be_nil
+        end
+      end
+
+      context "with a beat.hostname and host fields" do
+        let(:event_map) { {"message" => "hello", "host" => "linux02", "beat" => {"hostname" => "linux01"} } }
+
+        it "should not overwrite host" do
+          event = beats.create_event(event_map, identity_stream)
+          expect(event["host"]).to eq("linux02")
+        end
+      end
+
+      context "with a host field in the message" do
+        let(:codec) { LogStash::Codecs::JSON.new }
+        let(:event_map) { {"message" => '{"host": "linux02"}', "beat" => {"hostname" => "linux01"} } }
+
+        it "should take the host from the JSON message" do
+          event = beats.create_event(event_map, identity_stream)
+          expect(event["host"]).to eq("linux02")
         end
       end
     end
