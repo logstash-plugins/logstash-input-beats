@@ -31,5 +31,6 @@ Gem::Specification.new do |s|
   s.add_development_dependency "pry"
   s.add_development_dependency "rspec-wait"
   s.add_development_dependency "logstash-devutils", "~> 0.0.18"
+  s.add_development_dependency "logstash-codec-json"
 end
 
