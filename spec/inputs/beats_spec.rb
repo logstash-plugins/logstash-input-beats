@@ -117,6 +117,25 @@ describe LogStash::Inputs::Beats do
           expect(event).to be_nil
         end
       end
+
+      context "with a beat.hostname field" do
+        let(:event_map) { {"message" => "hello", "beat" => {"hostname" => "linux01"} } }
+
+        it "copies it to the host field" do
+          event = beats.create_event(event_map, identity_stream)
+          expect(event["host"]).to eq("linux01")
+        end
+      end
+
+      context "without a beat.hostname field" do
+        let(:event_map) { {"message" => "hello", "beat" => {"name" => "linux01"} } }
+
+        it "should not add a host field" do
+          event = beats.create_event(event_map, identity_stream)
+          expect(event["beat"]["name"]).to eq("linux01")
+          expect(event["host"]).to be_nil
+        end
+      end
     end
   end
 
