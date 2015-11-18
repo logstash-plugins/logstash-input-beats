@@ -128,6 +128,12 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   public
   def create_event(map, identity_stream)
+    # Copy beat.hostname into host
+    host = map.fetch("beat", {})["hostname"]
+    if host
+      map["host"] = host
+    end
+
     # Filebeats uses the `message` key and LSF `line`
     target_field = target_field_for_codec ? map.delete(target_field_for_codec) : nil
 
