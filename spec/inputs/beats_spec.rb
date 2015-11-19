@@ -158,8 +158,9 @@ describe LogStash::Inputs::Beats do
         let(:event_map) { {"message" => "hello", "beat" => {"hostname" => "linux01"} } }
 
         it "copies it to the host field" do
-          event = beats.create_event(event_map, identity_stream)
-          expect(event["host"]).to eq("linux01")
+          beats.create_event(event_map, identity_stream) do |event|
+            expect(event["host"]).to eq("linux01")
+          end
         end
       end
 
@@ -167,8 +168,9 @@ describe LogStash::Inputs::Beats do
         let(:event_map) { {"beat" => {"hostname" => "linux01"} } }
 
         it "copies it to the host field" do
-          event = beats.create_event(event_map, identity_stream)
-          expect(event["host"]).to eq("linux01")
+          beats.create_event(event_map, identity_stream) do |event|
+            expect(event["host"]).to eq("linux01")
+          end
         end
       end
 
@@ -176,9 +178,10 @@ describe LogStash::Inputs::Beats do
         let(:event_map) { {"message" => "hello", "beat" => {"name" => "linux01"} } }
 
         it "should not add a host field" do
-          event = beats.create_event(event_map, identity_stream)
-          expect(event["beat"]["name"]).to eq("linux01")
-          expect(event["host"]).to be_nil
+          beats.create_event(event_map, identity_stream) do |event|
+            expect(event["beat"]["name"]).to eq("linux01")
+            expect(event["host"]).to be_nil
+          end
         end
       end
 
@@ -186,8 +189,9 @@ describe LogStash::Inputs::Beats do
         let(:event_map) { {"message" => "hello", "host" => "linux02", "beat" => {"hostname" => "linux01"} } }
 
         it "should not overwrite host" do
-          event = beats.create_event(event_map, identity_stream)
-          expect(event["host"]).to eq("linux02")
+          beats.create_event(event_map, identity_stream) do |event|
+            expect(event["host"]).to eq("linux02")
+          end
         end
       end
 
@@ -196,8 +200,9 @@ describe LogStash::Inputs::Beats do
         let(:event_map) { {"message" => '{"host": "linux02"}', "beat" => {"hostname" => "linux01"} } }
 
         it "should take the host from the JSON message" do
-          event = beats.create_event(event_map, identity_stream)
-          expect(event["host"]).to eq("linux02")
+          beats.create_event(event_map, identity_stream) do
+            expect(event["host"]).to eq("linux02")
+          end
         end
       end
     end
