@@ -128,6 +128,15 @@ describe LogStash::Inputs::Beats do
         end
       end
 
+      context "with a beat.hostname field but without the message" do
+        let(:event_map) { {"beat" => {"hostname" => "linux01"} } }
+
+        it "copies it to the host field" do
+          event = beats.create_event(event_map, identity_stream)
+          expect(event["host"]).to eq("linux01")
+        end
+      end
+
       context "without a beat.hostname field" do
         let(:event_map) { {"message" => "hello", "beat" => {"name" => "linux01"} } }
 
