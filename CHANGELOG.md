@@ -1,4 +1,4 @@
-# 2.0.1
+# 2.0.2
   - Copy the `beat.hostname` field into the `host` field for better compatibility with the other Logstash plugins #28
   - Correctly merge multiple line with the multiline codec ref: #24
 # 2.0.0
