@@ -156,7 +156,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   private
   def copy_beat_hostname(event)
     host = event["beat"] ? event["beat"]["hostname"] : nil
-    if host and not event["host"]
+    if host && event["host"].nil?
       event["host"] = host
     end
   end
