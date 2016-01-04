@@ -1,3 +1,13 @@
+# 2.1.0
+  - Refactor of the code to make it easier to unit test
+  - Fix a conncurrency error on high load on the SizeQueue #37
+  - Drop the internal SizeQueue to rely on Java Synchronous Queue
+  - Remove the majority of the nested blocks
+  - Move the CircuitBreaker inside an internal namespace so it doesn't conflict with the input lumberjack
+  - Add more debugging log statement
+  - Flush the codec when a disconnect happen
+  - Tag/Decorate the event when a shutdown occur.
+  - The name of the threads managed by the input beat are now meaningful.
 # 2.0.3
   - Reduce the size of the gem by removing vendor jars
 # 2.0.2

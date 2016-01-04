@@ -57,6 +57,13 @@ module Lumberjack module Beats
       end
     end # def initialize
 
+    # Server#run method, allow the library to manage all the connection 
+    # threads, this handing is quite minimal and don't handler
+    # all the possible cases deconnection/connection.
+    #
+    # To have a more granular control over the connection you should manage
+    # them yourself, see Server#accept method which return a Connection
+    # instance.
     def run(&block)
       while !closed?
         connection = accept
@@ -67,7 +74,14 @@ module Lumberjack module Beats
         next unless connection
 
         Thread.new(connection) do |connection|
-          connection.run(&block)
+          begin
+            connection.run(&block)
+          rescue Lumberjack::Beats::Connection::ConnectionClosed 
+            # Connection will raise a wrapped exception upstream, 
+            # but if the threads are managed by the library we can simply ignore it.
+            #
+            # Note: This follow the previous behavior of the perfect silence.
+          end
         end
       end
     end # def run
@@ -132,6 +146,7 @@ module Lumberjack module Beats
     PROTOCOL_VERSION_2 = "2".ord
 
     SUPPORTED_PROTOCOLS = [PROTOCOL_VERSION_1, PROTOCOL_VERSION_2]
+    class UnsupportedProtocol < StandardError; end
 
     def initialize
       @buffer_offset = 0
@@ -222,7 +237,7 @@ module Lumberjack module Beats
       if supported_protocol?(version)
         yield :version, version
       else
-        raise "unsupported protocol #{version}"
+        raise UnsupportedProtocol, "unsupported protocol #{version}"
       end
     end
 
@@ -298,9 +313,37 @@ module Lumberjack module Beats
   end # class Parser
 
   class Connection
+    # Wrap the original exception into a common one, 
+    # to make upstream managing and reporting easier
+    # But lets make sure we keep the meaning of the original exception.
+    class ConnectionClosed < StandardError
+      attr_reader :original_exception
+
+      def initialize(original_exception)
+        super(original_exception)
+
+        @original_exception = original_exception
+        set_backtrace(original_exception.backtrace) if original_exception
+      end
+
+      def to_s
+        "#{self.class.name} wrapping: #{original_exception.class.name}, #{super.to_s}"
+      end
+    end
+
     READ_SIZE = 16384
+    PEER_INFORMATION_NOT_AVAILABLE = "<PEER INFORMATION NOT AVAILABLE>"
+    RESCUED_CONNECTION_EXCEPTIONS = [
+      EOFError,
+      OpenSSL::SSL::SSLError,
+      IOError,
+      Errno::ECONNRESET,
+      Errno::EPIPE,
+      Lumberjack::Beats::Parser::UnsupportedProtocol
+    ]
 
     attr_accessor :server
+    attr_reader :peer
 
     def initialize(fd, server)
       @parser = Parser.new
@@ -308,23 +351,27 @@ module Lumberjack module Beats
 
       @server = server
       @ack_handler = nil
-    end
-
-    def peer
-      "#{@fd.peeraddr[3]}:#{@fd.peeraddr[1]}"
+      
+      # Fetch the details of the host before reading anything from the socket
+      # se we can use that information when debugging connection issues with
+      # remote hosts.
+      begin
+        @peer = "#{@fd.peeraddr[3]}:#{@fd.peeraddr[1]}"
+      rescue IOError
+        # This can happen if the connection is drop or close before
+        # fetching the host details, lets return a generic string.
+        @peer = PEER_INFORMATION_NOT_AVAILABLE
+      end
     end
 
     def run(&block)
       while !server.closed?
         read_socket(&block)
       end
-    rescue EOFError,
-      OpenSSL::SSL::SSLError,
-      IOError,
-      Errno::ECONNRESET,
-      Errno::EPIPE
+    rescue *RESCUED_CONNECTION_EXCEPTIONS => e
       # EOF or other read errors, only action is to shutdown which we'll do in
       # 'ensure'
+      raise ConnectionClosed.new(e)
     rescue
       # when the server is shutting down we can safely ignore any exceptions
       # On windows, we can get a `SystemCallErr`

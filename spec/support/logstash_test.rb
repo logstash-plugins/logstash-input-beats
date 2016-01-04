@@ -21,3 +21,28 @@ module LogStashTest
     end
   end
 end
+
+class DummyNeverBlockedQueue < Array
+  def offer(element, timeout = nil)
+    push(element)
+  end
+
+  alias_method :take, :shift
+end
+
+class DummyConnection
+  def initialize(events)
+    @events = events
+  end
+
+  def run
+    @events.each do |element|
+      yield element[:map], element[:identity_stream] 
+    end
+  end
+
+  def peer
+    "localhost:5555"
+  end
+end
+

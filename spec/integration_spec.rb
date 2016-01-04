@@ -17,7 +17,7 @@ describe "A client" do
   let(:host) { "127.0.0.1" }
   let(:queue) { [] }
 
-  before do
+  before :each do
     expect(File).to receive(:read).at_least(1).with(certificate_file_crt) { certificate.first.to_s }
     expect(File).to receive(:read).at_least(1).with(certificate_file_key) { certificate.last.to_s }
 
@@ -29,23 +29,33 @@ describe "A client" do
                                         :ssl_key => certificate_file_key)
 
     @tcp_server = Thread.new do
+      tcp_server.run { |data, identity_stream| queue << [data, identity_stream] }
       while true
-        tcp_server.accept do |socket|
-          con = Lumberjack::Beats::Connection.new(socket, tcp_server)
-          begin
-            con.run { |data, identity_stream| queue << [data, identity_stream] }
-          rescue
-            # Close connection on failure. For example SSL client will make
-            # parser for TCP based server trip.
-            # Connection is closed by Server connection object
-          end
-        end
+          tcp_server.accept do |socket|
+            next if socket.nil?
+
+            begin
+              con = Lumberjack::Beats::Connection.new(socket, tcp_server)
+              con.run { |data, identity_stream| queue << [data, identity_stream] }
+            rescue
+              # Close connection on failure. For example SSL client will make
+              # parser for TCP based server trip.
+              # Connection is closed by Server connection object
+            end
+          end 
       end
     end
 
     @ssl_server = Thread.new do
       ssl_server.run { |data, identity_stream| queue << [data, identity_stream] }
     end
+
+    sleep(0.1) while @ssl_server.status != "run" && @tcp_server != "run"
+  end
+
+  after :each do
+    @tcp_server.kill
+    @ssl_server.kill
   end
 
   shared_examples "send payload" do
@@ -132,7 +142,7 @@ describe "A client" do
                                                :addresses => host,
                                                :ssl => false)
         client.write({ "line" => "foobar" })
-      }.to raise_error(RuntimeError)
+      }.to raise_error
     end
 
     context "When transmitting a payload" do

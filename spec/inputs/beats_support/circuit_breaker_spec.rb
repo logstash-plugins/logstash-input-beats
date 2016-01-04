@@ -1,9 +1,9 @@
-require_relative "../spec_helper"
-require "logstash/circuit_breaker"
+require_relative "../../spec_helper"
+require "logstash/inputs/beats_support/circuit_breaker"
 
 class DummyErrorTest < StandardError; end
 
-describe LogStash::CircuitBreaker do
+describe LogStash::Inputs::BeatsSupport::CircuitBreaker do
   let(:error_threshold) { 1 }
   let(:options) do 
     {
@@ -12,7 +12,7 @@ describe LogStash::CircuitBreaker do
     }
   end
 
-  subject { LogStash::CircuitBreaker.new("testing", options) }
+  subject { described_class.new("testing", options) }
 
   context "when the breaker is closed" do
     it "closed by default" do
@@ -24,7 +24,7 @@ describe LogStash::CircuitBreaker do
         subject.execute do
           raise DummyErrorTest
         end
-      }.to raise_error(LogStash::CircuitBreaker::HalfOpenBreaker)
+      }.to raise_error(LogStash::Inputs::BeatsSupport::CircuitBreaker::HalfOpenBreaker)
     end
 
     it "open if we pass the errors threadshold" do
@@ -32,18 +32,19 @@ describe LogStash::CircuitBreaker do
         subject.execute do
           raise DummyErrorTest
         end
-      }.to raise_error(LogStash::CircuitBreaker::HalfOpenBreaker)
+      }.to raise_error(LogStash::Inputs::BeatsSupport::CircuitBreaker::HalfOpenBreaker)
 
       expect {
         subject.execute do
           raise DummyErrorTest
         end
-      }.to raise_error(LogStash::CircuitBreaker::OpenBreaker)
+      }.to raise_error(LogStash::Inputs::BeatsSupport::CircuitBreaker::OpenBreaker)
     end
   end
 
   context "When the breaker is open" do
-    let(:future_time) { Time.now + 3600 }
+    let(:retry_time) { 2 }
+    let(:options) { super.merge(:time_before_retry => retry_time) }
 
     before do
       # trip the breaker
@@ -62,7 +63,7 @@ describe LogStash::CircuitBreaker do
     end
 
     it "resets the breaker after the time before retry" do
-      expect(Time).to receive(:now).at_least(2).and_return(future_time)
+      sleep(retry_time + 1)
       expect(subject.closed?).to eq(true)
     end
 
@@ -73,7 +74,7 @@ describe LogStash::CircuitBreaker do
         subject.execute do
           runned = true
         end
-      rescue LogStash::CircuitBreaker::OpenBreaker 
+      rescue LogStash::Inputs::BeatsSupport::CircuitBreaker::OpenBreaker 
       end
 
       expect(runned).to eq(false)
