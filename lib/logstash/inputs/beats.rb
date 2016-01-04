@@ -5,6 +5,15 @@ require "logstash/timestamp"
 require "lumberjack/beats"
 require "lumberjack/beats/server"
 require "logstash/codecs/identity_map_codec"
+require "logstash/inputs/beats_support/circuit_breaker"
+require "logstash/inputs/beats_support/codec_callback_listener"
+require "logstash/inputs/beats_support/connection_handler"
+require "logstash/inputs/beats_support/event_transform_common"
+require "logstash/inputs/beats_support/decoded_event_transform"
+require "logstash/inputs/beats_support/raw_event_transform"
+require "logstash/inputs/beats_support/synchronous_queue_with_offer"
+require "logstash/util"
+require "thread_safe"
 
 # use Logstash provided json decoder
 Lumberjack::Beats::json = LogStash::Json
@@ -13,7 +22,28 @@ Lumberjack::Beats::json = LogStash::Json
 #
 # https://github.com/elastic/filebeat[filebeat]
 #
+
+class LogStash::Codecs::Base
+  # This monkey patch add callback based
+  # flow to the codec until its shipped with core.
+  # This give greater flexibility to the implementation by
+  # sending more data to the actual block.
+  if !method_defined?(:accept)
+    def accept(listener)
+      decode(listener.data) do |event|
+        listener.process_event(event)
+      end
+    end
+  end
+  if !method_defined?(:auto_flush)
+    def auto_flush
+    end
+  end
+end
+
 class LogStash::Inputs::Beats < LogStash::Inputs::Base
+  class InsertingToQueueTakeTooLong < Exception; end
+
   config_name "beats"
 
   default :codec, "plain"
@@ -46,41 +76,37 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   config :target_field_for_codec, :validate => :string, :default => "message"
 
   # TODO(sissel): Add CA to authenticate clients with.
-  BUFFERED_QUEUE_SIZE = 1
   RECONNECT_BACKOFF_SLEEP = 0.5
 
   def register
-    require "concurrent"
-    require "logstash/circuit_breaker"
-    require "logstash/sized_queue_timeout"
-
     if !@ssl
-      @logger.warn("Beats: SSL Certificate will not be used") unless @ssl_certificate.nil?
-      @logger.warn("Beats: SSL Key will not be used") unless @ssl_key.nil?
+      @logger.warn("Beats input: SSL Certificate will not be used") unless @ssl_certificate.nil?
+      @logger.warn("Beats input: SSL Key will not be used") unless @ssl_key.nil?
     elsif !ssl_configured?
       raise LogStash::ConfigurationError, "Certificate or Certificate Key not configured"
     end
 
-    @logger.info("Starting Beats input listener", :address => "#{@host}:#{@port}")
+    @logger.info("Beats inputs: Starting input listener", :address => "#{@host}:#{@port}")
     @lumberjack = Lumberjack::Beats::Server.new(:address => @host, :port => @port,
       :ssl => @ssl, :ssl_certificate => @ssl_certificate, :ssl_key => @ssl_key,
       :ssl_key_passphrase => @ssl_key_passphrase)
 
-    # Create a reusable threadpool, we do not limit the number of connections
-    # to the input, the circuit breaker with the timeout should take care
-    # of `blocked` threads and prevent logstash to go oom.
-    @threadpool = Concurrent::CachedThreadPool.new(:idletime => 15)
-
     # in 1.5 the main SizeQueue doesnt have the concept of timeout
     # We are using a small plugin buffer to move events to the internal queue
-    @buffered_queue = LogStash::SizedQueueTimeout.new(BUFFERED_QUEUE_SIZE)
+    @buffered_queue = LogStash::Inputs::BeatsSupport::SynchronousQueueWithOffer.new(@congestion_threshold)
 
-    @circuit_breaker = LogStash::CircuitBreaker.new("Beats input",
-                            :exceptions => [LogStash::SizedQueueTimeout::TimeoutError])
+    @circuit_breaker = LogStash::Inputs::BeatsSupport::CircuitBreaker.new("Beats input",
+                            :exceptions => [InsertingToQueueTakeTooLong])
 
     # wrap the configured codec to support identity stream
     # from the producers
     @codec = LogStash::Codecs::IdentityMapCodec.new(@codec)
+
+    # Keep a list of active connections so we can flush their codec on shutdown
+    
+    # Use threadsafe gem, since we have a strict dependency on concurrent-ruby 0.9.2 
+    # in the core
+    @connections_list = ThreadSafe::Hash.new
   end # def register
 
   def ssl_configured?
@@ -99,104 +125,82 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       # Wrapping the accept call into a CircuitBreaker
       if @circuit_breaker.closed?
         connection = @lumberjack.accept # call that creates a new connection
-        next if connection.nil? # if the connection is nil the connection was close.
+        # if the connection is nil the connection was closed upstream,
+        # so we will try in another iteration to recover or stop.
+        next if connection.nil? 
 
-        invoke(connection) do |event|
-          if stop?
-            connection.close
-            break
-          end
-
-          begin
-            @circuit_breaker.execute {
-              @buffered_queue.push(event, @congestion_threshold)
-            }
-          rescue => e
-            raise e
-          end
+        Thread.new do 
+          handle_new_connection(connection)
         end
       else
-        @logger.warn("Beats input: the pipeline is blocked, temporary refusing new connection.")
+        @logger.warn("Beats input: the pipeline is blocked, temporary refusing new connection.", 
+                     :reconnect_backoff_sleep => RECONNECT_BACKOFF_SLEEP)
         sleep(RECONNECT_BACKOFF_SLEEP)
       end
     end
   end # def run
 
-  public
   def stop
-    # we may have some stuff in the buffer
-    @codec.flush { |event| @output_queue << event }
+    @logger.debug("Beats input: stopping the plugin")
+
     @lumberjack.close rescue nil
-  end
 
-  public
-  def create_event(map, identity_stream, &block)
-    # Filebeats uses the `message` key and LSF `line`
-    target_field = target_field_for_codec ? map.delete(target_field_for_codec) : nil
+    # we may have some stuff in the codec buffer
+    transformer = LogStash::Inputs::BeatsSupport::EventTransformCommon.new(self)
 
-    if target_field.nil?
-      event = LogStash::Event.new(map)
-      copy_beat_hostname(event)
-      decorate(event)
-      block.call(event)
-    else
-      # All codecs expects to work on string
-      @codec.decode(target_field.to_s, identity_stream) do |decoded|
-        ts = coerce_ts(map.delete("@timestamp"))
-        decoded["@timestamp"] = ts unless ts.nil?
-        map.each { |k, v| decoded[k] = v }
-        copy_beat_hostname(decoded)
-        decorate(decoded)
-        block.call(decoded)
+    # Go through all the active connection and flush their
+    # codec content, some context data could be lost in this case
+    # but at least the events main data would be persisted.
+    @connections_list.each do |_, connection_handler|
+      connection_handler.flush do |event|
+        # We might loose some context of the
+        transformer.transform(event)
+        event.tag("beats_input_flushed_by_logtash_shutdown")
+        @output_queue << event
       end
     end
+
+    @logger.debug("Beats input: stopped")
   end
 
-  # Copies the beat.hostname field into the host field unless
-  # the host field is already defined
-  private
-  def copy_beat_hostname(event)
-    host = event["beat"] ? event["beat"]["hostname"] : nil
-    if host && event["host"].nil?
-      event["host"] = host
+  # This Method is called inside a new thread
+  def handle_new_connection(connection)
+    logger.debug? && logger.debug("Beats inputs: accepting a new connection",
+                                  :peer => connection.peer)
+
+    LogStash::Util.set_thread_name("[beats-input]>connection-#{connection.peer}")
+
+    connection_handler = LogStash::Inputs::BeatsSupport::ConnectionHandler.new(connection, self, @buffered_queue)
+    @connections_list[connection] = connection_handler
+
+    # All the errors handling is done here
+    @circuit_breaker.execute { connection_handler.accept }
+  rescue Lumberjack::Beats::Connection::ConnectionClosed => e
+    logger.warn("Beats Input: Remote connection closed",
+                :peer => connection.peer,
+                :exception => e)
+  rescue LogStash::Inputs::BeatsSupport::CircuitBreaker::OpenBreaker,
+    LogStash::Inputs::BeatsSupport::CircuitBreaker::HalfOpenBreaker => e
+    logger.warn("Beats input: The circuit breaker has detected a slowdown or stall in the pipeline, the input is closing the current connection and rejecting new connection until the pipeline recover.",
+                :exception => e.class)
+  rescue Exception => e # If we have a malformed packet we should handle that so the input doesn't crash completely.
+    @logger.error("Beats input: unhandled exception", 
+                  :exception => e,
+                  :backtrace => e.backtrace) 
+  ensure
+    transformer = LogStash::Inputs::BeatsSupport::EventTransformCommon.new(self)
+
+    connection_handler.flush do |event|
+      # handle the basic event enrichment with tags
+      # since at that time we lose all the context
+      transformer.transform(event)
+      event.tag("beats_input_flushed_by_end_of_connection")
+      @output_queue << event
     end
-  end
 
-  private
-  def coerce_ts(ts)
-    return nil if ts.nil?
-    timestamp = LogStash::Timestamp.coerce(ts)
-    return timestamp if timestamp
-
-    @logger.warn("Unrecognized @timestamp value, setting current time to @timestamp",
-      :value => ts.inspect)
-  rescue LogStash::TimestampParserError => e
-    @logger.warn("Error parsing @timestamp string, setting current time to @timestamp",
-      :value => ts.inspect, :exception => e.message)
-  end
-
-  private
-  def invoke(connection, &block)
-    @threadpool.post do
-      begin
-        # If any errors occur in from the events the connection should be closed in the
-        # library ensure block and the exception will be handled here
-        connection.run do |map, identity_stream|
-          create_event(map, identity_stream, &block)
-        end
-
-        # When too many errors happen inside the circuit breaker it will throw
-        # this exception and start refusing connection. The bubbling of theses
-        # exceptions make sure that the lumberjack library will close the current
-        # connection which will force the client to reconnect and restransmit
-        # his payload.
-      rescue LogStash::CircuitBreaker::OpenBreaker,
-             LogStash::CircuitBreaker::HalfOpenBreaker => e
-        logger.warn("Beats input: The circuit breaker has detected a slowdown or stall in the pipeline, the input is closing the current connection and rejecting new connection until the pipeline recover.", :exception => e.class)
-      rescue => e # If we have a malformed packet we should handle that so the input doesn't crash completely.
-        @logger.error("Beats input: unhandled exception", :exception => e, :backtrace => e.backtrace)
-      end
-    end
+    @connections_list.delete(connection)
+    @logger.debug? && @logger.debug("Beats input: clearing the connection from the known clients",
+                                    :peer => connection.peer)
   end
 
   # The default Logstash Sizequeue doesn't support timeouts.
@@ -206,9 +210,19 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # We are using a proxy queue supporting blocking with a timeout and
   # this thread take the element from one queue into another one.
   def start_buffer_broker
-    @threadpool.post do
-      while !stop?
-        @output_queue << @buffered_queue.pop_no_timeout
+    Thread.new do
+      LogStash::Util.set_thread_name("[beats-input]-buffered-queue-broker")
+
+      begin
+        while !stop?
+          @output_queue << @buffered_queue.take
+        end
+      rescue InterruptionException => e
+        # If we are shutting down without waiting the queue to unblock
+        # we will get an `InterruptionException` in that context we will not log it.
+        @logger.error("Beats input: bufferered queue exception", :exception => e) unless stop?
+      rescue => e
+        @logger.error("Beats input: unexpected exception", :exception => e)
       end
     end
   end

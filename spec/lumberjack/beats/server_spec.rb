@@ -32,9 +32,9 @@ describe "Server" do
       end
     end
 
-    sleep(1) while thread.status != "run"
+    sleep(0.1) while thread.status != "run"
     server.close
-    sleep(2)
-    expect(thread.status).to be_falsey
+
+    wait_for { thread.status }.to be_falsey
   end
 end

@@ -1,7 +1,7 @@
 require "thread"
 require "cabin"
 
-module LogStash
+module LogStash::Inputs::BeatsSupport
   # Largely inspired by Martin's fowler circuit breaker
   class CircuitBreaker
     # Raised when too many errors has occured and we refuse to execute the block
@@ -57,7 +57,9 @@ module LogStash
     end
 
     def closed?
-      state == :close || state == :half_open
+      current_state = state
+
+      current_state == :close || current_state == :half_open
     end
 
     private
@@ -73,22 +75,26 @@ module LogStash
     end
 
     def increment_errors(exception)
+      t = Time.now
+
       @mutex.synchronize do
         @errors_count += 1
-        @last_failure_time = Time.now
-
-        logger.debug("CircuitBreaker increment errors", 
-                     :errors_count => @errors_count, 
-                     :error_threshold => @error_threshold,
-                     :exception => exception.class,
-                     :message => exception.message) if logger.debug?
+        @last_failure_time = t
       end
+
+      logger.debug("CircuitBreaker increment errors", 
+                   :errors_count => @errors_count, 
+                   :error_threshold => @error_threshold,
+                   :exception => exception.class,
+                   :message => exception.message) if logger.debug?
     end
 
     def state
+      t = Time.now
+
       @mutex.synchronize do
         if @errors_count >= @error_threshold
-          if Time.now - @last_failure_time > @time_before_retry
+          if t - @last_failure_time > @time_before_retry
             :half_open
           else
             :open
