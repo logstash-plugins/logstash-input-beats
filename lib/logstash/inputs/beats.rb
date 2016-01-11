@@ -217,9 +217,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
         while !stop?
           @output_queue << @buffered_queue.take
         end
-      rescue InterruptionException => e
+      rescue java.lang.InterruptedException => e
         # If we are shutting down without waiting the queue to unblock
-        # we will get an `InterruptionException` in that context we will not log it.
+        # we will get an `java.lang.InterruptionException` in that context we will not log it.
         @logger.error("Beats input: bufferered queue exception", :exception => e) unless stop?
       rescue => e
         @logger.error("Beats input: unexpected exception", :exception => e)
