@@ -1,3 +1,5 @@
+# 2.1.1
+  - Release a new version of the gem that doesn't included any other gems, 2.1.0 is yanked from rubygems 
 # 2.1.0
   - Refactor of the code to make it easier to unit test
   - Fix a conncurrency error on high load on the SizeQueue #37

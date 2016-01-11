@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name            = "logstash-input-beats"
-  s.version         = "2.1.0"
+  s.version         = "2.1.1"
   s.licenses        = ["Apache License (2.0)"]
   s.summary         = "Receive events using the lumberjack protocol."
   s.description     = "This gem is a logstash plugin required to be installed on top of the Logstash core pipeline using $LS_HOME/bin/plugin install gemname. This gem is not a stand-alone program"
@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   # Files
-  s.files = Dir["lib/**/*","spec/**/*","vendor/**/*","*.gemspec","*.md","CONTRIBUTORS","Gemfile","LICENSE","NOTICE.TXT"]
+  s.files = Dir["lib/**/*","spec/**/*","*.gemspec","*.md","CONTRIBUTORS","Gemfile","LICENSE","NOTICE.TXT"]
 
   # Tests
   s.test_files = s.files.grep(%r{^(test|spec|features)/})
