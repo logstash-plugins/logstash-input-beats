@@ -93,7 +93,9 @@ describe LogStash::Inputs::Beats do
         plugin.run(pipeline_queue)
       end
 
-      sleep(0.1) until t.status == "run"
+      # Give a bit of time to the server to correctly 
+      # start the thread.
+      sleep(1) 
     end
 
     after :each do
@@ -107,12 +109,16 @@ describe LogStash::Inputs::Beats do
       end
 
       it "calls flush on the handler and tag the events" do
-        expect(connection_handler).to receive(:accept) { raise LogStash::Inputs::Beats::InsertingToQueueTakeTooLong }
-        expect(connection_handler).to receive(:flush).and_yield(LogStash::Event.new)
-        plugin.handle_new_connection(connection)
+        # try multiples times to make sure the 
+        # thread containing the `#run` is correctly started.
+        try do
+          expect(connection_handler).to receive(:accept) { raise LogStash::Inputs::Beats::InsertingToQueueTakeTooLong }
+          expect(connection_handler).to receive(:flush).and_yield(LogStash::Event.new)
+          plugin.handle_new_connection(connection)
 
-        event = pipeline_queue.shift
-        expect(event["tags"]).to include("beats_input_flushed_by_end_of_connection")
+          event = pipeline_queue.shift
+          expect(event["tags"]).to include("beats_input_flushed_by_end_of_connection")
+        end
       end
     end
   end
