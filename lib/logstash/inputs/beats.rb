@@ -14,6 +14,7 @@ require "logstash/inputs/beats_support/raw_event_transform"
 require "logstash/inputs/beats_support/synchronous_queue_with_offer"
 require "logstash/util"
 require "thread_safe"
+require "concurrent"
 
 # use Logstash provided json decoder
 Lumberjack::Beats::json = LogStash::Json
@@ -118,7 +119,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end
 
   def run(output_queue)
-    @output_queue = output_queue
+    @output_queue = Concurrent::MutexAtomicReference.new(output_queue)
+
     start_buffer_broker
 
     while !stop? do
@@ -156,7 +158,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
         # We might loose some context of the
         transformer.transform(event)
         event.tag("beats_input_flushed_by_logtash_shutdown")
-        @output_queue << event
+        @output_queue.get() << event
       end
     end
 
@@ -195,7 +197,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       # since at that time we lose all the context
       transformer.transform(event)
       event.tag("beats_input_flushed_by_end_of_connection")
-      @output_queue << event
+      @output_queue.get() << event
     end
 
     @connections_list.delete(connection)
@@ -215,7 +217,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
       begin
         while !stop?
-          @output_queue << @buffered_queue.take
+          @output_queue.get() << @buffered_queue.take
         end
       rescue InterruptionException => e
         # If we are shutting down without waiting the queue to unblock
