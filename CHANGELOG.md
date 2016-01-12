@@ -1,3 +1,6 @@
+# 2.1.2
+  - Catch the `java.lang.InterruptedException` in the events broker
+  - Give a bit more time to the Thread to be started in the test #42
 # 2.1.1
   - Release a new version of the gem that doesn't included any other gems, 2.1.0 is yanked from rubygems 
 # 2.1.0
