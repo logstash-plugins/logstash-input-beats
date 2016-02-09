@@ -89,27 +89,33 @@ describe LogStash::Inputs::Beats do
       # Event if we dont mock the actual socket work
       # we have to call run because it will correctly setup the queues
       # instances variables
-      t = Thread.new do
+      @t = Thread.new do
         plugin.run(pipeline_queue)
       end
 
-      # Give a bit of time to the server to correctly 
+      # Give a bit of time to the server to correctly
       # start the thread.
-      sleep(1) 
+      sleep(1)
     end
 
     after :each do
       plugin.stop
+      # I am forcing a kill on the thread since we are using a mock connection and we have not implemented
+      # all the  blocking IO, joining the thread and waiting wont work..
+      # I want to remove all the blockings in a new version real soon.
+      # If we dont do this the thread can still be present in other tests causing this kind of issue:
+      # https://github.com/logstash-plugins/logstash-input-beats/issues/48
+      @t.kill rescue nil
     end
 
     context "when an exception occur" do
       let(:connection_handler) { LogStash::Inputs::BeatsSupport::ConnectionHandler.new(connection, plugin, buffer_queue) }
-      before do 
+      before do
         expect(LogStash::Inputs::BeatsSupport::ConnectionHandler).to receive(:new).with(any_args).and_return(connection_handler)
       end
 
       it "calls flush on the handler and tag the events" do
-        # try multiples times to make sure the 
+        # try multiples times to make sure the
         # thread containing the `#run` is correctly started.
         try do
           expect(connection_handler).to receive(:accept) { raise LogStash::Inputs::Beats::InsertingToQueueTakeTooLong }
