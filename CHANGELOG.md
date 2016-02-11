@@ -1,3 +1,5 @@
+# 2.1.3
+  - Make sure we stop all the threads after running the tests #48
 # 2.1.2
   - Catch the `java.lang.InterruptedException` in the events broker
   - Give a bit more time to the Thread to be started in the test #42
