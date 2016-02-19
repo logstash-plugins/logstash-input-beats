@@ -165,7 +165,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   # This Method is called inside a new thread
   def handle_new_connection(connection)
-    logger.debug? && logger.debug("Beats inputs: accepting a new connection",
+    @logger.debug? && @logger.debug("Beats inputs: accepting a new connection",
                                   :peer => connection.peer)
 
     LogStash::Util.set_thread_name("[beats-input]>connection-#{connection.peer}")
@@ -176,12 +176,14 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     # All the errors handling is done here
     @circuit_breaker.execute { connection_handler.accept }
   rescue Lumberjack::Beats::Connection::ConnectionClosed => e
-    logger.warn("Beats Input: Remote connection closed",
-                :peer => connection.peer,
-                :exception => e)
+    # Only show theses errors if we run in debug mode,
+    # This logger can get noisy if we use a proxy that check if the host is alive.
+    @logger.debug? && @logger.debug("Beats Input: Remote connection closed",
+                                  :peer => connection.peer,
+                                  :exception => e)
   rescue LogStash::Inputs::BeatsSupport::CircuitBreaker::OpenBreaker,
     LogStash::Inputs::BeatsSupport::CircuitBreaker::HalfOpenBreaker => e
-    logger.warn("Beats input: The circuit breaker has detected a slowdown or stall in the pipeline, the input is closing the current connection and rejecting new connection until the pipeline recover.",
+    @logger.warn("Beats input: The circuit breaker has detected a slowdown or stall in the pipeline, the input is closing the current connection and rejecting new connection until the pipeline recover.",
                 :exception => e.class)
   rescue Exception => e # If we have a malformed packet we should handle that so the input doesn't crash completely.
     @logger.error("Beats input: unhandled exception", 
