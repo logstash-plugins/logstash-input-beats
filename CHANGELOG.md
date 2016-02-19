@@ -1,3 +1,5 @@
+# 2.1.4
+  - Change the `logger#warn` for `logger.debug` when a peer get disconnected, keep alive check from proxy can generate a lot of logs  #46
 # 2.1.3
   - Make sure we stop all the threads after running the tests #48
 # 2.1.2
