@@ -29,35 +29,33 @@ module Lumberjack module Beats
         :ssl => true,
         :ssl_certificate => nil,
         :ssl_key => nil,
-        :ssl_key_passphrase => nil
+        :ssl_key_passphrase => nil,
+        :ssl_certificate_authorities => nil,
+        :ssl_verify_mode => :none # By default we dont verify client
       }.merge(options)
 
       if @options[:ssl]
-        [:ssl_certificate, :ssl_key].each do |k|
-          if @options[k].nil?
-            raise "You must specify #{k} in Lumberjack::Server.new(...)"
-          end
+        if verify_client?(@options[:ssl_verify_mode]) && certificate_authorities.empty?
+          raise "When `ssl_verify_mode` is set to `peer` OR `force_peer` you need to specify the `ssl_certificate_authorities`"
+        end
+
+        if !verify_client?(@options[:ssl_verify_mode]) && certificate_authorities.size > 0 
+          raise "When `ssl_certificate_authorities` is configured you need to set `ssl_verify_mode` to either `peer` or `force_peer`"
+        end
+
+        if @options[:ssl_certificate].nil? || @options[:ssl_key].nil?
+          raise "You must specify `ssl_certificate` AND `ssl_key`"
         end
       end
 
       @server = TCPServer.new(@options[:address], @options[:port])
-
       @close = Concurrent::AtomicBoolean.new
+      @port = retrieve_current_port
 
-      # Query the port in case the port number is '0'
-      # TCPServer#addr == [ address_family, port, address, address ]
-      @port = @server.addr[1]
-
-      if @options[:ssl]
-        # load SSL certificate
-        @ssl = OpenSSL::SSL::SSLContext.new
-        @ssl.cert = OpenSSL::X509::Certificate.new(File.read(@options[:ssl_certificate]))
-        @ssl.key = OpenSSL::PKey::RSA.new(File.read(@options[:ssl_key]),
-          @options[:ssl_key_passphrase])
-      end
+      setup_ssl if ssl?
     end # def initialize
 
-    # Server#run method, allow the library to manage all the connection 
+    # Server#run method, allow the library to manage all the connection
     # threads, this handing is quite minimal and don't handler
     # all the possible cases deconnection/connection.
     #
@@ -76,8 +74,8 @@ module Lumberjack module Beats
         Thread.new(connection) do |connection|
           begin
             connection.run(&block)
-          rescue Lumberjack::Beats::Connection::ConnectionClosed 
-            # Connection will raise a wrapped exception upstream, 
+          rescue Lumberjack::Beats::Connection::ConnectionClosed
+            # Connection will raise a wrapped exception upstream,
             # but if the threads are managed by the library we can simply ignore it.
             #
             # Note: This follow the previous behavior of the perfect silence.
@@ -87,7 +85,7 @@ module Lumberjack module Beats
     end # def run
 
     def ssl?
-      @ssl
+      @options[:ssl]
     end
 
     def accept(&block)
@@ -139,13 +137,88 @@ module Lumberjack module Beats
       @close.make_true
       @server.close unless @server.closed?
     end
-  end # class Server
+
+    private
+    def verify_client?(mode)
+      mode = mode.to_sym
+      mode == :peer || mode == :force_peer
+    end
+
+    def retrieve_current_port
+      # Query the port in case the port number is '0'
+      # TCPServer#addr == [ address_family, port, address, address ]
+      @server.addr[1]
+    end
+
+    def certificate_authorities
+      Array(@options[:ssl_certificate_authorities])
+    end
+
+    def server_private_key
+      OpenSSL::PKey::RSA.new(File.read(@options[:ssl_key]), @options[:ssl_key_passphrase])
+    end
+
+    def server_certificate
+      OpenSSL::X509::Certificate.new(File.read(@options[:ssl_certificate]))
+    end
+
+    def verify_mode
+      case @options[:ssl_verify_mode].to_sym
+      when :none
+        OpenSSL::SSL::VERIFY_NONE
+      when :peer
+        OpenSSL::SSL::VERIFY_PEER
+      when :force_peer
+        OpenSSL::SSL::VERIFY_PEER | OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT
+      end
+    end
+
+    def jruby?
+      RUBY_PLATFORM == "java"
+    end
+
+    def trust_store
+      store = OpenSSL::X509::Store.new
+
+      if certificate_authorities.size > 0
+        certificate_authorities.each do |certificate_authority|
+          if File.file?(certificate_authority)
+            store.add_file(certificate_authority)
+          else
+            # `#add_path` is not implemented under jruby
+            # so recursively try to load all the certificate from this directory
+            # https://github.com/jruby/jruby-openssl/blob/master/src/main/java/org/jruby/ext/openssl/X509Store.java#L159
+            if jruby?
+              Dir.glob(File.join(certificate_authority, "**", "*")).each { |f| store.add_file(f) }
+            else
+              store.add_path(certificate_authority)
+            end
+          end
+        end
+      end
+
+      store
+    end
+
+    def setup_ssl
+      @ssl = OpenSSL::SSL::SSLContext.new
+
+      # @ssl.verify_callback = lambda do |preverify_ok, context|
+      #   require "pry"
+      #   binding.pry
+      # end
+      @ssl.cert_store = trust_store
+      @ssl.verify_mode = verify_mode
+      # @ssl.ca_file = certificate_authorities.first
+      @ssl.cert = server_certificate
+      @ssl.key = server_private_key
+    end
+  end
 
   class Parser
     PROTOCOL_VERSION_1 = "1".ord
     PROTOCOL_VERSION_2 = "2".ord
 
-    SUPPORTED_PROTOCOLS = [PROTOCOL_VERSION_1, PROTOCOL_VERSION_2]
     class UnsupportedProtocol < StandardError; end
 
     def initialize
@@ -242,7 +315,7 @@ module Lumberjack module Beats
     end
 
     def supported_protocol?(version)
-      SUPPORTED_PROTOCOLS.include?(version)
+      PROTOCOL_VERSION_2 == version || PROTOCOL_VERSION_1 == version
     end
 
     def window_size(&block)
@@ -313,7 +386,7 @@ module Lumberjack module Beats
   end # class Parser
 
   class Connection
-    # Wrap the original exception into a common one, 
+    # Wrap the original exception into a common one,
     # to make upstream managing and reporting easier
     # But lets make sure we keep the meaning of the original exception.
     class ConnectionClosed < StandardError
@@ -351,7 +424,7 @@ module Lumberjack module Beats
 
       @server = server
       @ack_handler = nil
-      
+
       # Fetch the details of the host before reading anything from the socket
       # se we can use that information when debugging connection issues with
       # remote hosts.
