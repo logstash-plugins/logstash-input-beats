@@ -69,7 +69,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   config :ssl_key_passphrase, :validate => :password
 
   # Validate certificate against this authority
-  config :certificate_authorities, :validate => :string
+  config :ssl_certificate_authorities, :validate => :string
 
   # The number of seconds before we raise a timeout,
   # this option is useful to control how much time to wait if something is blocking the pipeline.
@@ -96,7 +96,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       :ssl_certificate => @ssl_certificate,
       :ssl_key => @ssl_key,
       :ssl_key_passphrase => @ssl_key_passphrase,
-      :certificate_authorities => @certificate_authorities)
+      :certificate_authorities => @ssl_certificate_authorities)
 
     # in 1.5 the main SizeQueue doesnt have the concept of timeout
     # We are using a small plugin buffer to move events to the internal queue

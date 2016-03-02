@@ -238,22 +238,23 @@ describe "A client" do
   end
 
   context "when validating the client with a CA chain" do
-    let(:certificate_authorities) { File.join(File.dirname(__FILE__), "fixtures", "ca-chain.cert.pem") }
+    let(:certificate_authorities) { File.join(File.dirname(__FILE__), "fixtures", "certificate.chain.pem") }
 
-    let(:server_certificate) { File.join(File.dirname(__FILE__), "fixtures", "server.cert.pem") }
-    let(:server_key) { File.join(File.dirname(__FILE__), "fixtures", "server.key.pem") }
+    let(:server_certificate) { File.join(File.dirname(__FILE__), "fixtures", "localhost.crt") }
+    let(:server_key) { File.join(File.dirname(__FILE__), "fixtures", "localhost.key") }
 
-    let(:client_certificate) { File.join(File.dirname(__FILE__), "fixtures", "client.cert.pem") }
-    let(:client_key) { File.join(File.dirname(__FILE__), "fixtures", "client.key.pem") }
+    let(:client_certificate) { File.join(File.dirname(__FILE__), "fixtures", "127.0.0.1.crt") }
+    let(:client_key) { File.join(File.dirname(__FILE__), "fixtures", "127.0.0.1.key") }
     let(:ssl_key_passphrase) { "password" }
+    let(:host) { "localhost" }
 
     let(:options) do
        { :port => port,
          :host => host,
          :addresses => host,
-         # :ssl_certificate => client_certificate,
-         # :ssl_certificate_key => client_key,
-         # :ssl_certificate_password => ssl_key_passphrase,
+         :ssl_certificate => server_certificate,
+         :ssl_certificate_key => server_key,
+         :ssl_certificate_password => ssl_key_passphrase,
          :ssl_certificate_authorities => certificate_authorities,
          :ssl => true
        }
@@ -263,6 +264,7 @@ describe "A client" do
 
     let(:config_ssl) do
       super.merge({
+        "ssl_certificate_authorities" => certificate_authorities,
         "ssl_certificate" => server_certificate,
         "ssl_key" => server_key,
         "ssl_key_passphrase" => ssl_key_passphrase

@@ -88,10 +88,11 @@ module Lumberjack module Beats
         store = OpenSSL::X509::Store.new
     
         Array(opts[:ssl_certificate_authorities]).each do |certificate_authority|
-            store.add_cert(OpenSSL::X509::Certificate.new(File.open(certificate_authority)))
+          store.add_file(certificate_authority)
         end
 
         ssl_context = OpenSSL::SSL::SSLContext.new
+        ssl_context.verify_depth = 2
         ssl_context.cert = OpenSSL::X509::Certificate.new(File.read(opts[:ssl_certificate])) if opts[:ssl_certificate]
         ssl_context.key = OpenSSL::PKey::RSA.new(File.read(opts[:ssl_certificate_key]), opts[:ssl_certificate_password]) if opts[:ssl_certificate_key]
         ssl_context.verify_mode = OpenSSL::SSL::VERIFY_PEER
