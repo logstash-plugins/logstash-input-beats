@@ -68,6 +68,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # SSL key passphrase to use.
   config :ssl_key_passphrase, :validate => :password
 
+  # Validate certificate against this authority
+  config :certificate_authorities, :validate => :string
+
   # The number of seconds before we raise a timeout,
   # this option is useful to control how much time to wait if something is blocking the pipeline.
   config :congestion_threshold, :validate => :number, :default => 5
@@ -87,9 +90,13 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     end
 
     @logger.info("Beats inputs: Starting input listener", :address => "#{@host}:#{@port}")
-    @lumberjack = Lumberjack::Beats::Server.new(:address => @host, :port => @port,
-      :ssl => @ssl, :ssl_certificate => @ssl_certificate, :ssl_key => @ssl_key,
-      :ssl_key_passphrase => @ssl_key_passphrase)
+    @lumberjack = Lumberjack::Beats::Server.new(:address => @host,
+      :port => @port,
+      :ssl => @ssl,
+      :ssl_certificate => @ssl_certificate,
+      :ssl_key => @ssl_key,
+      :ssl_key_passphrase => @ssl_key_passphrase,
+      :certificate_authorities => @certificate_authorities)
 
     # in 1.5 the main SizeQueue doesnt have the concept of timeout
     # We are using a small plugin buffer to move events to the internal queue
@@ -103,8 +110,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     @codec = LogStash::Codecs::IdentityMapCodec.new(@codec)
 
     # Keep a list of active connections so we can flush their codec on shutdown
-    
-    # Use threadsafe gem, since we have a strict dependency on concurrent-ruby 0.9.2 
+
+    # Use threadsafe gem, since we have a strict dependency on concurrent-ruby 0.9.2
     # in the core
     @connections_list = ThreadSafe::Hash.new
   end # def register
@@ -127,13 +134,13 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
         connection = @lumberjack.accept # call that creates a new connection
         # if the connection is nil the connection was closed upstream,
         # so we will try in another iteration to recover or stop.
-        next if connection.nil? 
+        next if connection.nil?
 
-        Thread.new do 
+        Thread.new do
           handle_new_connection(connection)
         end
       else
-        @logger.warn("Beats input: the pipeline is blocked, temporary refusing new connection.", 
+        @logger.warn("Beats input: the pipeline is blocked, temporary refusing new connection.",
                      :reconnect_backoff_sleep => RECONNECT_BACKOFF_SLEEP)
         sleep(RECONNECT_BACKOFF_SLEEP)
       end
@@ -184,9 +191,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     logger.warn("Beats input: The circuit breaker has detected a slowdown or stall in the pipeline, the input is closing the current connection and rejecting new connection until the pipeline recover.",
                 :exception => e.class)
   rescue Exception => e # If we have a malformed packet we should handle that so the input doesn't crash completely.
-    @logger.error("Beats input: unhandled exception", 
+    @logger.error("Beats input: unhandled exception",
                   :exception => e,
-                  :backtrace => e.backtrace) 
+                  :backtrace => e.backtrace)
   ensure
     transformer = LogStash::Inputs::BeatsSupport::EventTransformCommon.new(self)
 
