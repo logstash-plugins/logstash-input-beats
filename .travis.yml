@@ -1,0 +1,10 @@
+sudo: false
+language: ruby
+cache: bundler
+rvm:
+  - jruby-1.7.24
+before_script:
+  - bundle exec rake test:integration:setup
+script: 
+  - bundle exec rspec spec
+  - bundle exec rspec spec --tag integration
