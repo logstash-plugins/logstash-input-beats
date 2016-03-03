@@ -52,16 +52,8 @@ module Lumberjack module Beats
       if @options[:ssl]
         # load SSL certificate
         @ssl = OpenSSL::SSL::SSLContext.new
-        @ssl.verify_callback = lambda do |preverify_ok, context|
-          require "pry"
-          binding.pry
-
-          preverify_ok
-        end
-
         if Array(@options[:certificate_authorities]).size > 0
           @ssl.verify_mode = OpenSSL::SSL::VERIFY_PEER | OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT
-
           store = OpenSSL::X509::Store.new
 
           Array(@options[:certificate_authorities]).each do |certificate_authority|
@@ -71,6 +63,7 @@ module Lumberjack module Beats
           @ssl.cert_store = store
         end
 
+        @ssl.ca_file = Array(@options[:certificate_authorities]).first
         @ssl.cert = OpenSSL::X509::Certificate.new(File.read(@options[:ssl_certificate]))
         @ssl.key = OpenSSL::PKey::RSA.new(File.read(@options[:ssl_key]),
           @options[:ssl_key_passphrase])

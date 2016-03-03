@@ -82,18 +82,22 @@ module Lumberjack module Beats
     private
     def connection_start(opts)
       tcp_socket = TCPSocket.new(opts[:address], opts[:port])
+
       if !opts[:ssl]
         @socket = tcp_socket
       else
         store = OpenSSL::X509::Store.new
-    
+
+        if opts[:ssl_certificate]
+          certificate = OpenSSL::X509::Certificate.new(File.open(opts[:ssl_certificate]))
+        end
+
         Array(opts[:ssl_certificate_authorities]).each do |certificate_authority|
           store.add_file(certificate_authority)
         end
 
         ssl_context = OpenSSL::SSL::SSLContext.new
-        ssl_context.verify_depth = 2
-        ssl_context.cert = OpenSSL::X509::Certificate.new(File.read(opts[:ssl_certificate])) if opts[:ssl_certificate]
+        ssl_context.cert = certificate
         ssl_context.key = OpenSSL::PKey::RSA.new(File.read(opts[:ssl_certificate_key]), opts[:ssl_certificate_password]) if opts[:ssl_certificate_key]
         ssl_context.verify_mode = OpenSSL::SSL::VERIFY_PEER
         ssl_context.cert_store = store

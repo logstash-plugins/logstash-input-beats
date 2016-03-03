@@ -200,11 +200,7 @@ describe "A client" do
 
       context "with an invalid certificate" do
         let(:invalid_certificate) { Flores::PKI.generate }
-        let(:invalid_certificate_file) { "invalid.crt" }
-
-        before do
-          expect(File).to receive(:read).with(invalid_certificate_file) { invalid_certificate.first.to_s }
-        end
+        let(:invalid_certificate_file) { Stud::Temporary.file.path }
 
         it "should refuse to connect" do
           expect {
@@ -238,13 +234,11 @@ describe "A client" do
   end
 
   context "when validating the client with a CA chain" do
-    let(:certificate_authorities) { File.join(File.dirname(__FILE__), "fixtures", "certificate.chain.pem") }
-
+    let(:certificate_authorities) { File.join(File.dirname(__FILE__), "fixtures", "certificate.pem.chain") }
     let(:server_certificate) { File.join(File.dirname(__FILE__), "fixtures", "localhost.crt") }
     let(:server_key) { File.join(File.dirname(__FILE__), "fixtures", "localhost.key") }
-
-    let(:client_certificate) { File.join(File.dirname(__FILE__), "fixtures", "127.0.0.1.crt") }
-    let(:client_key) { File.join(File.dirname(__FILE__), "fixtures", "127.0.0.1.key") }
+    let(:client_certificate) { server_certificate }
+    let(:client_key) { client_certificate }
     let(:ssl_key_passphrase) { "password" }
     let(:host) { "localhost" }
 
@@ -254,7 +248,6 @@ describe "A client" do
          :addresses => host,
          :ssl_certificate => server_certificate,
          :ssl_certificate_key => server_key,
-         :ssl_certificate_password => ssl_key_passphrase,
          :ssl_certificate_authorities => certificate_authorities,
          :ssl => true
        }
@@ -264,10 +257,10 @@ describe "A client" do
 
     let(:config_ssl) do
       super.merge({
-        "ssl_certificate_authorities" => certificate_authorities,
-        "ssl_certificate" => server_certificate,
-        "ssl_key" => server_key,
-        "ssl_key_passphrase" => ssl_key_passphrase
+        :ssl_certificate_authorities => certificate_authorities,
+        :ssl_certificate => server_certificate,
+        :ssl_key => server_key,
+        :ssl_key_passphrase => ssl_key_passphrase
       })
     end
 
