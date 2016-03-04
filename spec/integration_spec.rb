@@ -233,6 +233,7 @@ describe "A client" do
     end
   end
 
+
   context "when validating the client with a CA chain" do
     let(:certificate_authorities) { File.join(File.dirname(__FILE__), "fixtures", "certificate.pem.chain") }
     let(:server_certificate) { File.join(File.dirname(__FILE__), "fixtures", "localhost.crt") }
@@ -244,6 +245,7 @@ describe "A client" do
 
     let(:options) do
       { :port => port,
+        :host => host,
         :addresses => host,
         :ssl_certificate => server_certificate,
         :ssl_certificate_key => server_key,
@@ -256,11 +258,10 @@ describe "A client" do
 
     let(:config_ssl) do
       super.merge({
-        :certificate_authorities => certificate_authorities,
+        :ssl_certificate_authorities => certificate_authorities,
         :ssl_certificate => server_certificate,
         :ssl_key => server_key,
-        :ssl_key_passphrase => ssl_key_passphrase,
-        :ssl_verify_mode => :force_peer
+        :ssl_key_passphrase => ssl_key_passphrase
       })
     end
 
