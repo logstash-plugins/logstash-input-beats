@@ -5,6 +5,8 @@ before_install:
   - ln -sn ../../spec/fixtures/scripts elasticsearch/config/.
   - cd elasticsearch && bin/elasticsearch -Des.script.inline=on -Des.script.indexed=on &
   - sleep 10 && curl http://localhost:9200
+  - curl -s https://download.elastic.co/beats/filebeat/filebeat-1.1.1-x86_64.tar.gz > filebeat.tar.gz
+  - mkdir filebeat && tar -xzf filebeat.tar.gz --strip-componenets=1 -C ./filebeat/.
 language: ruby
 cache: bundler
 rvm:
