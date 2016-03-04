@@ -71,6 +71,15 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # Validate certificate against this authority
   config :ssl_certificate_authorities, :validate => :string
 
+  # By default the server dont do any client verification,
+  # 
+  # `peer` will make the server ask the client to provide a certificate,
+  # if the client provide the certificate it will be validated.
+  #
+  # `force_peer` will make the server ask the client for their certificate, if the clients
+  # doesn't provide it the connection will be closed.
+  config :ssl_verify_mode, :validate => ["none", "peer", "force_peer"], :default => "none"
+
   # The number of seconds before we raise a timeout,
   # this option is useful to control how much time to wait if something is blocking the pipeline.
   config :congestion_threshold, :validate => :number, :default => 5
@@ -90,13 +99,16 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     end
 
     @logger.info("Beats inputs: Starting input listener", :address => "#{@host}:#{@port}")
+
+
     @lumberjack = Lumberjack::Beats::Server.new(:address => @host,
       :port => @port,
       :ssl => @ssl,
       :ssl_certificate => @ssl_certificate,
       :ssl_key => @ssl_key,
       :ssl_key_passphrase => @ssl_key_passphrase,
-      :certificate_authorities => @ssl_certificate_authorities)
+      :ssl_certificate_authorities => @ssl_certificate_authorities,
+      :ssl_verify_mode => @ssl_verify_mode)
 
     # in 1.5 the main SizeQueue doesnt have the concept of timeout
     # We are using a small plugin buffer to move events to the internal queue

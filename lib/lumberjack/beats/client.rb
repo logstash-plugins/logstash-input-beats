@@ -16,10 +16,13 @@ module Lumberjack module Beats
         :json => false,
       }.merge(opts)
 
-      @opts[:addresses] = [@opts[:addresses]] if @opts[:addresses].class == String
+      @opts[:addresses] = Array(@opts[:addresses])
       raise "Must set a port." if @opts[:port] == 0
       raise "Must set atleast one address" if @opts[:addresses].empty? == 0
-      raise "Must set a ssl certificate or path" if @opts[:ssl_certificate_authorities].nil? && @opts[:ssl]
+
+      if @opts[:ssl]
+        # raise "Must set a ssl certificate or path"
+      end
 
       @socket = connect
     end

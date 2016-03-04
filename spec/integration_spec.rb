@@ -243,24 +243,24 @@ describe "A client" do
     let(:host) { "localhost" }
 
     let(:options) do
-       { :port => port,
-         :host => host,
-         :addresses => host,
-         :ssl_certificate => server_certificate,
-         :ssl_certificate_key => server_key,
-         :ssl_certificate_authorities => certificate_authorities,
-         :ssl => true
-       }
+      { :port => port,
+        :addresses => host,
+        :ssl_certificate => server_certificate,
+        :ssl_certificate_key => server_key,
+        :ssl_certificate_authorities => certificate_authorities,
+        :ssl => true
+      }
     end
 
     let(:client) { Lumberjack::Beats::Client.new(options) }
 
     let(:config_ssl) do
       super.merge({
-        :ssl_certificate_authorities => certificate_authorities,
+        :certificate_authorities => certificate_authorities,
         :ssl_certificate => server_certificate,
         :ssl_key => server_key,
-        :ssl_key_passphrase => ssl_key_passphrase
+        :ssl_key_passphrase => ssl_key_passphrase,
+        :ssl_verify_mode => :force_peer
       })
     end
 
