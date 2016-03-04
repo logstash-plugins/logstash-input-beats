@@ -12,6 +12,8 @@ module Lumberjack module Beats
         :port => 0,
         :addresses => [],
         :ssl_certificate => nil,
+        :ssl_certificate_key => nil,
+        :ssl_certificate_authorities => nil,
         :ssl => true,
         :json => false,
       }.merge(opts)
@@ -21,7 +23,9 @@ module Lumberjack module Beats
       raise "Must set atleast one address" if @opts[:addresses].empty? == 0
 
       if @opts[:ssl]
-        # raise "Must set a ssl certificate or path"
+        if @opts[:ssl_certificate_authorities].nil? && (@opts[:ssl_certificate].nil? || @opts[:ssl_certificate_key].nil?)
+          raise "Must set a ssl certificate or path"
+        end
       end
 
       @socket = connect
