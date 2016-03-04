@@ -29,7 +29,9 @@ module Lumberjack module Beats
         :ssl => true,
         :ssl_certificate => nil,
         :ssl_key => nil,
-        :ssl_key_passphrase => nil
+        :ssl_key_passphrase => nil,
+        :ssl_certificate_authorities => nil,
+        :ssl_verify_mode => :peer
       }.merge(options)
 
       if @options[:ssl]
@@ -41,23 +43,13 @@ module Lumberjack module Beats
       end
 
       @server = TCPServer.new(@options[:address], @options[:port])
-
       @close = Concurrent::AtomicBoolean.new
+      @port = retrieve_current_port
 
-      # Query the port in case the port number is '0'
-      # TCPServer#addr == [ address_family, port, address, address ]
-      @port = @server.addr[1]
-
-      if @options[:ssl]
-        # load SSL certificate
-        @ssl = OpenSSL::SSL::SSLContext.new
-        @ssl.cert = OpenSSL::X509::Certificate.new(File.read(@options[:ssl_certificate]))
-        @ssl.key = OpenSSL::PKey::RSA.new(File.read(@options[:ssl_key]),
-          @options[:ssl_key_passphrase])
-      end
+      setup_ssl if ssl?
     end # def initialize
 
-    # Server#run method, allow the library to manage all the connection 
+    # Server#run method, allow the library to manage all the connection
     # threads, this handing is quite minimal and don't handler
     # all the possible cases deconnection/connection.
     #
@@ -76,8 +68,8 @@ module Lumberjack module Beats
         Thread.new(connection) do |connection|
           begin
             connection.run(&block)
-          rescue Lumberjack::Beats::Connection::ConnectionClosed 
-            # Connection will raise a wrapped exception upstream, 
+          rescue Lumberjack::Beats::Connection::ConnectionClosed => e
+            # Connection will raise a wrapped exception upstream,
             # but if the threads are managed by the library we can simply ignore it.
             #
             # Note: This follow the previous behavior of the perfect silence.
@@ -87,7 +79,7 @@ module Lumberjack module Beats
     end # def run
 
     def ssl?
-      @ssl
+      @options[:ssl]
     end
 
     def accept(&block)
@@ -139,13 +131,64 @@ module Lumberjack module Beats
       @close.make_true
       @server.close unless @server.closed?
     end
-  end # class Server
+
+    private
+    def retrieve_current_port
+      # Query the port in case the port number is '0'
+      # TCPServer#addr == [ address_family, port, address, address ]
+      @server.addr[1]
+    end
+
+    def certificate_authorities
+      Array(@options[:ssl_certificate_authorities])
+    end
+
+    def server_private_key
+      OpenSSL::PKey::RSA.new(File.read(@options[:ssl_key]),
+                             @options[:ssl_key_passphrase])
+    end
+
+    def server_certificate
+      OpenSSL::X509::Certificate.new(File.read(@options[:ssl_certificate]))
+    end
+
+    def verify_mode
+      case @options[:ssl_verify_mode].to_sym
+      when :none
+        OpenSSL::SSL::VERIFY_NONE
+      when :peer
+        OpenSSL::SSL::VERIFY_PEER
+      when :force_peer
+        OpenSSL::SSL::VERIFY_PEER | OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT
+      end
+    end
+
+    def trust_store
+      store = OpenSSL::X509::Store.new
+
+      if certificate_authorities.size > 0
+        certificate_authorities.each do |certificate_authority|
+          store.add_file(certificate_authority)
+        end
+      end
+
+      store
+    end
+
+    def setup_ssl
+      @ssl = OpenSSL::SSL::SSLContext.new
+      @ssl.cert_store = trust_store
+      @ssl.verify_mode = verify_mode
+      # @ssl.ca_file = certificate_authorities.first
+      @ssl.cert = server_certificate
+      @ssl.key = server_private_key
+    end
+  end
 
   class Parser
     PROTOCOL_VERSION_1 = "1".ord
     PROTOCOL_VERSION_2 = "2".ord
 
-    SUPPORTED_PROTOCOLS = [PROTOCOL_VERSION_1, PROTOCOL_VERSION_2]
     class UnsupportedProtocol < StandardError; end
 
     def initialize
@@ -242,7 +285,7 @@ module Lumberjack module Beats
     end
 
     def supported_protocol?(version)
-      SUPPORTED_PROTOCOLS.include?(version)
+      PROTOCOL_VERSION_2 == version || PROTOCOL_VERSION_1 == version
     end
 
     def window_size(&block)
@@ -313,7 +356,7 @@ module Lumberjack module Beats
   end # class Parser
 
   class Connection
-    # Wrap the original exception into a common one, 
+    # Wrap the original exception into a common one,
     # to make upstream managing and reporting easier
     # But lets make sure we keep the meaning of the original exception.
     class ConnectionClosed < StandardError
@@ -351,7 +394,7 @@ module Lumberjack module Beats
 
       @server = server
       @ack_handler = nil
-      
+
       # Fetch the details of the host before reading anything from the socket
       # se we can use that information when debugging connection issues with
       # remote hosts.

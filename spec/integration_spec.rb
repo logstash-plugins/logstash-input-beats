@@ -10,23 +10,39 @@ require "spec_helper"
 Thread.abort_on_exception = true
 describe "A client" do
   let(:certificate) { Flores::PKI.generate }
-  let(:certificate_file_crt) { "certificate.crt" }
-  let(:certificate_file_key) { "certificate.key" }
+  let(:certificate_file_crt) do
+     p = Stud::Temporary.file
+     p.write(certificate.first.to_s)
+     p.close
+     p.path
+  end
+
+  let(:certificate_file_key) do
+    p = Stud::Temporary.file
+    p.write(certificate.last.to_s)
+    p.close
+    p.path
+  end
   let(:port) { Flores::Random.integer(1024..65335) }
   let(:tcp_port) { port + 1 }
   let(:host) { "127.0.0.1" }
   let(:queue) { [] }
+  let(:config_ssl) do
+    {
+      :port => port,
+      :address => host,
+      :ssl_certificate => certificate_file_crt,
+      :ssl_key => certificate_file_key
+    }
+  end
+
+  let(:config_tcp) do
+    { :port => tcp_port, :address => host, :ssl => false }
+  end
 
   before :each do
-    expect(File).to receive(:read).at_least(1).with(certificate_file_crt) { certificate.first.to_s }
-    expect(File).to receive(:read).at_least(1).with(certificate_file_key) { certificate.last.to_s }
-
-    tcp_server = Lumberjack::Beats::Server.new(:port => tcp_port, :address => host, :ssl => false)
-
-    ssl_server = Lumberjack::Beats::Server.new(:port => port,
-                                        :address => host,
-                                        :ssl_certificate => certificate_file_crt,
-                                        :ssl_key => certificate_file_key)
+    tcp_server = Lumberjack::Beats::Server.new(config_tcp)
+    ssl_server = Lumberjack::Beats::Server.new(config_ssl)
 
     @tcp_server = Thread.new do
       tcp_server.run { |data, identity_stream| queue << [data, identity_stream] }
@@ -42,7 +58,7 @@ describe "A client" do
               # parser for TCP based server trip.
               # Connection is closed by Server connection object
             end
-          end 
+          end
       end
     end
 
@@ -160,62 +176,95 @@ describe "A client" do
     end
   end
 
-  context "using ssl encrypted connection" do
-    context "with a valid certificate" do
-      it "successfully connect to the server" do
-        expect {
-          Lumberjack::Beats::Client.new(:port => port,
-                                 :host => host,
-                                 :addresses => host,
-                                 :ssl_certificate => certificate_file_crt)
-        }.not_to raise_error
+  context "using TLS/SSL encrypted connection" do
+    context "without a ca chain" do
+      context "with a valid certificate" do
+        it "successfully connect to the server" do
+          expect {
+            Lumberjack::Beats::Client.new(:port => port,
+                                   :host => host,
+                                   :addresses => host,
+                                   :ssl_certificate_authorities => certificate_file_crt)
+          }.not_to raise_error
+        end
+
+        it "should fail connecting to plain tcp server" do
+          expect {
+            Lumberjack::Beats::Client.new(:port => tcp_port,
+                                   :host => host,
+                                   :addresses => host,
+                                   :ssl_certificate_authorities => certificate_file_crt)
+          }.to raise_error(OpenSSL::SSL::SSLError)
+        end
       end
 
-      it "should fail connecting to plain tcp server" do
-        expect {
-          Lumberjack::Beats::Client.new(:port => tcp_port,
-                                 :host => host,
-                                 :addresses => host,
-                                 :ssl_certificate => certificate_file_crt)
-        }.to raise_error(OpenSSL::SSL::SSLError)
-      end
-    end
+      context "with an invalid certificate" do
+        let(:invalid_certificate) { Flores::PKI.generate }
+        let(:invalid_certificate_file) { Stud::Temporary.file.path }
 
-    context "with an invalid certificate" do
-      let(:invalid_certificate) { Flores::PKI.generate }
-      let(:invalid_certificate_file) { "invalid.crt" }
+        it "should refuse to connect" do
+          expect {
+            Lumberjack::Beats::Client.new(:port => port,
+                                          :host => host,
+                                          :addresses => host,
+                                          :ssl_certificate_authorities => invalid_certificate_file)
 
-      before do
-        expect(File).to receive(:read).with(invalid_certificate_file) { invalid_certificate.first.to_s }
+          }.to raise_error(OpenSSL::SSL::SSLError, /certificate verify failed/)
+        end
       end
 
-      it "should refuse to connect" do
-        expect {
+      context "When transmitting a payload" do
+        let(:client) do
           Lumberjack::Beats::Client.new(:port => port,
                                         :host => host,
                                         :addresses => host,
-                                        :ssl_certificate => invalid_certificate_file)
+                                        :ssl_certificate_authorities => certificate_file_crt)
+        end
 
-        }.to raise_error(OpenSSL::SSL::SSLError, /certificate verify failed/)
+        context "json" do
+          let(:options) { super.merge({ :json => true }) }
+          include_examples "transmit payloads"
+        end
+
+        context "v1 frame" do
+          include_examples "transmit payloads"
+        end
       end
     end
+  end
 
-    context "When transmitting a payload" do
-      let(:client) do
-        Lumberjack::Beats::Client.new(:port => port,
-                                      :host => host,
-                                      :addresses => host,
-                                      :ssl_certificate => certificate_file_crt)
-      end
 
-      context "json" do
-        let(:options) { super.merge({ :json => true }) }
-        include_examples "transmit payloads"
-      end
+  context "when validating the client with a CA chain" do
+    let(:certificate_authorities) { File.join(File.dirname(__FILE__), "fixtures", "certificate.pem.chain") }
+    let(:server_certificate) { File.join(File.dirname(__FILE__), "fixtures", "localhost.crt") }
+    let(:server_key) { File.join(File.dirname(__FILE__), "fixtures", "localhost.key") }
+    let(:client_certificate) { server_certificate }
+    let(:client_key) { client_certificate }
+    let(:ssl_key_passphrase) { "password" }
+    let(:host) { "localhost" }
 
-      context "v1 frame" do
-        include_examples "transmit payloads"
-      end
+    let(:options) do
+      { :port => port,
+        :host => host,
+        :addresses => host,
+        :ssl_certificate => server_certificate,
+        :ssl_certificate_key => server_key,
+        :ssl_certificate_authorities => certificate_authorities,
+        :ssl => true
+      }
     end
+
+    let(:client) { Lumberjack::Beats::Client.new(options) }
+
+    let(:config_ssl) do
+      super.merge({
+        :ssl_certificate_authorities => certificate_authorities,
+        :ssl_certificate => server_certificate,
+        :ssl_key => server_key,
+        :ssl_key_passphrase => ssl_key_passphrase
+      })
+    end
+
+    include_examples "transmit payloads"
   end
 end

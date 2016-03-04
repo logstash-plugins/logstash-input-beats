@@ -12,14 +12,21 @@ module Lumberjack module Beats
         :port => 0,
         :addresses => [],
         :ssl_certificate => nil,
+        :ssl_certificate_key => nil,
+        :ssl_certificate_authorities => nil,
         :ssl => true,
         :json => false,
       }.merge(opts)
 
-      @opts[:addresses] = [@opts[:addresses]] if @opts[:addresses].class == String
+      @opts[:addresses] = Array(@opts[:addresses])
       raise "Must set a port." if @opts[:port] == 0
       raise "Must set atleast one address" if @opts[:addresses].empty? == 0
-      raise "Must set a ssl certificate or path" if @opts[:ssl_certificate].nil? && @opts[:ssl]
+
+      if @opts[:ssl]
+        if @opts[:ssl_certificate_authorities].nil? && (@opts[:ssl_certificate].nil? || @opts[:ssl_certificate_key].nil?)
+          raise "Must set a ssl certificate or path"
+        end
+      end
 
       @socket = connect
     end
@@ -67,7 +74,10 @@ module Lumberjack module Beats
       @opts = {
         :port => 0,
         :address => "127.0.0.1",
+        :ssl_certificate_authorities => [], # use the same naming as beats' TLS options
         :ssl_certificate => nil,
+        :ssl_certificate_key => nil,
+        :ssl_certificate_password => nil,
         :ssl => true,
         :json => false,
       }.merge(opts)
@@ -79,24 +89,32 @@ module Lumberjack module Beats
     private
     def connection_start(opts)
       tcp_socket = TCPSocket.new(opts[:address], opts[:port])
+
       if !opts[:ssl]
         @socket = tcp_socket
       else
-        certificate = OpenSSL::X509::Certificate.new(File.read(opts[:ssl_certificate]))
+        store = OpenSSL::X509::Store.new
 
-        certificate_store = OpenSSL::X509::Store.new
-        certificate_store.add_cert(certificate)
+        if opts[:ssl_certificate]
+          certificate = OpenSSL::X509::Certificate.new(File.open(opts[:ssl_certificate]))
+        end
+
+        Array(opts[:ssl_certificate_authorities]).each do |certificate_authority|
+          store.add_file(certificate_authority)
+        end
 
         ssl_context = OpenSSL::SSL::SSLContext.new
+        ssl_context.cert = certificate
+        ssl_context.key = OpenSSL::PKey::RSA.new(File.read(opts[:ssl_certificate_key]), opts[:ssl_certificate_password]) if opts[:ssl_certificate_key]
         ssl_context.verify_mode = OpenSSL::SSL::VERIFY_PEER
-        ssl_context.cert_store = certificate_store
+        ssl_context.cert_store = store
 
         @socket = OpenSSL::SSL::SSLSocket.new(tcp_socket, ssl_context)
         @socket.connect
       end
     end
 
-    private 
+    private
     def inc
       @sequence = 0 if @sequence + 1 > Lumberjack::Beats::SEQUENCE_MAX
       @sequence = @sequence + 1
@@ -134,7 +152,7 @@ module Lumberjack module Beats
       ack(elements.size)
     end
 
-    private 
+    private
     def compress_payload(payload)
       compress = Zlib::Deflate.deflate(payload)
       ["1", "C", compress.bytesize, compress].pack("AANA*")
