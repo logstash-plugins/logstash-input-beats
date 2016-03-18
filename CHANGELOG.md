@@ -1,3 +1,5 @@
+# 2.2.1
+  - New dependency requirements for logstash-core for the 5.0 release
 # 2.2.0
   - The server can now do client side verification by providing a list of certificate authorities and configuring the `ssl_verify_mode`,
     the server can use `peer`, if the client send a certificate it will be validated. Using `force_peer` will make sure the client provide a certificate
