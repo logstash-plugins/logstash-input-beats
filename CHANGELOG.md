@@ -1,3 +1,6 @@
+# 2.2.2
+  - Now depend on `logstash-core-plugin-api` instead of `logstash-core`, this remove the need to mass update 
+    the plugins if the plugin api contract doesn't change.
 # 2.2.1
   - New dependency requirements for logstash-core for the 5.0 release
 # 2.2.0
