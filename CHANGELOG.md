@@ -1,3 +1,5 @@
+# 2.2.4
+  - Fix bug where using `ssl_key_passphrase` wouldn't work 
 # 2.2.2
   - Depend on logstash-core-plugin-api instead of logstash-core, removing the need to mass update plugins on major releases of logstash
 # 2.2.1
