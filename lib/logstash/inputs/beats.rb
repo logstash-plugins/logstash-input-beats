@@ -115,7 +115,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       :ssl => @ssl,
       :ssl_certificate => @ssl_certificate,
       :ssl_key => @ssl_key,
-      :ssl_key_passphrase => @ssl_key_passphrase.value,
+      :ssl_key_passphrase => @ssl_key_passphrase ? @ssl_key_passphrase.value : nil,
       :ssl_certificate_authorities => @ssl_certificate_authorities,
       :ssl_verify_mode => @ssl_verify_mode)
 
