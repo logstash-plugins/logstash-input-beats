@@ -1,6 +1,7 @@
 # 2.2.5
   - Fix failing tests introduce by the `ssl_key_passphrase` changes.
   - Added an integration test for the `ssl_key_passphrase`
+  - Add an optional parameter for `auto_flush`
 # 2.2.4
   - Fix bug where using `ssl_key_passphrase` wouldn't work 
 # 2.2.2

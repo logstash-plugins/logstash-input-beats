@@ -36,7 +36,7 @@ class LogStash::Codecs::Base
     end
   end
   if !method_defined?(:auto_flush)
-    def auto_flush
+    def auto_flush(*)
     end
   end
 end
