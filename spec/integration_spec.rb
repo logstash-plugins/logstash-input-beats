@@ -13,6 +13,9 @@ Thread.abort_on_exception = true
 describe "A client" do
   include FileHelpers
 
+  let(:keysize) { 1024 }
+  let(:exponent) { 65537 }
+
   let(:certificate) { Flores::PKI.generate }
   let(:certificate_file_crt) do
      p = Stud::Temporary.file
@@ -233,6 +236,20 @@ describe "A client" do
         context "v1 frame" do
           include_examples "transmit payloads"
         end
+
+        context "when the key has a passphrase" do
+          let(:passphrase) { "bonjour la famille" }
+          let(:cipher) { OpenSSL::Cipher.new("des3") }
+          let(:encrypted_key) { certificate.last.to_pem(cipher, passphrase) }
+
+          let_tmp_file(:certificate_file_key) { encrypted_key }
+
+          let(:config_ssl) do
+            super.merge({ :ssl_key_passphrase => passphrase })
+          end
+
+          include_examples "transmit payloads"
+        end
       end
     end
   end
@@ -278,8 +295,6 @@ describe "A client" do
     end
 
     context "with certificate authorities" do
-      let(:keysize) { 1024 }
-      let(:exponent) { 65537 }
       let(:root_ca) { Flores::PKI.generate("CN=root.logstash") }
       let(:root_ca_certificate) { root_ca.first }
       let(:root_ca_key) { root_ca.last }
