@@ -5,7 +5,7 @@ require "flores/random"
 
 describe "Connnection" do
   let(:ip) { "192.168.1.2" }
-  let(:port) { 4444 }
+  let(:port) { Flores::Random.port }
   let(:server) { double("server", :closed? => false) }
   let(:socket) { double("socket", :closed? => false) }
   let(:connection) { Lumberjack::Beats::Connection.new(socket, server) }

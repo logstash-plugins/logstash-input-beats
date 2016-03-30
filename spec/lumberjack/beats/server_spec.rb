@@ -4,6 +4,7 @@ require "lumberjack/beats/server"
 require "flores/random"
 require "flores/pki"
 require "spec_helper"
+require_relative "../../support/flores_extensions"
 
 Thread.abort_on_exception = true
 
@@ -11,8 +12,8 @@ describe "Server" do
   let(:certificate) { Flores::PKI.generate }
   let(:certificate_file_crt) { "certificate.crt" }
   let(:certificate_file_key) { "certificate.key" }
-  let(:port) { Flores::Random.integer(1024..65335) }
-  let(:tcp_port) { port + 1 }
+  let(:port) { Flores::Random.port }
+  let(:tcp_port) { Flores::Random.port }
   let(:host) { "127.0.0.1" }
   let(:queue) { [] }
 
