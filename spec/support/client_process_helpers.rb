@@ -10,6 +10,12 @@ module ClientProcessHelpers
     @process.io.stdout = @process.io.stderr = @client_out
     ChildProcess.posix_spawn = true
     @process.start
+
+    sleep(0.1)
+    @client_out.rewind
+
+    # can be used to helper debugging when a test fails
+    @execution_output = @client_out.read
   end
 
   def stop_client
@@ -18,10 +24,5 @@ module ClientProcessHelpers
     rescue ChildProcess::TimeoutError
       @process.stop
     end
-
-    @client_out.rewind
-
-    # can be used to helper debugging when a test fails
-    @execution_output = @client_out.read
   end
 end

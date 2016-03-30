@@ -3,7 +3,7 @@ require "flores/random"
 
 shared_examples "send events" do
   it "successfully send the events" do
-    expect(queue.size).to eq(number_of_events), "Expected: #{number_of_events} got: #{queue.size}, execution output:\n #{@execution_output}"
+    wait(15).for { queue.size }.to eq(number_of_events), "Expected: #{number_of_events} got: #{queue.size}, execution output:\n #{@execution_output}" 
     expect(queue.collect { |e| e["message"] }).to eq(events)
   end
 end
@@ -20,7 +20,7 @@ shared_context "beats configuration" do
   let(:host) { "localhost" }
 
   let(:queue) { [] }
-  let(:log_file) { write_to_tmp_file(events.join("\n") + "\n") } # make sure we end of line
+  let_tmp_file(:log_file) { events.join("\n") + "\n" } # make sure we end of line
   let(:number_of_events) { 5 }
   let(:event) { "Hello world" }
   let(:events) do
