@@ -11,7 +11,7 @@ module LogStash::Inputs::BeatsSupport
       event["@timestamp"] = ts unless ts.nil?
       hash.each { |k, v| event[k] = v }
       super(event)
-      event.tag("beats_input_codec_#{@input.codec.base_codec.class.config_name}_applied")
+      event.tag("beats_input_codec_#{codec_name}_applied")
       event
     end
 

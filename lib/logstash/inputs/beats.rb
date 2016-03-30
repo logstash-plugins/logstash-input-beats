@@ -127,8 +127,13 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
                             :exceptions => [InsertingToQueueTakeTooLong])
 
     # wrap the configured codec to support identity stream
-    # from the producers
-    @codec = LogStash::Codecs::IdentityMapCodec.new(@codec)
+    # from the producers if running with the multiline codec.
+    #
+    # If they dont need an identity map, codec are stateless and can be reused
+    # accross multiples connections.
+    if need_identity_map?
+      @codec = LogStash::Codecs::IdentityMapCodec.new(@codec)
+    end
 
     # Keep a list of active connections so we can flush their codec on shutdown
 
@@ -255,5 +260,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
         @logger.error("Beats input: unexpected exception", :exception => e)
       end
     end
+  end
+
+  def need_identity_map?
+    @codec.kind_of?(LogStash::Codecs::Multiline)
   end
 end # class LogStash::Inputs::Beats

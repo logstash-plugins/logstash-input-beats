@@ -16,6 +16,30 @@ describe LogStash::Inputs::Beats do
   let(:config)   { { "port" => 0, "ssl_certificate" => certificate.ssl_cert, "ssl_key" => certificate.ssl_key, "type" => "example", "tags" => "beats"} }
 
   context "#register" do
+    context "identity map" do
+      subject(:plugin) { LogStash::Inputs::Beats.new(config) }
+      before { plugin.register }
+
+      context "when using the multiline codec" do
+        let(:codec) { LogStash::Codecs::Multiline.new("pattern" => '^2015',
+                                                      "what" => "previous",
+                                                      "negate" => true) }
+        let(:config) { super.merge({ "codec" => codec }) }
+
+        it "wraps the codec with the identity_map" do
+          expect(plugin.codec).to be_kind_of(LogStash::Codecs::IdentityMapCodec)
+        end
+      end
+
+      context "when using non buffered codecs" do
+        let(:config) { super.merge({ "codec" => "json" }) }
+
+        it "doesnt wrap the codec with the identity map" do
+          expect(plugin.codec).to be_kind_of(LogStash::Codecs::JSON)
+        end
+      end
+    end
+
     it "raise no exception" do
       plugin = LogStash::Inputs::Beats.new(config)
       expect { plugin.register }.not_to raise_error
