@@ -11,7 +11,7 @@ require "zlib"
 
 describe Lumberjack::Beats::Client do
   describe Lumberjack::Beats::Socket do
-    let(:port)   { 5000 }
+    let(:port) { Flores::Random.port }
 
     subject(:socket) { Lumberjack::Beats::Socket.new(:port => port, :ssl_certificate => "" ) }
 

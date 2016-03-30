@@ -1,6 +1,46 @@
 # encoding: utf-8
 require "flores/pki"
+require "flores/random"
+
 module Flores
+  module Random
+    DEFAULT_PORT_RANGE = 1024..65535
+    DEFAULT_PORT_CHECK_TIMEOUT = 1
+    DEFAULT_MAXIMUM_PORT_FIND_TRY = 15
+
+    class << self
+      def port(range = DEFAULT_PORT_RANGE)
+        try = 0
+        while try < DEFAULT_MAXIMUM_PORT_FIND_TRY
+          candidate = integer(range)
+
+          if port_available?(candidate)
+            break
+          else
+            try += 1
+          end
+        end
+        
+        raise "Flores.random_port: Cannot find an available port, tried #{DEFAULT_MAXIMUM_PORT_FIND_TRY} times, range was: #{range}" if try == DEFAULT_MAXIMUM_PORT_FIND_TRY
+
+        candidate
+      end
+      
+      def port_available?(port)
+        begin
+          server = TCPServer.new(port)
+          available = true
+        rescue # Assume that any errors can do this
+          available = false
+        ensure
+          server.close if server
+        end
+
+        return available
+      end
+    end
+  end
+
   module PKI
     DEFAULT_CERTIFICATE_OPTIONS = {
       :duration => Flores::Random.number(100..2000),

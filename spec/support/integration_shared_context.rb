@@ -16,7 +16,7 @@ end
 
 shared_context "beats configuration" do
   # common
-  let(:port) { Flores::Random.integer(1024..65335) }
+  let(:port) { Flores::Random.port }
   let(:host) { "localhost" }
 
   let(:queue) { [] }

@@ -30,8 +30,8 @@ describe "A client" do
     p.close
     p.path
   end
-  let(:port) { Flores::Random.integer(1024..65335) }
-  let(:tcp_port) { port + 1 }
+  let(:port) { Flores::Random.port }
+  let(:tcp_port) { Flores::Random.port }
   let(:host) { "127.0.0.1" }
   let(:queue) { [] }
   let(:config_ssl) do
