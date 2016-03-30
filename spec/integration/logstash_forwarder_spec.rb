@@ -10,7 +10,7 @@ require "spec_helper"
 
 LSF_BINARY = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "vendor", "logstash-forwarder", "logstash-forwarder"))
 
-xdescribe "Logstash-Forwarder", :integration => true do
+describe "Logstash-Forwarder", :integration => true do
   include ClientProcessHelpers
 
   before :all do
@@ -61,6 +61,7 @@ xdescribe "Logstash-Forwarder", :integration => true do
 
   context "Plain TCP" do
     include ClientProcessHelpers
+
     let(:certificate_authorities) { "" }
 
     it "should not send any events" do
@@ -85,13 +86,12 @@ xdescribe "Logstash-Forwarder", :integration => true do
       let(:certificate_authorities) { certificate_file }
 
       context "self signed certificate" do
-        include_examples "send events" do
-        end
+        include_examples "send events"
       end
 
       context "invalid CA on the client" do
         let(:invalid_data) { Flores::PKI.generate }
-        let(:certificate_authorities) { invalid_data.first }
+        let(:certificate_authorities) { f = Stud::Temporary.file; f.close; f.path }
 
         it "should not send any events" do
           expect(queue.size).to eq(0), @execution_output
