@@ -44,7 +44,11 @@ shared_context "beats configuration" do
     beats.register
 
     @server = Thread.new do
-      beats.run(queue)
+      begin
+        beats.run(queue)
+      rescue
+        retry unless beats.stop?
+      end
     end
     @server.abort_on_exception = true
 
