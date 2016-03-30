@@ -1,3 +1,5 @@
+# 2.2.7
+  - More robust test when using a random port #60
 # 2.2.6
   - Do not use the identity map if we don't explicitly use the `multiline` codec
 # 2.2.5
