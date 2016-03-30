@@ -1,3 +1,5 @@
+# 2.2.6
+  - Do not use the identity map if we don't explicitly use the `multiline` codec
 # 2.2.5
   - Fix failing tests introduce by the `ssl_key_passphrase` changes.
   - Added an integration test for the `ssl_key_passphrase`
