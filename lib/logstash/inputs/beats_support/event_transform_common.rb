@@ -31,6 +31,14 @@ module LogStash::Inputs::BeatsSupport
       @input.send(:decorate, event)
     end
 
+    def codec_name
+      @codec_name ||= if @input.codec.respond_to?(:base_codec)
+                        @input.codec.base_codec.class.config
+                      else
+                        @input.codec.class.config_name
+                      end
+    end
+
     def transform(event)
       copy_beat_hostname(event)
       decorate(event)
