@@ -19,9 +19,10 @@ describe "Logstash-Forwarder", :integration => true do
     end
   end
 
-  let(:client_wait_time) { 5 }
   include FileHelpers
   include_context "beats configuration"
+
+  let(:client_wait_time) { 5 }
 
   # Filebeat related variables
   let(:cmd) { [lsf_exec, "-config", lsf_config_path] }
@@ -53,6 +54,7 @@ describe "Logstash-Forwarder", :integration => true do
     File.open(log_file, "a") do |f|
       f.write(events.join("\n") + "\n")
     end
+    sleep(1) # give some time to the clients to pick up the changes
   end
 
   after :each do
