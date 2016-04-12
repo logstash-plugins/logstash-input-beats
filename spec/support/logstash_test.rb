@@ -1,5 +1,9 @@
 require "stud/temporary"
-module LogStashTest
+
+
+# namespace the Dummy* classes, they are reused names
+# use a more specific module name to prevent clashes
+module BeatsInputTest
   class Certicate
     attr_reader :ssl_key, :ssl_cert
 
@@ -20,29 +24,43 @@ module LogStashTest
       rand(2000..10000)
     end
   end
-end
 
-class DummyNeverBlockedQueue < Array
-  def offer(element, timeout = nil)
-    push(element)
+  class DummyNeverBlockedQueue < Array
+    def offer(element, timeout = nil)
+      push(element)
+    end
+
+    alias_method :take, :shift
   end
 
-  alias_method :take, :shift
-end
+  class DummyConnection
+    def initialize(events)
+      @events = events
+    end
 
-class DummyConnection
-  def initialize(events)
-    @events = events
-  end
+    def run
+      @events.each do |element|
+        yield element[:map], element[:identity_stream]
+      end
+    end
 
-  def run
-    @events.each do |element|
-      yield element[:map], element[:identity_stream] 
+    def peer
+      "localhost:5555"
     end
   end
 
-  def peer
-    "localhost:5555"
+  class DummyCodec
+    def register() end
+    def decode(*) end
+    def clone() self; end
+    def base_codec
+      self
+    end
+    def self.config_name
+      "dummy"
+    end
   end
 end
+
+
 

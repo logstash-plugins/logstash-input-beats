@@ -10,8 +10,8 @@ require "lumberjack/beats/client"
 
 describe LogStash::Inputs::Beats do
   let(:connection) { double("connection") }
-  let(:certificate) { LogStashTest.certificate }
-  let(:port) { LogStashTest.random_port }
+  let(:certificate) { BeatsInputTest.certificate }
+  let(:port) { BeatsInputTest.random_port }
   let(:queue)  { Queue.new }
   let(:config)   { { "port" => 0, "ssl_certificate" => certificate.ssl_cert, "ssl_key" => certificate.ssl_key, "type" => "example", "tags" => "beats"} }
 
@@ -97,8 +97,8 @@ describe LogStash::Inputs::Beats do
   context "#handle_new_connection" do
     let(:config) {{ "ssl" => false, "port" => 0, "type" => "example", "tags" => "beats" }}
     let(:plugin) { LogStash::Inputs::Beats.new(config) }
-    let(:connection) { DummyConnection.new(events) }
-    let(:buffer_queue) { DummyNeverBlockedQueue.new }
+    let(:connection) { BeatsInputTest::DummyConnection.new(events) }
+    let(:buffer_queue) { BeatsInputTest::DummyNeverBlockedQueue.new }
     let(:pipeline_queue)  { [] }
     let(:events) {
       [

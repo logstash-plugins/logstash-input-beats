@@ -64,4 +64,11 @@ describe LogStash::Inputs::BeatsSupport::DecodedEventTransform do
       expect(subject["@timestamp"]).to be_kind_of(LogStash::Timestamp)
     end
   end
+
+  context "when the codec is a base_codec wrapper" do
+    before { config.update("codec" => BeatsInputTest::DummyCodec.new) }
+    it "gets the codec config name from the base codec" do
+      expect(subject["tags"]).to include("beats_input_codec_dummy_applied")
+    end
+  end
 end
