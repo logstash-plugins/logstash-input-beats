@@ -1,3 +1,6 @@
+# 2.2.8
+  - Fix #73 Bug in EventTransformCommon#codec_name, use config_name
+  - add regression test for fix to 73
 # 2.2.7
   - More robust test when using a random port #60
   - Fix LSF integration tests #52

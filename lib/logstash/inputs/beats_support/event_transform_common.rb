@@ -33,7 +33,7 @@ module LogStash::Inputs::BeatsSupport
 
     def codec_name
       @codec_name ||= if @input.codec.respond_to?(:base_codec)
-                        @input.codec.base_codec.class.config
+                        @input.codec.base_codec.class.config_name
                       else
                         @input.codec.class.config_name
                       end

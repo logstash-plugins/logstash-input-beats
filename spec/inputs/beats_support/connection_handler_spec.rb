@@ -11,7 +11,7 @@ describe LogStash::Inputs::BeatsSupport::ConnectionHandler do
       "tags" => "beats"
     }
   end
-
+  # logger is not used and DummyLogger needs implementing
   let(:logger) { DummyLogger.new  }
   let(:input) do
     LogStash::Inputs::Beats.new(config).tap do |i|
@@ -19,12 +19,12 @@ describe LogStash::Inputs::BeatsSupport::ConnectionHandler do
     end
   end
   let(:connection) { double("connection") }
-  let(:queue) { DummyNeverBlockedQueue.new }
+  let(:queue) { BeatsInputTest::DummyNeverBlockedQueue.new }
 
   subject { described_class.new(connection, input, queue) }
-  
+
   context "#accept" do
-    let(:connection) { DummyConnection.new(events) }
+    let(:connection) { BeatsInputTest::DummyConnection.new(events) }
     let(:events) {
       [
         { :map => { "id" => 1 }, :identity_stream => "/var/log/message" },
@@ -59,7 +59,7 @@ describe LogStash::Inputs::BeatsSupport::ConnectionHandler do
       context "queue is blocked" do
         let(:queue_timeout) { 1 }
         let(:queue) { LogStash::Inputs::BeatsSupport::SynchronousQueueWithOffer.new(queue_timeout) }
-      
+
         it "raise an exception" do
           expect { subject.process(map, identity_stream) }.to raise_error(LogStash::Inputs::Beats::InsertingToQueueTakeTooLong)
         end
