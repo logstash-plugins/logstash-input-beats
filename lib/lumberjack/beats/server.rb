@@ -467,7 +467,7 @@ module Lumberjack module Beats
           reset_next_ack(*args)
         when :data
           sequence, map = args
-          ack_if_needed(sequence) { data(map, &block) }
+          ack_if_needed(sequence) { data(normalize_v1_metadata_encoding(map), &block) }
         when :json
           # If the payload is an array of items we will emit multiple events
           # this behavior was moved from the plugin to the library.
@@ -483,6 +483,14 @@ module Lumberjack module Beats
           end
         end
       end
+    end
+
+    def normalize_v1_metadata_encoding(map)
+      # lets normalize the metadata of the v1 frame to make
+      # sure everything is utf-8 minus the content itself.
+      # We need this to make this plugin backward compatible.
+      map.each { |k, v| map[k].force_encoding(Encoding::UTF_8) unless k == "line" }
+      map
     end
 
     def version(version)

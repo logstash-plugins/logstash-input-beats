@@ -9,11 +9,7 @@ module LogStash::Inputs::BeatsSupport
       ts = coerce_ts(hash.delete("@timestamp"))
 
       event["@timestamp"] = ts unless ts.nil?
-      hash.each do |k, v|
-        # LSF doesn't always return utf-8 values
-        v = v.force_encoding(Encoding::UTF_8)
-        event[k] = v
-      end
+      hash.each { |k, v| event[k] = v }
       super(event)
       event.tag("beats_input_codec_#{codec_name}_applied")
       event
