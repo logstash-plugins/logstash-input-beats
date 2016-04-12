@@ -3,7 +3,7 @@ require "flores/random"
 
 shared_examples "send events" do
   it "successfully send the events" do
-    wait(15).for { queue.size }.to eq(number_of_events), "Expected: #{number_of_events} got: #{queue.size}, execution output:\n #{@execution_output}" 
+    wait(20).for { queue.size }.to eq(number_of_events), "Expected: #{number_of_events} got: #{queue.size}, execution output:\n #{@execution_output}" 
     expect(queue.collect { |e| e["message"] }).to eq(events)
   end
 end
@@ -43,10 +43,19 @@ shared_context "beats configuration" do
   before :each do
     beats.register
 
+    @abort_on_exception = Thread.abort_on_exception
+    Thread.abort_on_exception = true
+
     @server = Thread.new do
       begin
+        # This is used for debugging
+        #
+        # logger = Logger.new(STDOUT)
+        # beats.logger = Cabin::Channel.new
+        # beats.logger.subscribe(logger)
+        # beats.logger.level = :debug
         beats.run(queue)
-      rescue
+      rescue => e
         retry unless beats.stop?
       end
     end
@@ -55,5 +64,8 @@ shared_context "beats configuration" do
     sleep(1) while @server.status != "run"
   end
 
-  after(:each) { beats.stop }
+  after(:each) do
+    beats.stop
+    Thread.abort_on_exception = @abort_on_exception
+  end
 end
