@@ -2,6 +2,7 @@
 require "logstash/inputs/beats"
 require "logstash/inputs/beats_support/decoded_event_transform"
 require "logstash/inputs/beats_support/raw_event_transform"
+require "lumberjack/beats"
 
 module LogStash::Inputs::BeatsSupport
   # Handle the data coming from a connection
@@ -40,7 +41,11 @@ module LogStash::Inputs::BeatsSupport
                                       :peer => @connection.peer)
 
       # Filebeats uses the `message` key and LSF `line`
-      target_field = @input.target_field_for_codec ? hash.delete(@input.target_field_for_codec) : nil
+      target_field = if from_filebeat?(hash)
+                       hash.delete(Lumberjack::Beats::FILEBEAT_LOG_LINE_FIELD)
+                     elsif from_logstash_forwarder?(hash)
+                       hash.delete(Lumberjack::Beats::LSF_LOG_LINE_FIELD)
+                     end
 
       if target_field.nil?
         @logger.debug? && @logger.debug("Beats input: not using the codec for this event, can't find the codec target field",
@@ -74,6 +79,15 @@ module LogStash::Inputs::BeatsSupport
                                       :peer => @connection.peer)
 
       @codec.flush(&block)
+    end
+
+    private
+    def from_filebeat?(hash)
+      !hash[Lumberjack::Beats::FILEBEAT_LOG_LINE_FIELD].nil?
+    end
+
+    def from_logstash_forwarder?(hash)
+      !hash[Lumberjack::Beats::LSF_LOG_LINE_FIELD].nil?
     end
   end
 end

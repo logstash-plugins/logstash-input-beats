@@ -95,7 +95,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   config :congestion_threshold, :validate => :number, :default => 5
 
   # This is the default field that the specified codec will be applied
-  config :target_field_for_codec, :validate => :string, :default => "message"
+  config :target_field_for_codec, :validate => :string, :default => "message", :deprecated => "This option is now deprecated, the plugin is now compatible with Filebeat and Logstash-Forwarder"
 
   # TODO(sissel): Add CA to authenticate clients with.
   RECONNECT_BACKOFF_SLEEP = 0.5

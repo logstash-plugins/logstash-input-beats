@@ -487,9 +487,10 @@ module Lumberjack module Beats
 
     def normalize_v1_metadata_encoding(map)
       # lets normalize the metadata of the v1 frame to make
-      # sure everything is utf-8 minus the content itself.
-      # We need this to make this plugin backward compatible.
-      map.each { |k, v| map[k].force_encoding(Encoding::UTF_8) unless k == "line" }
+      # sure everything is in utf-8 format, because LSF don't enforce the encoding when he send
+      # the data to the server. Path, offset can be in another encoding, when the data is assigned to the event.
+      # the event will validate it and crash when the encoding is in the wrong format.
+      map.each { |k, v| map[k].force_encoding(Encoding::UTF_8) unless k == Lumberjack::Beats::LSF_LOG_LINE_FIELD }
       map
     end
 

@@ -78,7 +78,6 @@ describe "Logstash-Forwarder", :integration => true do
           "ssl" => true,
           "ssl_certificate" => certificate_file,
           "ssl_key" => certificate_key_file,
-          "target_field_for_codec" => "line"
         })
       end
 
