@@ -1,7 +1,8 @@
 # 2.2.8
   - Fix #73 Bug in EventTransformCommon#codec_name, use config_name
-  - add regression test for fix to 73
-  - non deterministic error for the LSF integration test
+  - Add regression test for fix to #73
+  - Non deterministic error for the LSF integration test
+  - Make this plugin really a drop in replacement for the lumberjack input, so LSF can send their events to this plugin.
 # 2.2.7
   - More robust test when using a random port #60
   - Fix LSF integration tests #52
