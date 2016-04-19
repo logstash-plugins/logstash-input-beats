@@ -8,3 +8,6 @@ before_script:
 script: 
   - bundle exec rspec spec
   - bundle exec rspec spec --tag integration
+notifications:
+  slack:
+    secure: WvcTOhKa4CqN80khvJqAa8a1XONc0cCc/YgoiaNClWqHT3K4ES7rFSiLC083W0cbaLFqQUVHy8znpLHc+xGk/bYRIn8TXuBtud/m54lAfEcJ9jorh08oyNbOm5F4bRGOEhGCop4hmCOmVFTIzt9O4N/MB6LM/e1u3pnomglUzxM=
