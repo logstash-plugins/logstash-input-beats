@@ -63,7 +63,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # SSL certificate to use.
   config :ssl_certificate, :validate => :path
 
-  # SSL key to use.
+  # SSL key to use, when required
   config :ssl_key, :validate => :path
 
   # SSL key passphrase to use.
