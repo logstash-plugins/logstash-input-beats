@@ -4,9 +4,9 @@ OS_PLATFORM = RbConfig::CONFIG["host_os"]
 VENDOR_PATH = File.expand_path(File.join(File.dirname(__FILE__), "vendor"))
 
 if OS_PLATFORM == "linux"
-  FILEBEAT_URL = "https://beats-nightlies.s3.amazonaws.com/filebeat/filebeat-5.0.0-nightlylatest-#{RbConfig::CONFIG["host_cpu"]}.tar.gz"
+  FILEBEAT_URL = "https://beats-nightlies.s3.amazonaws.com/filebeat/filebeat-5.0.0-SNAPSHOT-#{RbConfig::CONFIG["host_cpu"]}.tar.gz"
 elsif OS_PLATFORM == "darwin"
-  FILEBEAT_URL = "https://beats-nightlies.s3.amazonaws.com/filebeat/filebeat-5.0.0-nightlylatest-darwin.tgz"
+  FILEBEAT_URL = "https://beats-nightlies.s3.amazonaws.com/filebeat/filebeat-5.0.0-SNAPSHOT-darwin.tgz"
 end
 
 LSF_URL = "https://download.elastic.co/logstash-forwarder/binaries/logstash-forwarder_#{OS_PLATFORM}_amd64"
