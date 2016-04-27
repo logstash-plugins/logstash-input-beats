@@ -3,6 +3,8 @@ language: ruby
 cache: bundler
 rvm:
   - jruby-1.7.24
+before_install:
+  - git clone https://github.com/elastic/logstash
 before_script:
   - bundle exec rake test:integration:setup
 script: 
