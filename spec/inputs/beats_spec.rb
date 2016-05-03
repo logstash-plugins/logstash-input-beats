@@ -147,7 +147,7 @@ describe LogStash::Inputs::Beats do
           plugin.handle_new_connection(connection)
 
           event = pipeline_queue.shift
-          expect(event["tags"]).to include("beats_input_flushed_by_end_of_connection")
+          expect(event.get("tags")).to include("beats_input_flushed_by_end_of_connection")
         end
       end
     end

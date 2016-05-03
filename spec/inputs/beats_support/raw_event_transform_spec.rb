@@ -21,6 +21,6 @@ describe LogStash::Inputs::BeatsSupport::RawEventTransform do
   include_examples "Common Event Transformation"
 
   it "tags the event" do
-    expect(subject["tags"]).to include("beats_input_raw_event")
+    expect(subject.get("tags")).to include("beats_input_raw_event")
   end
 end

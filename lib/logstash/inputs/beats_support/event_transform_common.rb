@@ -12,10 +12,10 @@ module LogStash::Inputs::BeatsSupport
     # Copies the beat.hostname field into the host field unless
     # the host field is already defined
     def copy_beat_hostname(event)
-      host = event["[beat][hostname]"]
+      host = event.get("[beat][hostname]")
 
-      if host && event["host"].nil?
-        event["host"] = host
+      if host && event.get("host").nil?
+        event.set("host", host)
       end
     end
 

@@ -51,8 +51,8 @@ describe LogStash::Inputs::BeatsSupport::ConnectionHandler do
           subject.process(map, identity_stream)
           event = queue.take
 
-          expect(event["hello"]).to eq(map["hello"])
-          expect(event["tags"]).to include("beats_input_raw_event")
+          expect(event.get("hello")).to eq(map["hello"])
+          expect(event.get("tags")).to include("beats_input_raw_event")
         end
       end
 
@@ -75,8 +75,8 @@ describe LogStash::Inputs::BeatsSupport::ConnectionHandler do
           subject.process(map, identity_stream)
           event = queue.take
 
-          expect(event["message"]).to eq(message)
-          expect(event["tags"]).to include("beats_input_codec_plain_applied")
+          expect(event.get("message")).to eq(message)
+          expect(event.get("tags")).to include("beats_input_codec_plain_applied")
         end
       end
 

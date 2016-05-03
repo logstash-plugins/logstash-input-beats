@@ -1,10 +1,14 @@
+---
 sudo: false
 language: ruby
 cache: bundler
 rvm:
-  - jruby-1.7.24
+- jruby-1.7.25
 before_script:
-  - bundle exec rake test:integration:setup
-script: 
-  - bundle exec rspec spec
-  - bundle exec rspec spec --tag integration
+- bundle exec rake test:integration:setup
+script:
+- bundle exec rspec spec
+- bundle exec rspec spec --tag integration
+jdk: oraclejdk8
+before_install:
+- git clone -b feature/event_interface https://github.com/elastic/logstash

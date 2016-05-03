@@ -22,7 +22,7 @@ shared_examples "Common Event Transformation" do
   end
 
   it "adds configured tags to the event" do
-    expect(subject["tags"]).to include(tag)
+    expect(subject.get("tags")).to include(tag)
   end
 
   context "when the `beast.hotname` doesnt exist on the event" do
@@ -30,7 +30,7 @@ shared_examples "Common Event Transformation" do
     let(:event_map) { super.merge({ "host" => already_exist }) }
 
     it "doesnt change the value" do
-      expect(subject["host"]).to eq(already_exist)
+      expect(subject.get("host")).to eq(already_exist)
     end
   end
 
@@ -40,7 +40,7 @@ shared_examples "Common Event Transformation" do
 
     context "when `host` key doesn't exist on the event" do
       it "copy the `beat.hostname` to `host` or backward compatibility" do
-        expect(subject["host"]).to eq(producer_host)
+        expect(subject.get("host")).to eq(producer_host)
       end
     end
 
@@ -49,7 +49,7 @@ shared_examples "Common Event Transformation" do
       let(:event_map) { super.merge({ "host" => already_exist }) }
 
       it "doesn't override it" do
-        expect(subject["host"]).to eq(already_exist)
+        expect(subject.get("host")).to eq(already_exist)
       end
     end
   end

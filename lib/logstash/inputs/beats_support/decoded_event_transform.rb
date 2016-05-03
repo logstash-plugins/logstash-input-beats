@@ -8,8 +8,8 @@ module LogStash::Inputs::BeatsSupport
     def transform(event, hash)
       ts = coerce_ts(hash.delete("@timestamp"))
 
-      event["@timestamp"] = ts unless ts.nil?
-      hash.each { |k, v| event[k] = v }
+      event.set("@timestamp", ts) unless ts.nil?
+      hash.each { |k, v| event.set(k, v) }
       super(event)
       event.tag("beats_input_codec_#{codec_name}_applied")
       event
