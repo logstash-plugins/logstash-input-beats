@@ -381,7 +381,27 @@ module Lumberjack module Beats
       transition(:header, 2)
 
       # Parse the uncompressed payload.
-      feed(original, &block)
+      # feed(original, &block)
+      off = 0
+      while off < (original.size - 10) # account for data frame header
+        version, code = original[off, 2].bytes.to_a
+        if !(version == PROTOCOL_VERSION_2 and code == FRAME_JSON_DATA)
+          # fallback to original feed method for backwards compatibility to
+          # logstash-forwarder
+          feed(original[off..-1], &block)
+          return
+        end
+
+        off += 2
+        @sequence, payload_size = original[off, 8].unpack('NN')
+        off += 8
+        if (off + payload_size) > original.size
+          raise "JSON payload length exceeds uncompressed message"
+        end
+        payload = original[off, payload_size]
+        off += payload_size
+        yield :json, @sequence, Lumberjack::Beats::json.load(payload)
+      end
     end
   end # class Parser
 
