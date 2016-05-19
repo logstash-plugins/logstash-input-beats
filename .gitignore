@@ -21,3 +21,12 @@ logstash-forwarder
 *.json
 vendor/
 .bundle/
+build/
+.idea
+.gradle
+null
+*.iml
+*.class
+*.ipr
+*.iws
+log4j2.xml_bk
