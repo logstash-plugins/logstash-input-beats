@@ -50,7 +50,7 @@ describe "Filebeat", :integration => true do
   let_tmp_file(:filebeat_config_path) { YAML.dump(filebeat_config) }
   before :each do
     start_client
-    sleep(2) # give some time to FB to send somthing
+    sleep(2) # give some time to FB to send something
     stop_client
   end
 
@@ -66,6 +66,7 @@ describe "Filebeat", :integration => true do
     let(:intermediate_ca) { Flores::PKI.create_intermediate_certificate("CN=intermediate.localhost", root_ca_certificate, root_ca_key) }
     let(:intermediate_ca_certificate) { intermediate_ca.first }
     let(:intermediate_ca_key) { intermediate_ca.last }
+    let_tmp_file(:intermediate_ca_certificate_file) { intermediate_ca_certificate }
     let_tmp_file(:certificate_authorities_chain) { Flores::PKI.chain_certificates(root_ca_certificate, intermediate_ca_certificate) }
   end
 
@@ -176,15 +177,13 @@ describe "Filebeat", :integration => true do
             include_examples "send events"
           end
 
-
-          # Doesnt work because of this issues in `jruby-openssl`
-          # https://github.com/jruby/jruby-openssl/issues/84
-          xcontext "intermediate create server and client certificate" do
+          ### DOESNT WORK
+          context "intermediate create server and client certificate" do
             include_context "Intermediate CA"
 
             let(:certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", intermediate_ca_certificate, intermediate_ca_key) }
             let(:server_certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", intermediate_ca_certificate, intermediate_ca_key) } 
-            let(:certificate_authorities) { [certificate_authorities_chain] }
+            let(:certificate_authorities) { [intermediate_ca_certificate_file] }
 
             include_examples "send events"
           end

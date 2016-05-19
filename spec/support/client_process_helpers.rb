@@ -22,7 +22,7 @@ module ClientProcessHelpers
     begin
       @process.poll_for_exit(5)
     rescue ChildProcess::TimeoutError
-      @process.stop
+      Process.kill("KILL", @process.pid)
     end
   end
 end
