@@ -15,6 +15,11 @@ require "logstash/inputs/beats_support/raw_event_transform"
 require "logstash/inputs/beats_support/synchronous_queue_with_offer"
 require "logstash/util"
 require "thread_safe"
+require "thread"
+
+require "logstash-input-beats_jars"
+import "org.logstash.beats.Server"
+import "org.logstash.beats.IMessageListener"
 
 Lumberjack::Beats::json = LogStash::Json
 
@@ -108,18 +113,18 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     @logger.info("Beats inputs: Starting input listener", :address => "#{@host}:#{@port}")
 
 
-    @lumberjack = Lumberjack::Beats::Server.new(:address => @host,
-      :port => @port,
-      :ssl => @ssl,
-      :ssl_certificate => @ssl_certificate,
-      :ssl_key => @ssl_key,
-      :ssl_key_passphrase => @ssl_key_passphrase ? @ssl_key_passphrase.value : nil,
-      :ssl_certificate_authorities => @ssl_certificate_authorities,
-      :ssl_verify_mode => @ssl_verify_mode)
+    # @lumberjack = Lumberjack::Beats::Server.new(:address => @host,
+    #   :port => @port,
+    #   :ssl => @ssl,
+    #   :ssl_certificate => @ssl_certificate,
+    #   :ssl_key => @ssl_key,
+    #   :ssl_key_passphrase => @ssl_key_passphrase ? @ssl_key_passphrase.value : nil,
+    #   :ssl_certificate_authorities => @ssl_certificate_authorities,
+    #   :ssl_verify_mode => @ssl_verify_mode)
 
     # in 1.5 the main SizeQueue doesnt have the concept of timeout
     # We are using a small plugin buffer to move events to the internal queue
-    @buffered_queue = LogStash::Inputs::BeatsSupport::SynchronousQueueWithOffer.new(@congestion_threshold)
+    @buffered_queue = SizedQueue.new(250)
 
     @circuit_breaker = LogStash::Inputs::BeatsSupport::CircuitBreaker.new("Beats input",
                             :exceptions => [InsertingToQueueTakeTooLong])
@@ -138,6 +143,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     # Use threadsafe gem, since we have a strict dependency on concurrent-ruby 0.9.2
     # in the core
     @connections_list = ThreadSafe::Hash.new
+
+
+
+    @server = org.logstash.beats.Server.new(@port)
   end # def register
 
   def ssl_configured?
@@ -148,27 +157,46 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     !@target_codec_on_field.empty?
   end
 
+  class MessageListener
+    include org.logstash.beats.IMessageListener
+    attr_accessor :queue
+    def initialize(queue)
+      @queue = queue
+    end
+
+    # TODO, add the codec reference
+    # add the identity stream back
+    def onNewMessage(message)
+      queue.enq(LogStash::Event.new(message.getData()))
+    end
+  end
+
   def run(output_queue)
+
     @output_queue = output_queue
+
     start_buffer_broker
 
-    while !stop? do
-      # Wrapping the accept call into a CircuitBreaker
-      if @circuit_breaker.closed?
-        connection = @lumberjack.accept # call that creates a new connection
-        # if the connection is nil the connection was closed upstream,
-        # so we will try in another iteration to recover or stop.
-        next if connection.nil?
+    message_listener = MessageListener.new(@buffered_queue)
+    @server.setMessageListener(message_listener)
+    @server.listen
+    # while !stop? do
+    #   # Wrapping the accept call into a CircuitBreaker
+    #   if @circuit_breaker.closed?
+    #     connection = @lumberjack.accept # call that creates a new connection
+    #     # if the connection is nil the connection was closed upstream,
+    #     # so we will try in another iteration to recover or stop.
+    #     next if connection.nil?
 
-        Thread.new do
-          handle_new_connection(connection)
-        end
-      else
-        @logger.warn("Beats input: the pipeline is blocked, temporary refusing new connection.",
-                     :reconnect_backoff_sleep => RECONNECT_BACKOFF_SLEEP)
-        sleep(RECONNECT_BACKOFF_SLEEP)
-      end
-    end
+    #     Thread.new do
+    #       handle_new_connection(connection)
+    #     end
+    #   else
+    #     @logger.warn("Beats input: the pipeline is blocked, temporary refusing new connection.",
+    #                  :reconnect_backoff_sleep => RECONNECT_BACKOFF_SLEEP)
+    #     sleep(RECONNECT_BACKOFF_SLEEP)
+    #   end
+    # end
   end # def run
 
   def stop
@@ -248,7 +276,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
       begin
         while !stop?
-          @output_queue << @buffered_queue.take
+          @output_queue << @buffered_queue.deq
         end
       rescue java.lang.InterruptedException => e
         # If we are shutting down without waiting the queue to unblock
