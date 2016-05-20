@@ -101,6 +101,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   # TODO(sissel): Add CA to authenticate clients with.
   RECONNECT_BACKOFF_SLEEP = 0.5
+  DEFAULT_EVENT = LogStash::Event.new("message" => "hola jordan")
 
   def register
     if !@ssl
@@ -167,7 +168,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     # TODO, add the codec reference
     # add the identity stream back
     def onNewMessage(message)
-      queue.enq(LogStash::Event.new(message.getData()))
+      # queue << LogStash::Event.new(message.getData())
+      # queue << DEFAULT_EVENT
     end
   end
 
@@ -175,9 +177,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
     @output_queue = output_queue
 
-    start_buffer_broker
+    # start_buffer_broker
 
-    message_listener = MessageListener.new(@buffered_queue)
+    message_listener = MessageListener.new(output_queue)
     @server.setMessageListener(message_listener)
     @server.listen
     # while !stop? do
