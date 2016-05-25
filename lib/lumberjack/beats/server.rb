@@ -381,7 +381,8 @@ module Lumberjack module Beats
       transition(:header, 2)
 
       # Parse the uncompressed payload.
-      feed(original, &block)
+      parser = self.class.new
+      parser.feed(original, &block)
     end
   end # class Parser
 
