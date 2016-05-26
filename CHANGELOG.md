@@ -1,3 +1,5 @@
+# 2.29
+  - Fix an issue when parsing multiple frames received from a filebeat client using pipelining.
 # 2.2.8
   - Fix #73 Bug in EventTransformCommon#codec_name, use config_name
   - Add regression test for fix to #73
