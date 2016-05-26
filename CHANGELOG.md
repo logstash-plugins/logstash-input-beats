@@ -1,3 +1,5 @@
+## 3.0.3
+  - Fix an issue when parsing multiple frames received from a filebeat client using pipelining.
 ## 3.0.2
   - relax constrains of `logstash-devutils` see https://github.com/elastic/logstash-devutils/issues/48
 ## 3.0.1
