@@ -179,7 +179,7 @@ describe "Filebeat", :integration => true do
 
           # Doesnt work because of this issues in `jruby-openssl`
           # https://github.com/jruby/jruby-openssl/issues/84
-          xcontext "intermediate create server and client certificate" do
+          context "intermediate create server and client certificate" do
             include_context "Intermediate CA"
 
             let(:certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", intermediate_ca_certificate, intermediate_ca_key) }

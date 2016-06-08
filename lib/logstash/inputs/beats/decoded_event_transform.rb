@@ -1,6 +1,6 @@
 # encoding: utf-8
-require "logstash/inputs/beats_support/event_transform_common"
-module LogStash::Inputs::BeatsSupport
+require "logstash/inputs/beats/event_transform_common"
+module LogStash module Inputs class Beats
   # Take the extracted content from the codec, merged with the other data coming
   # from beats, apply the configured tags, normalize the host and try to coerce
   # the timestamp if it was provided in the hash.
@@ -31,4 +31,4 @@ module LogStash::Inputs::BeatsSupport
       return nil
     end
   end
-end
+end; end; end

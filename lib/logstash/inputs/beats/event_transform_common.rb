@@ -1,5 +1,5 @@
 # encoding: utf-8
-module LogStash::Inputs::BeatsSupport
+module LogStash module Inputs class Beats
   # Base Transform class, expose the plugin decorate method,
   # apply the tags and make sure we copy the beat hostname into `host`
   # for backward compatibility.
@@ -45,4 +45,4 @@ module LogStash::Inputs::BeatsSupport
       event
     end
   end
-end
+end; end; end

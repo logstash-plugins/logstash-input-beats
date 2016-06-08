@@ -1,7 +1,7 @@
 # encoding: utf-8
 require "logstash/inputs/beats"
 
-module LogStash::Inputs::BeatsSupport
+module LogStash module Inputs class Beats
   # Use the new callback based approch instead of using blocks
   # so we can retain some context of the execution, and make it easier to test
   class CodecCallbackListener
@@ -23,4 +23,4 @@ module LogStash::Inputs::BeatsSupport
       raise LogStash::Inputs::Beats::InsertingToQueueTakeTooLong if !@queue.offer(event)
     end
   end
-end
+end; end; end

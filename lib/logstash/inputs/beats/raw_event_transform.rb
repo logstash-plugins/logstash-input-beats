@@ -1,6 +1,6 @@
 # encoding: utf-8
-require "logstash/inputs/beats_support/event_transform_common"
-module LogStash::Inputs::BeatsSupport
+require "logstash/inputs/beats/event_transform_common"
+module LogStash module Inputs class Beats
   # Take the the raw output from the library, decorate it with
   # the configured tags in the plugins and normalize the hostname
   # for backward compatibility
@@ -15,4 +15,4 @@ module LogStash::Inputs::BeatsSupport
       event
     end
   end
-end
+end; end;end
