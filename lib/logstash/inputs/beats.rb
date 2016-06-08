@@ -148,6 +148,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     @codec.kind_of?(LogStash::Codecs::Multiline)
   end
 
+  def ciphers()
+  end
+
   def convert_protocols
     ["TLSv1.2"]
   end

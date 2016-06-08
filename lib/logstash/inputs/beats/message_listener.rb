@@ -62,7 +62,7 @@ module LogStash module Inputs class Beats
     end
 
     def unregister_connection(ctx)
-      # Lets flush the codec..
+      # TODO: Lets flush the codec..
       # 
       connections_list.delete(ctx)
     end
