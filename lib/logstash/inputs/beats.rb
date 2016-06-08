@@ -41,6 +41,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   require "logstash/inputs/beats/decoded_event_transform"
   require "logstash/inputs/beats/raw_event_transform"
   require "logstash/inputs/beats/message_listener"
+  require "logstash/inputs/beats/tls"
 
   config_name "beats"
 
@@ -94,6 +95,17 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # This is the default field to which the specified codec will be applied.
   config :target_field_for_codec, :validate => :string, :default => "message", :deprecated => "This option is now deprecated, the plugin is now compatible with Filebeat and Logstash-Forwarder"
 
+  # The minimum TLS version allowed for the encrypted connections. The value must be one of the following:
+  # 1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2
+  config :tls_min_version, :validate => :number, :default => TLS.min.version
+
+  # The maximum TLS version allowed for the encrypted connections. The value must be the one of the following:
+  # 1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2
+  config :tls_max_version, :validate => :number, :default => TLS.max.version
+
+  # The list of ciphers suite to use, listed by priorities.
+  config :cipher_suites, :validate => :array, :default => org.logstash.netty.SslSimpleBuilder::DEFAULT_CIPHERS
+
   def register
     if !@ssl
       @logger.warn("Beats input: SSL Certificate will not be used") unless @ssl_certificate.nil?
@@ -104,7 +116,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
     @logger.info("Beats inputs: Starting input listener", :address => "#{@host}:#{@port}")
 
-
     # wrap the configured codec to support identity stream
     # from the producers if running with the multiline codec.
     #
@@ -114,15 +125,22 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       @codec = LogStash::Codecs::IdentityMapCodec.new(@codec)
     end
 
-    @server = org.logstash.beats.Server.new(@port)
+    @server = create_server
+  end # def register
+
+  def create_server
+    server = org.logstash.beats.Server.new(@port)
     
     if @ssl
       private_key_converter = org.logstash.netty.PrivateKeyConverter.new(ssl_key, ssl_key_passphrase)
       ssl_builder = org.logstash.netty.SslSimpleBuilder.new(FileInputStream.new(ssl_certificate), private_key_converter.convert(), ssl_key_passphrase)
         .setProtocols(convert_protocols) 
-      @server.enableSSL(ssl_builder)
+        .setCipherSuites(@cipher_suites)
+      server.enableSSL(ssl_builder)
     end
-  end # def register
+
+    server
+  end
 
   def ssl_configured?
     !(@ssl_certificate.nil? || @ssl_key.nil?)
@@ -148,10 +166,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     @codec.kind_of?(LogStash::Codecs::Multiline)
   end
 
-  def ciphers()
-  end
-
   def convert_protocols
-    ["TLSv1.2"]
+    TLS.get_supported(@tls_min_version..@tls_max_version).map(&:name)
   end
 end # class LogStash::Inputs::Beats

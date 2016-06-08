@@ -33,11 +33,11 @@ module LogStash module Inputs class Beats
         @nocodec_transformer.transform(event)
         @queue << event
       else
-        input.codec.accept(CodecCallbackListener.new(target_field,
-                                                     hash,
-                                                     message.getIdentityStream(),
-                                                     @codec_transformer,
-                                                     @queue))
+        codec(ctx).accept(CodecCallbackListener.new(target_field,
+                                                    hash,
+                                                    message.getIdentityStream(),
+                                                    @codec_transformer,
+                                                    @queue))
       end
     end
 
