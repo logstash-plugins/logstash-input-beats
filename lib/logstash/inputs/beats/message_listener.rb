@@ -6,6 +6,8 @@ module LogStash module Inputs class Beats
   class MessageListener
     FILEBEAT_LOG_LINE_FIELD = "message".freeze
     LSF_LOG_LINE_FIELD = "line".freeze
+    BEATS_INPUT_FLUSHED_BY_LOGSTASH_SHUTDOWN = "beats_input_flushed_by_logstash_shutdown".freeze
+
     ConnectionState = Struct.new(:ctx, :codec)
 
     attr_reader :logger, :input, :connections_list
@@ -53,6 +55,7 @@ module LogStash module Inputs class Beats
       unregister_connection(ctx)
     end
 
+    private
     def codec(ctx)
       connections_list[ctx].codec
     end
@@ -62,12 +65,20 @@ module LogStash module Inputs class Beats
     end
 
     def unregister_connection(ctx)
-      # TODO: Lets flush the codec..
-      # 
+      flush_buffer(ctx, BEATS_INPUT_FLUSHED_BY_LOGSTASH_SHUTDOWN)
       connections_list.delete(ctx)
     end
 
-    private
+    def flush_buffer(ctx, tag)
+      transformer = LogStash::Inputs::BeatsSupport::EventTransformCommon.new(@input)
+
+      codec(ctx).flush do |event|
+        transformer.transform(event)
+        event.tag(tag)
+        queue << event
+      end
+    end
+
     def extract_target_field(hash)
       if from_filebeat?(hash)
         hash.delete(FILEBEAT_LOG_LINE_FIELD).to_s
