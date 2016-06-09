@@ -136,6 +136,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       ssl_builder = org.logstash.netty.SslSimpleBuilder.new(FileInputStream.new(ssl_certificate), private_key_converter.convert(), ssl_key_passphrase)
         .setProtocols(convert_protocols) 
         .setCipherSuites(@cipher_suites)
+
+      if client_authentification?
+        # ssl_builder.setCertificateAuthorities(@ssl_certificate_authorities.first)
+      end
       server.enableSSL(ssl_builder)
     end
 
@@ -164,6 +168,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   def need_identity_map?
     @codec.kind_of?(LogStash::Codecs::Multiline)
+  end
+
+  def client_authentification?
+    @ssl_verify_mode.downcase == "force_peer"
   end
 
   def convert_protocols
