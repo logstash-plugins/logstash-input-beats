@@ -1,4 +1,5 @@
 # encoding: utf-8
+require "thread_safe"
 require "logstash-input-beats_jars"
 import "org.logstash.beats.IMessageListener"
 
@@ -6,7 +7,6 @@ module LogStash module Inputs class Beats
   class MessageListener
     FILEBEAT_LOG_LINE_FIELD = "message".freeze
     LSF_LOG_LINE_FIELD = "line".freeze
-    BEATS_INPUT_FLUSHED_BY_LOGSTASH_SHUTDOWN = "beats_input_flushed_by_logstash_shutdown".freeze
 
     ConnectionState = Struct.new(:ctx, :codec)
 
@@ -27,8 +27,7 @@ module LogStash module Inputs class Beats
     def onNewMessage(ctx, message)
       hash = message.getData()
 
-      # target_field = extract_target_field(hash)
-      target_field = nil
+      target_field = extract_target_field(hash)
 
       if target_field.nil?
         event = LogStash::Event.new(hash)
@@ -65,17 +64,16 @@ module LogStash module Inputs class Beats
     end
 
     def unregister_connection(ctx)
-      flush_buffer(ctx, BEATS_INPUT_FLUSHED_BY_LOGSTASH_SHUTDOWN)
+      flush_buffer(ctx)
       connections_list.delete(ctx)
     end
 
-    def flush_buffer(ctx, tag)
-      transformer = LogStash::Inputs::BeatsSupport::EventTransformCommon.new(@input)
+    def flush_buffer(ctx)
+      transformer = EventTransformCommon.new(@input)
 
       codec(ctx).flush do |event|
         transformer.transform(event)
-        event.tag(tag)
-        queue << event
+        @queue << event
       end
     end
 

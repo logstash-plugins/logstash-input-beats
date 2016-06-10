@@ -20,7 +20,7 @@ module LogStash module Inputs class Beats
 
     def process_event(event)
       @transformer.transform(event, @hash)
-      raise LogStash::Inputs::Beats::InsertingToQueueTakeTooLong if !@queue.offer(event)
+      @queue << event
     end
   end
 end; end; end
