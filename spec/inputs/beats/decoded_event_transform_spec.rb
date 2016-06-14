@@ -5,7 +5,7 @@ require "logstash/inputs/beats"
 require_relative "../../support/shared_examples"
 require "spec_helper"
 
-describe LogStash::Inputs::BeatsSupport::DecodedEventTransform do
+describe LogStash::Inputs::Beats::DecodedEventTransform do
   let(:config) do
     {
       "port" => 0,

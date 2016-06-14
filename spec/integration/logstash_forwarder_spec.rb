@@ -55,13 +55,14 @@ describe "Logstash-Forwarder", :integration => true do
       f.write(events.join("\n") + "\n")
     end
     sleep(1) # give some time to the clients to pick up the changes
+    stop_client
   end
 
   after :each do
     stop_client
   end
 
-  context "Plain TCP" do
+  xcontext "Plain TCP" do
     include ClientProcessHelpers
 
     let(:certificate_authorities) { "" }

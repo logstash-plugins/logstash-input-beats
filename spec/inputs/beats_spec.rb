@@ -6,7 +6,6 @@ require "logstash/codecs/plain"
 require "logstash/codecs/json"
 require "logstash/codecs/multiline"
 require "logstash/event"
-require "lumberjack/beats/client"
 
 describe LogStash::Inputs::Beats do
   let(:connection) { double("connection") }

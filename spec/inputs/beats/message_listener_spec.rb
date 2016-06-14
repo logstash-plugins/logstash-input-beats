@@ -19,7 +19,7 @@ class MockMessage
   end
 end
 
-class CodecSpy < LogStash::Codecs::Base
+class DummyCodec < LogStash::Codecs::Base
   DUMMY_EVENT = LogStash::Event.new
 
   def decode(message, &block)
@@ -33,7 +33,7 @@ end
 
 describe LogStash::Inputs::Beats::MessageListener do
   let(:queue)  { Queue.new }
-  let(:codec) { CodecSpy.new }
+  let(:codec) { DummyCodec.new }
   let(:input) { LogStash::Inputs::Beats.new({ "port" => 5555, "codec" => codec }) }
   let(:ctx) { double("ChannelHandlerContext") }
   let(:message) { MockMessage.new("abc", { "message" => "hello world"}) }
