@@ -2,7 +2,7 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'maven-publish'
 
-group 'org.logstash'
+group 'org.logstash.beats'
 version "${new File("VERSION").text.trim()}"
 
 description = "Beats/Lumberjack Netty implementation"

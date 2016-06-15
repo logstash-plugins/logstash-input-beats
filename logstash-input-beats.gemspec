@@ -27,6 +27,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "thread_safe", "~> 0.3.5"
   s.add_runtime_dependency "logstash-codec-multiline", "~> 3.0"
 
+  s.add_development_dependency 'jar-dependencies', '~> 0.3.4'
   s.add_development_dependency "flores", "~>0.0.6"
   s.add_development_dependency "rspec"
   s.add_development_dependency "stud"
@@ -37,5 +38,5 @@ Gem::Specification.new do |s|
   s.add_development_dependency "childprocess" # To make filebeat/LSF integration test easier to write.
 
   s.platform = 'java'
-  s.requirements << "jar org.logstash.beats:#{BEATS_VERSION}"
+  s.requirements << "jar 'org.logstash.beats:beats', '#{BEATS_VERSION}'"
 end
