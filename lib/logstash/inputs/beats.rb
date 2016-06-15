@@ -155,8 +155,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end
 
   def run(output_queue)
-    @output_queue = output_queue
-
     message_listener = MessageListener.new(output_queue, self)
     @server.setMessageListener(message_listener)
     @server.listen
