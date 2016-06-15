@@ -1,11 +1,9 @@
-import com.sun.tools.internal.jxc.SchemaGenerator
-
-group 'org.logstash'
-version '1.0-SNAPSHOT'
-
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'maven-publish'
+
+group 'org.logstash'
+version "${new File("VERSION").text.trim()}"
 
 description = "Beats/Lumberjack Netty implementation"
 
@@ -14,12 +12,12 @@ targetCompatibility = 1.8
 
 repositories {
     mavenCentral()
-    flatDir dirs: "${rootProject.projectDir}/libs"
 }
 
 dependencies {
     testCompile 'junit:junit:4.12'
     testCompile 'org.hamcrest:hamcrest-library:1.3'
+
     compile 'org.bouncycastle:bcprov-jdk15on:1.54'
     compile 'org.bouncycastle:bcpkix-jdk15on:1.54'
     compile 'io.netty:netty-all:4.0.36.Final'
@@ -33,30 +31,8 @@ dependencies {
     compile 'com.fasterxml.jackson.module:jackson-module-afterburner:2.7.4'
 }
 
-
-task fatJar(type: Jar) {
-    archiveName = "beats-all.jar"
-
-    manifest {
-        attributes 'Implementation-Title': 'beats',
-                'Implementation-Version': version,
-                'Main-Class': 'org.logstash.beats.Server'
-    }
-    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
-    baseName = project.name + '-all'
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    with jar
-}
-
-task copyJarToLogstashInputBeats(type: Copy, dependsOn:[fatJar]) {
-    outputs.upToDateWhen { false }
-    copy {
-        from "${buildDir}/libs/beats-all.jar"
-        into "${System.env.LOGSTASH_BEATS_PLUGINS}"
-
-    }
-}
 task run (type: JavaExec, dependsOn: classes){
+    // turn on or off ssl
     if(project.hasProperty('providedargs')){
         args(providedargs.split(','))
     }
@@ -77,5 +53,3 @@ task wrapper(type: Wrapper) {
     description = 'Install Gradle wrapper'
     gradleVersion = '2.14'
 }
-
-task build (dependsOn: [clean, fatJar, copyJarToLogstashInputBeats])
