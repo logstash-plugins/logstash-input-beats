@@ -14,7 +14,7 @@ namespace :build do
 
   desc "clean"
   task :clean do
-    ["build", "vendor", "Gemfile.lock"].each do |p|
+    ["build", "vendor/jar-dependencies", "Gemfile.lock"].each do |p|
       FileUtils.rm_rf(p)
     end
   end

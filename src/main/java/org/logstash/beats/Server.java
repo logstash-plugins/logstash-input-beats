@@ -53,25 +53,23 @@ public class Server {
                     .childHandler(new BeatsInitializer(this));
 
             Channel channel = server.bind(port).sync().channel();
-            logger.debug("before close future");
             channel.closeFuture().sync();
-            logger.debug("after close future");
         } finally {
-            bossGroup.shutdownGracefully();
-            workGroup.shutdownGracefully();
+            bossGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            workGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         }
 
         return this;
     }
 
     public void stop() throws InterruptedException {
-        logger.debug("Requesting the server to stop.");
+        logger.debug("Server shutdown...");
         Future<?> bossWait = bossGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         Future<?> workWait = workGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
         bossWait.await();
         workWait.await();
-        logger.debug("Server.stopped");
+        logger.debug("Server stopped");
     }
 
     public void setMessageListener(IMessageListener listener) {
@@ -118,6 +116,10 @@ public class Server {
             pipeline.addLast(idleExecutorGroup, KEEP_ALIVE_HANDLER, new IdleStateHandler(60*15, 5, 0));
             pipeline.addLast(BEATS_PARSER, new BeatsParser());
             pipeline.addLast(BEATS_HANDLER, this.beatsHandler);
+        }
+
+        public void stop() {
+            idleExecutorGroup.shutdownGracefully(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         }
     }
 }
