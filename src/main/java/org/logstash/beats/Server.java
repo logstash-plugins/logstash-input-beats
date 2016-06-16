@@ -25,7 +25,6 @@ public class Server {
     static final Logger logger = LogManager.getLogger(Server.class.getName());
     static final long SHUTDOWN_TIMEOUT_SECONDS = 10;
 
-
     private int port;
     private NioEventLoopGroup bossGroup;
     private NioEventLoopGroup workGroup;
@@ -36,6 +35,8 @@ public class Server {
         port = p;
         bossGroup = new NioEventLoopGroup();
         workGroup = new NioEventLoopGroup();
+
+
     }
 
     public void enableSSL(SslSimpleBuilder builder) {
@@ -43,18 +44,24 @@ public class Server {
     }
 
     public Server listen() throws InterruptedException {
+        BeatsInitializer beatsInitializer = null;
+
         try {
             logger.info("Starting server listing port: " + this.port);
+
+            beatsInitializer = new BeatsInitializer(this);
 
             ServerBootstrap server = new ServerBootstrap();
             server.group(bossGroup, workGroup)
                     .channel(NioServerSocketChannel.class)
                     .handler(new LoggingHandler())
-                    .childHandler(new BeatsInitializer(this));
+                    .childHandler(beatsInitializer);
 
             Channel channel = server.bind(port).sync().channel();
             channel.closeFuture().sync();
         } finally {
+            beatsInitializer.shutdownEventExecutor();
+
             bossGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             workGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         }
@@ -64,6 +71,7 @@ public class Server {
 
     public void stop() throws InterruptedException {
         logger.debug("Server shutdown...");
+
         Future<?> bossWait = bossGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         Future<?> workWait = workGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
@@ -91,7 +99,7 @@ public class Server {
         private final String BEATS_PARSER = "beats-parser";
         private final String BEATS_HANDLER = "beats-handler";
         private final int DEFAULT_IDLESTATEHANDLER_THREAD = 4;
-        private final EventExecutorGroup idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
+        private final EventExecutorGroup idleExecutorGroup;
         private final BeatsHandler beatsHandler;
         private final LoggingHandler loggingHandler = new LoggingHandler();
         private final Server server;
@@ -99,6 +107,7 @@ public class Server {
         public BeatsInitializer(Server s) {
             server = s;
             beatsHandler = new BeatsHandler(server.messageListener);
+            idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
         }
 
         public void initChannel(SocketChannel socket) throws SSLException {
@@ -118,8 +127,8 @@ public class Server {
             pipeline.addLast(BEATS_HANDLER, this.beatsHandler);
         }
 
-        public void stop() {
-            idleExecutorGroup.shutdownGracefully(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        public void shutdownEventExecutor() {
+            idleExecutorGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         }
     }
 }
