@@ -42,7 +42,6 @@ public class PrivateKeyConverter {
     private InputStream generatePkcs8(PrivateKey kp) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         logger.debug("Generate a Pkcs8 private key: " + kp.getFormat());
 
-
         StringWriter out = new StringWriter();
         JcaPEMWriter writer = new JcaPEMWriter(out);
         writer.writeObject(kp);
@@ -56,22 +55,14 @@ public class PrivateKeyConverter {
         Object pemObject;
 
         JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
-        //PEMDecryptorProvider decryptionProv = new JcePEMDecryptorProviderBuilder().build(passphrase);
 
         while((pemObject = reader.readObject()) != null) {
-            logger.debug("PemObject type: " + pemObject.getClass().getName());
-
             if(pemObject instanceof PEMKeyPair) {
-                logger.debug("it match");
                 PrivateKeyInfo pki = ((PEMKeyPair) pemObject).getPrivateKeyInfo();
-                logger.debug("content: " + pki.getEncoded("UTF-8"));
                 return converter.getPrivateKey(pki);
-            } else {
-                logger.debug("Dont match");
             }
         }
 
-        logger.debug("fsdfsfs");
         return null;
     }
 
