@@ -8,10 +8,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.TrustManagerFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
 /**
@@ -83,7 +85,7 @@ public class SslSimpleBuilder {
         return sslCertificateFile;
     }
 
-    public SslHandler build(ByteBufAllocator bufferAllocator) throws SSLException {
+    public SslHandler build(ByteBufAllocator bufferAllocator) throws SSLException, NoSuchAlgorithmException {
         SslContextBuilder builder = SslContextBuilder.forServer(sslCertificateFile, sslKeyFile, passPhrase);
         logger.debug("Ciphers: " + String.join(",", ciphers));
 
@@ -92,6 +94,7 @@ public class SslSimpleBuilder {
         if(requireClientAuth()) {
             logger.debug("Certificate Authorities: " + certificateAuthorities);
             builder.trustManager(new File(certificateAuthorities));
+            TrustManagerFactory trustManager = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         }
 
         SslContext context = builder.build();

@@ -138,7 +138,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
         .setCipherSuites(normalized_ciphers)
 
       if client_authentification?
-        # ssl_builder.setCertificateAuthorities(@ssl_certificate_authorities.first)
+        require "pry";binding.pry
+        ssl_builder.setCertificateAuthorities(@ssl_certificate_authorities.first)
       end
       server.enableSSL(ssl_builder)
     end
@@ -169,7 +170,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end
 
   def client_authentification?
-    @ssl_verify_mode.downcase == "force_peer"
+    @ssl_certificate_authorities && @ssl_certificate_authorities.size > 0
   end
 
   def normalized_ciphers
