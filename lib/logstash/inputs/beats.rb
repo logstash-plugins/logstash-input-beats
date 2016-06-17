@@ -138,7 +138,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
         .setCipherSuites(normalized_ciphers)
 
       if client_authentification?
-        require "pry";binding.pry
+        if @ssl_verify_mode.upcase == "FORCE_PEER"
+            ssl_builder.setVerifyMode(org.logstash.netty.SslSimpleBuilder::SslClientVerifyMode::FORCE_PEER)
+        end
+
         ssl_builder.setCertificateAuthorities(@ssl_certificate_authorities.first)
       end
       server.enableSSL(ssl_builder)

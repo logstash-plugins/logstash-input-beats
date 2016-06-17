@@ -176,9 +176,6 @@ describe "Filebeat", :integration => true do
             include_examples "send events"
           end
 
-
-          # Doesnt work because of this issues in `jruby-openssl`
-          # https://github.com/jruby/jruby-openssl/issues/84
           context "intermediate create server and client certificate" do
             include_context "Intermediate CA"
 

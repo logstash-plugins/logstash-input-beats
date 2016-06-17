@@ -17,6 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.netty.SslSimpleBuilder;
 import javax.net.ssl.SSLException;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.TimeUnit;
 
 
@@ -110,7 +111,7 @@ public class Server {
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
         }
 
-        public void initChannel(SocketChannel socket) throws SSLException {
+        public void initChannel(SocketChannel socket) throws SSLException, NoSuchAlgorithmException {
             ChannelPipeline pipeline = socket.pipeline();
 
             pipeline.addLast(LOGGER_HANDLER, loggingHandler);

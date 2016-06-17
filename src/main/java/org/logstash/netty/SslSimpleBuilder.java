@@ -20,13 +20,21 @@ import java.util.Arrays;
  * Created by ph on 2016-05-27.
  */
 public class SslSimpleBuilder {
+    public static enum SslClientVerifyMode {
+        VERIFY_PEER,
+        FORCE_PEER,
+    }
     public static Logger logger = LogManager.getLogger(SslSimpleBuilder.class.getName());
+
+
     private InputStream sslKeyFile;
     private InputStream sslCertificateFile;
+    private SslClientVerifyMode verifyMode = SslClientVerifyMode.FORCE_PEER;
 
     /*
     Mordern Ciphers List from
     https://wiki.mozilla.org/Security/Server_Side_TLS
+    This list require the OpenSSl engine for netty.
     */
     public final static String[] DEFAULT_CIPHERS = new String[] {
             "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA38",
@@ -41,7 +49,6 @@ public class SslSimpleBuilder {
     private String[] ciphers;
     private String[] protocols = new String[] { "TLSv1.2" };
     private String certificateAuthorities;
-    private String verifyMode;
     private String passPhrase;
 
     public SslSimpleBuilder(String sslCertificateFilePath, String sslKeyFilePath, String pass) throws FileNotFoundException {
@@ -72,7 +79,7 @@ public class SslSimpleBuilder {
         return this;
     }
 
-    public SslSimpleBuilder setVerifyMode(String mode) {
+    public SslSimpleBuilder setVerifyMode(SslClientVerifyMode mode) {
         verifyMode = mode;
         return this;
     }
@@ -94,7 +101,6 @@ public class SslSimpleBuilder {
         if(requireClientAuth()) {
             logger.debug("Certificate Authorities: " + certificateAuthorities);
             builder.trustManager(new File(certificateAuthorities));
-            TrustManagerFactory trustManager = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         }
 
         SslContext context = builder.build();
@@ -108,8 +114,16 @@ public class SslSimpleBuilder {
 
 
         if(requireClientAuth()) {
+            // server is doing the handshake
             engine.setUseClientMode(false);
-            engine.setNeedClientAuth(true);
+
+            if(verifyMode == SslClientVerifyMode.FORCE_PEER) {
+                // Explicitely require a client certificate
+                engine.setNeedClientAuth(true);
+            } else if(verifyMode == SslClientVerifyMode.VERIFY_PEER) {
+                // If the client supply a client certificate we will verify it.
+                engine.setWantClientAuth(true);
+            }
         }
 
         return sslHandler;
