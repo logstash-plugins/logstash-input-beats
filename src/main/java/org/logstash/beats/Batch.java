@@ -9,28 +9,28 @@ public class Batch {
     private List<Message> messages = new ArrayList();
 
     public List<Message> getMessages() {
-        return this.messages;
+        return messages;
     }
 
     public void addMessage(Message message) {
         message.setBatch(this);
-        this.messages.add(message);
+        messages.add(message);
     }
 
     public int size() {
-        return this.messages.size();
+        return messages.size();
     }
 
     public void setWindowSize(int windowSize) {
-        this.windowSize = windowSize;
+        windowSize = windowSize;
     }
 
     public int getWindowSize() {
-        return this.windowSize;
+        return windowSize;
     }
 
     public boolean isEmpty() {
-        if(0 == this.messages.size()) {
+        if(0 == messages.size()) {
             return true;
         } else {
             return false;
@@ -42,6 +42,6 @@ public class Batch {
     }
 
     public void setProtocol(byte protocol) {
-        this.protocol = protocol;
+        protocol = protocol;
     }
 }
