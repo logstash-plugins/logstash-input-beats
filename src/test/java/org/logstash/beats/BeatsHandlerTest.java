@@ -4,7 +4,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.Before;
 import org.junit.Test;
-import org.logstash.beats.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;

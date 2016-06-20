@@ -1,11 +1,9 @@
 package org.logstash.beats;
 
 import org.junit.Test;
-import org.logstash.beats.Batch;
-import org.logstash.beats.Message;
-import org.logstash.beats.Protocol;
 
 import java.util.HashMap;
+
 import static org.junit.Assert.*;
 
 public class BatchTest {

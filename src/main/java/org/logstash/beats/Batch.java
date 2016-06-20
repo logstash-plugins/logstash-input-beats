@@ -21,8 +21,8 @@ public class Batch {
         return messages.size();
     }
 
-    public void setWindowSize(int windowSize) {
-        windowSize = windowSize;
+    public void setWindowSize(int size) {
+        windowSize = size;
     }
 
     public int getWindowSize() {

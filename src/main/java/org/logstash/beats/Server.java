@@ -17,7 +17,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.netty.SslSimpleBuilder;
 import javax.net.ssl.SSLException;
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
 
 
@@ -111,7 +113,7 @@ public class Server {
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
         }
 
-        public void initChannel(SocketChannel socket) throws SSLException, NoSuchAlgorithmException {
+        public void initChannel(SocketChannel socket) throws IOException, NoSuchAlgorithmException, CertificateException {
             ChannelPipeline pipeline = socket.pipeline();
 
             pipeline.addLast(LOGGER_HANDLER, loggingHandler);
@@ -125,7 +127,7 @@ public class Server {
             // blocked on the queue, this the idleStateHandler manage the `KeepAlive` signal.
             pipeline.addLast(idleExecutorGroup, KEEP_ALIVE_HANDLER, new IdleStateHandler(60*15, 5, 0));
             pipeline.addLast(BEATS_PARSER, new BeatsParser());
-            pipeline.addLast(BEATS_HANDLER, this.beatsHandler);
+            pipeline.addLast(BEATS_HANDLER, beatsHandler);
         }
 
         public void shutdownEventExecutor() {

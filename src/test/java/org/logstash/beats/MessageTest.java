@@ -1,13 +1,15 @@
 package org.logstash.beats;
 
 import org.junit.Test;
-import org.logstash.beats.Message;
 
 import java.util.HashMap;
 import java.util.Map;
-import static org.junit.Assert.*;
+
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 
 public class MessageTest {

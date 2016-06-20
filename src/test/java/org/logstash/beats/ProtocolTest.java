@@ -1,9 +1,9 @@
 package org.logstash.beats;
 
 import org.junit.Test;
-import org.logstash.beats.Protocol;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Created by ph on 2016-06-01.

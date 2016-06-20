@@ -27,6 +27,7 @@ public class Runner {
             String sslCertificate = "/Users/ph/es/certificates/certificate.crt";
             String sslKey = "/Users/ph/es/certificates/certificate.pkcs8.key";
             String noPkcs7SslKey = "/Users/ph/es/certificates/certificate.key";
+            String[] certificateAuthorities = new String[] { "/Users/ph/es/certificates/certificate.crt" };
 
             PrivateKeyConverter converter = new PrivateKeyConverter(noPkcs7SslKey, null);
 
@@ -36,7 +37,7 @@ public class Runner {
 //            SslSimpleBuilder sslBuilder = new SslSimpleBuilder(sslCertificate, sslKey, null)
             SslSimpleBuilder sslBuilder = new SslSimpleBuilder(new FileInputStream(sslCertificate), converter.convert(), null)
                     .setProtocols(new String[] { "TLSv1.2" })
-                    .setCertificateAuthorities(sslCertificate);
+                    .setCertificateAuthorities(certificateAuthorities);
             server.enableSSL(sslBuilder);
         }
 
