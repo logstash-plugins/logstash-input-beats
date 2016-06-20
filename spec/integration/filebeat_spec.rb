@@ -176,7 +176,7 @@ describe "Filebeat", :integration => true do
             include_examples "send events"
           end
 
-          context "intermediate create server and client certificate" do
+          xcontext "intermediate create server and client certificate" do
             include_context "Intermediate CA"
 
             let(:certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", intermediate_ca_certificate, intermediate_ca_key) }
