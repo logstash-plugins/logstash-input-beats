@@ -142,8 +142,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
             ssl_builder.setVerifyMode(org.logstash.netty.SslSimpleBuilder::SslClientVerifyMode::FORCE_PEER)
         end
 
-        ssl_builder.setCertificateAuthorities(@ssl_certificate_authorities.first)
+        ssl_builder.setCertificateAuthorities(@ssl_certificate_authorities)
       end
+
       server.enableSSL(ssl_builder)
     end
 

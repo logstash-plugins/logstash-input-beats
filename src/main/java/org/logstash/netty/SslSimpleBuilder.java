@@ -6,14 +6,17 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
-import javax.net.ssl.TrustManagerFactory;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 
 /**
@@ -48,7 +51,7 @@ public class SslSimpleBuilder {
 
     private String[] ciphers;
     private String[] protocols = new String[] { "TLSv1.2" };
-    private String certificateAuthorities;
+    private String[] certificateAuthorities;
     private String passPhrase;
 
     public SslSimpleBuilder(String sslCertificateFilePath, String sslKeyFilePath, String pass) throws FileNotFoundException {
@@ -69,12 +72,12 @@ public class SslSimpleBuilder {
         return this;
     }
 
-    public SslSimpleBuilder setCipherSuites(String [] ciphersSuite) {
+    public SslSimpleBuilder setCipherSuites(String[] ciphersSuite) {
         ciphers = ciphersSuite;
         return this;
     }
 
-    public SslSimpleBuilder setCertificateAuthorities(String cert) {
+    public SslSimpleBuilder setCertificateAuthorities(String[] cert) {
         certificateAuthorities = cert;
         return this;
     }
@@ -92,15 +95,15 @@ public class SslSimpleBuilder {
         return sslCertificateFile;
     }
 
-    public SslHandler build(ByteBufAllocator bufferAllocator) throws SSLException, NoSuchAlgorithmException {
+    public SslHandler build(ByteBufAllocator bufferAllocator) throws IOException, NoSuchAlgorithmException, CertificateException {
         SslContextBuilder builder = SslContextBuilder.forServer(sslCertificateFile, sslKeyFile, passPhrase);
-        logger.debug("Ciphers: " + String.join(",", ciphers));
 
+        logger.debug("Ciphers: " + String.join(",", ciphers));
         builder.ciphers(Arrays.asList(ciphers));
 
         if(requireClientAuth()) {
-            logger.debug("Certificate Authorities: " + certificateAuthorities);
-            builder.trustManager(new File(certificateAuthorities));
+            logger.debug("Certificate Authorities: " + String.join(", ", certificateAuthorities));
+            builder.trustManager(loadCertificateCollection(certificateAuthorities));
         }
 
         SslContext context = builder.build();
@@ -109,7 +112,6 @@ public class SslSimpleBuilder {
         logger.debug("TLS: " +  String.join(",", protocols));
 
         SSLEngine engine = sslHandler.engine();
-        logger.debug("Enabled protocols:" + String.join(", ", engine.getEnabledProtocols()));
         engine.setEnabledProtocols(protocols);
 
 
@@ -127,6 +129,29 @@ public class SslSimpleBuilder {
         }
 
         return sslHandler;
+    }
+
+    private X509Certificate[] loadCertificateCollection(String[] certificates) throws IOException, CertificateException {
+        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+
+        X509Certificate[] collections = new X509Certificate[certificates.length];
+
+        for(int i = 0; i < certificates.length; i++) {
+            String certificate = certificates[i];
+
+            InputStream in = null;
+
+            try {
+                in = new FileInputStream(certificate);
+                collections[i] = (X509Certificate) certificateFactory.generateCertificate(in);
+            } finally {
+                if(in != null) {
+                    in.close();
+                }
+            }
+        }
+
+        return collections;
     }
 
     private boolean requireClientAuth() {
