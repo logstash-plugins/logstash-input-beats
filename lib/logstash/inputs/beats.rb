@@ -16,14 +16,11 @@ require "logstash/inputs/beats_support/synchronous_queue_with_offer"
 require "logstash/util"
 require "thread_safe"
 
-# use Logstash provided json decoder
 Lumberjack::Beats::json = LogStash::Json
 
-# Allow Logstash to receive events from Beats
+# This input plugin enables Logstash to receive events from the
+# https://www.elastic.co/products/beats[Elastic Beats] framework.
 #
-# https://github.com/elastic/filebeat[filebeat]
-#
-
 class LogStash::Codecs::Base
   # This monkey patch add callback based
   # flow to the codec until its shipped with core.
@@ -55,8 +52,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # The port to listen on.
   config :port, :validate => :number, :required => true
 
-  # Events are by default send in plain text, you can
-  # enable encryption by using `ssl` to true and configuring
+  # Events are by default sent in plain text. You can
+  # enable encryption by setting `ssl` to true and configuring
   # the `ssl_certificate` and `ssl_key` options.
   config :ssl, :validate => :boolean, :default => false
 
@@ -69,32 +66,32 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # SSL key passphrase to use.
   config :ssl_key_passphrase, :validate => :password
 
-  # Validate client certificates against theses authorities
-  # You can defined multiples files or path, all the certificates will
+  # Validate client certificates against these authorities. 
+  # You can define multiple files or paths. All the certificates will
   # be read and added to the trust store. You need to configure the `ssl_verify_mode`
   # to `peer` or `force_peer` to enable the verification.
   #
-  # This feature only support certificate directly signed by your root ca.
-  # Intermediate CA are currently not supported.
+  # This feature only supports certificates that are directly signed by your root CA.
+  # Intermediate CAs are currently not supported.
   # 
   config :ssl_certificate_authorities, :validate => :array, :default => []
 
-  # By default the server dont do any client verification,
+  # By default the server doesn't do any client verification.
   # 
-  # `peer` will make the server ask the client to provide a certificate,
-  # if the client provide the certificate it will be validated.
+  # `peer` will make the server ask the client to provide a certificate. 
+  # If the client provides a certificate, it will be validated.
   #
-  # `force_peer` will make the server ask the client for their certificate, if the clients
-  # doesn't provide it the connection will be closed.
+  # `force_peer` will make the server ask the client to provide a certificate.
+  # If the client doesn't provide a certificate, the connection will be closed.
   #
-  # This option need to be used with `ssl_certificate_authorities` and a defined list of CA.
+  # This option needs to be used with `ssl_certificate_authorities` and a defined list of CAs.
   config :ssl_verify_mode, :validate => ["none", "peer", "force_peer"], :default => "none"
 
-  # The number of seconds before we raise a timeout,
-  # this option is useful to control how much time to wait if something is blocking the pipeline.
+  # The number of seconds before we raise a timeout. 
+  # This option is useful to control how much time to wait if something is blocking the pipeline.
   config :congestion_threshold, :validate => :number, :default => 5
 
-  # This is the default field that the specified codec will be applied
+  # This is the default field to which the specified codec will be applied.
   config :target_field_for_codec, :validate => :string, :default => "message", :deprecated => "This option is now deprecated, the plugin is now compatible with Filebeat and Logstash-Forwarder"
 
   # TODO(sissel): Add CA to authenticate clients with.
