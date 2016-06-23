@@ -35,4 +35,30 @@ public class BatchTest {
         Batch batch = new Batch();
         assertEquals(Protocol.VERSION_2, batch.getProtocol());
     }
+
+    @Test
+    public void TestCompleteReturnTrueWhenIReceiveTheSameAmountOfEvent() {
+        int numberOfEvent = 2;
+
+        Batch batch = new Batch();
+        batch.setBatchSize(numberOfEvent);
+
+        for(int i = 0; i < numberOfEvent; i++) {
+            batch.addMessage(new Message(i + 1, new HashMap()));
+        }
+
+        assertTrue(batch.complete());
+    }
+
+    @Test
+    public void TestCompleteReturnWhenTheNumberOfEventDoesntMatchBatchSize() {
+        int numberOfEvent = 2;
+
+        Batch batch = new Batch();
+        batch.setBatchSize(numberOfEvent);
+
+        batch.addMessage(new Message(1, new HashMap()));
+
+        assertFalse(batch.complete());
+    }
 }

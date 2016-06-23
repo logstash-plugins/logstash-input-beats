@@ -205,23 +205,20 @@ public class BeatsParser extends ByteToMessageDecoder {
     }
 
     private boolean hasEnoughBytes(ByteBuf in) {
-        if(in.readableBytes() >= requiredBytes) {
-            return true;
-        }
-        return false;
+        return in.readableBytes() >= requiredBytes;
     }
 
-    public void transitionToReadHeader() {
+    private void transitionToReadHeader() {
         transition(States.READ_HEADER, 1);
     }
 
-    public void transition(States next, long need) {
+    private void transition(States next, long need) {
         logger.debug("Transition, from: " + currentState + " to: " + next + " required bytes: " + need);
         currentState = next;
         requiredBytes = need;
     }
 
-    public void batchComplete() {
+    private void batchComplete() {
         requiredBytes = 0;
         sequence = 0;
         batch = new Batch();

@@ -74,11 +74,7 @@ public class BeatsHandler extends ChannelInboundHandlerAdapter {
     }
 
     private boolean needAck(Message message) {
-        if (message.getSequence() == message.getBatch().getBatchSize()) {
-            return true;
-        } else {
-            return false;
-        }
+        return message.getSequence() == message.getBatch().getBatchSize();
     }
 
     private void ack(ChannelHandlerContext ctx, Message message) {
