@@ -3,7 +3,7 @@ OS_PLATFORM = RbConfig::CONFIG["host_os"]
 VENDOR_PATH = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "vendor"))
 
 if OS_PLATFORM == "linux"
-  FILEBEAT_URL = "https://beats-nightlies.s3.amazonaws.com/filebeat/filebeat-5.0.0-alpha4-SNAPSHOT-#{RbConfig::CONFIG["host_cpu"]}.tar.gz"
+  FILEBEAT_URL = "https://beats-nightlies.s3.amazonaws.com/filebeat/filebeat-5.0.0-alpha4-SNAPSHOT-linux-x64.tar.gz"
 elsif OS_PLATFORM == "darwin"
   FILEBEAT_URL = "https://beats-nightlies.s3.amazonaws.com/filebeat/filebeat-5.0.0-alpha4-SNAPSHOT-darwin-x64.tar.gz"
 end
