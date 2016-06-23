@@ -27,3 +27,5 @@ build/
 null
 *.iml
 *.class
+*.ipr
+*.iws
