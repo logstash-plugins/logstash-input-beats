@@ -4,30 +4,25 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Message implements Comparable<Message> {
-    private int sequence;
+    private final int sequence;
     private String identityStream;
-    private Map data;
+    private final Map data;
     private Batch batch;
 
     public Message(int sequence, Map map) {
-        setSequence(sequence);
-        setData(map);
+        this.sequence = sequence;
+        this.data = map;
+
+        identityStream = extractIdentityStream();
     }
 
     public int getSequence() {
         return sequence;
     }
 
-    public void setSequence(int seq) {
-        sequence = seq;
-    }
 
     public Map getData() {
         return data;
-    }
-
-    public void setData(Map messageData) {
-        data = messageData;
     }
 
     @Override
@@ -44,21 +39,23 @@ public class Message implements Comparable<Message> {
     }
 
     public String getIdentityStream() {
-        if(identityStream == null) {
-            Map beatsData = (HashMap<String, String>) this.getData().get("beat");
+        return identityStream;
+    }
 
-            if(beatsData != null) {
-                String id = (String) beatsData.get("id");
-                String resourceId = (String) beatsData.get("resource_id");
+    private String extractIdentityStream() {
+        Map beatsData = (HashMap<String, String>) this.getData().get("beat");
 
-                if(id != null && resourceId != null) {
-                    identityStream = id + "-" + resourceId;
-                } else {
-                    identityStream = (String) beatsData.get("name") + "-" + (String) beatsData.get("source");
-                }
+        if(beatsData != null) {
+            String id = (String) beatsData.get("id");
+            String resourceId = (String) beatsData.get("resource_id");
+
+            if(id != null && resourceId != null) {
+                return id + "-" + resourceId;
+            } else {
+                return (String) beatsData.get("name") + "-" + (String) beatsData.get("source");
             }
         }
 
-        return identityStream;
+        return null;
     }
 }
