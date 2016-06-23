@@ -1,5 +1,6 @@
 package org.logstash.beats;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,7 +35,7 @@ public class BeatsParserTest {
             map2.put("line", "Another world");
             map2.put("from", "Little big Adventure");
 
-            this.message2 = new Message(2, map2);
+            this.message2 = new Message(i + 1, map2);
             this.batch.addMessage(this.message2);
         }
     }
@@ -43,11 +44,10 @@ public class BeatsParserTest {
     public void testEncodingDecodingJson() {
         EmbeddedChannel channel = new EmbeddedChannel(new BatchEncoder(), new BeatsParser());
         channel.writeOutbound(this.batch);
-        channel.writeInbound(channel.readOutbound());
+        Object o = channel.readOutbound();
+        channel.writeInbound(o);
 
-        Batch decodedBatch = (Batch) channel.readInbound();
-        assertNotNull(decodedBatch);
-
+        Batch decodedBatch = channel.readInbound();
         assertMessages(this.batch, decodedBatch);
     }
 
@@ -55,11 +55,10 @@ public class BeatsParserTest {
     public void testCompressedEncodingDecodingJson() {
         EmbeddedChannel channel = new EmbeddedChannel(new CompressedBatchEncoder(), new BeatsParser());
         channel.writeOutbound(this.batch);
-        channel.writeInbound(channel.readOutbound());
+        Object o = channel.readOutbound();
+        channel.writeInbound(o);
 
         Batch decodedBatch = (Batch) channel.readInbound();
-        assertNotNull(decodedBatch);
-
         assertMessages(this.batch, decodedBatch);
     }
 
@@ -69,11 +68,10 @@ public class BeatsParserTest {
 
         EmbeddedChannel channel = new EmbeddedChannel(new BatchEncoder(), new BeatsParser());
         channel.writeOutbound(this.batch);
-        channel.writeInbound(channel.readOutbound());
+        Object o = channel.readOutbound();
+        channel.writeInbound(o);
 
-        Batch decodedBatch = (Batch) channel.readInbound();
-        assertNotNull(decodedBatch);
-
+        Batch decodedBatch = channel.readInbound();
         assertMessages(this.batch, decodedBatch);
     }
 
@@ -84,7 +82,8 @@ public class BeatsParserTest {
 
         EmbeddedChannel channel = new EmbeddedChannel(new CompressedBatchEncoder(), new BeatsParser());
         channel.writeOutbound(this.batch);
-        channel.writeInbound(channel.readOutbound());
+        Object o = channel.readOutbound();
+        channel.writeInbound(o);
 
         Batch decodedBatch = (Batch) channel.readInbound();
 

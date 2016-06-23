@@ -63,7 +63,6 @@ public class BeatsParser extends ByteToMessageDecoder {
                 break;
             }
             case READ_FRAME_TYPE: {
-                logger.debug("Running: READ_FRAME_TYPE");
                 byte frameType = in.readByte();
 
                 switch(frameType) {
@@ -89,6 +88,7 @@ public class BeatsParser extends ByteToMessageDecoder {
             }
             case READ_WINDOW_SIZE: {
                 logger.debug("Running: READ_WINDOW_SIZE");
+
                 batch.setWindowSize((int) in.readUnsignedInt());
 
                 // This is unlikely to happen but I have no way to known when a frame is
@@ -184,14 +184,18 @@ public class BeatsParser extends ByteToMessageDecoder {
             case READ_JSON: {
                 logger.debug("Running: READ_JSON");
 
-                ByteBuf buffer = in.readBytes((int) requiredBytes);
-                Message message = new Message(sequence, (Map) JsonUtils.mapper.readValue(buffer.array(), Object.class));
+                byte[] bytes = new byte[(int) requiredBytes];
+                in.readBytes(bytes);
+                Message message = new Message(sequence, (Map) JsonUtils.mapper.readValue(bytes, Object.class));
 
                 batch.addMessage(message);
 
                 if(batch.size() == batch.getWindowSize()) {
+                    logger.debug("Sending batch size: {}, windowSize: {} , seq: {}", batch.size(), batch.getWindowSize(), sequence);
                     out.add(batch);
                     batchComplete();
+                } else {
+                    logger.debug("Not sending batch size: {}, windowSize: {} , seq: {}", batch.size(), batch.getWindowSize(), sequence);
                 }
 
                 transitionToReadHeader();
