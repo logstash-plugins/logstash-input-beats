@@ -5,7 +5,7 @@ import java.util.List;
 
 public class Batch {
     private byte protocol = Protocol.VERSION_2;
-    private int windowSize;
+    private int batchSize;
     private List<Message> messages = new ArrayList();
 
     public List<Message> getMessages() {
@@ -21,12 +21,12 @@ public class Batch {
         return messages.size();
     }
 
-    public void setWindowSize(int size) {
-        windowSize = size;
+    public void setBatchSize(int size) {
+        batchSize = size;
     }
 
-    public int getWindowSize() {
-        return windowSize;
+    public int getBatchSize() {
+        return batchSize;
     }
 
     public boolean isEmpty() {

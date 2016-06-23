@@ -89,7 +89,7 @@ public class BeatsParser extends ByteToMessageDecoder {
             case READ_WINDOW_SIZE: {
                 logger.debug("Running: READ_WINDOW_SIZE");
 
-                batch.setWindowSize((int) in.readUnsignedInt());
+                batch.setBatchSize((int) in.readUnsignedInt());
 
                 // This is unlikely to happen but I have no way to known when a frame is
                 // actually completely done other than checking the windows and the sequence number,
@@ -128,7 +128,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                 Message message = new Message(sequence, dataMap);
                 batch.addMessage(message);
 
-                if(batch.size() == batch.getWindowSize()) {
+                if(batch.size() == batch.getBatchSize()) {
                     out.add(batch);
                     batchComplete();
                 }
@@ -190,12 +190,12 @@ public class BeatsParser extends ByteToMessageDecoder {
 
                 batch.addMessage(message);
 
-                if(batch.size() == batch.getWindowSize()) {
-                    logger.debug("Sending batch size: {}, windowSize: {} , seq: {}", batch.size(), batch.getWindowSize(), sequence);
+                if(batch.size() == batch.getBatchSize()) {
+                    logger.debug("Sending batch size: {}, windowSize: {} , seq: {}", batch.size(), batch.getBatchSize(), sequence);
                     out.add(batch);
                     batchComplete();
                 } else {
-                    logger.debug("Not sending batch size: {}, windowSize: {} , seq: {}", batch.size(), batch.getWindowSize(), sequence);
+                    logger.debug("Not sending batch size: {}, windowSize: {} , seq: {}", batch.size(), batch.getBatchSize(), sequence);
                 }
 
                 transitionToReadHeader();

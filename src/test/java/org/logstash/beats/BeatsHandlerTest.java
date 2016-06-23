@@ -76,7 +76,7 @@ public class BeatsHandlerTest {
         Message message2 = new Message(2, new HashMap());
 
         batch = new Batch();
-        batch.setWindowSize(2);
+        batch.setBatchSize(2);
         batch.setProtocol(Protocol.VERSION_1);
         batch.addMessage(message1);
         batch.addMessage(message2);
