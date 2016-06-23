@@ -98,6 +98,7 @@ public class SslSimpleBuilder {
     public SslHandler build(ByteBufAllocator bufferAllocator) throws IOException, NoSuchAlgorithmException, CertificateException {
         SslContextBuilder builder = SslContextBuilder.forServer(sslCertificateFile, sslKeyFile, passPhrase);
 
+
         logger.debug("Ciphers: " + String.join(",", ciphers));
         builder.ciphers(Arrays.asList(ciphers));
 
