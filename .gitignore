@@ -29,3 +29,4 @@ null
 *.class
 *.ipr
 *.iws
+log4j2.xml_bk
