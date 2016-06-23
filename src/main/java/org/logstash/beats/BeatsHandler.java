@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import org.apache.logging.log4j.Logger;
@@ -12,7 +13,7 @@ import org.apache.logging.log4j.LogManager;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @ChannelHandler.Sharable
-public class BeatsHandler extends ChannelInboundHandlerAdapter {
+public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     private static Logger logger = LogManager.getLogger(BeatsHandler.class.getName());
     private final AtomicBoolean processing = new AtomicBoolean(false);
     private final IMessageListener messageListener;
@@ -35,12 +36,11 @@ public class BeatsHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object data) {
+    public void channelRead0(ChannelHandlerContext ctx, Batch batch) {
         logger.debug("Received a new payload");
 
         processing.compareAndSet(false, true);
 
-        Batch batch = (Batch) data;
         for(Message message : batch.getMessages()) {
             logger.debug("Sending a new message for the listener, sequence: " + message.getSequence());
             messageListener.onNewMessage(ctx, message);
