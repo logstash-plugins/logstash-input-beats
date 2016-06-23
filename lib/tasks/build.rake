@@ -4,7 +4,7 @@ require "fileutils"
 
 namespace :build do
   task :compile do
-    system("gradle publishToMavenLocal")
+    system("gradlew publishToMavenLocal")
   end
 
   desc "install vendored jars"
