@@ -128,7 +128,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                 Message message = new Message(sequence, dataMap);
                 batch.addMessage(message);
 
-                if(batch.size() == batch.getBatchSize()) {
+                if(batch.complete()) {
                     out.add(batch);
                     batchComplete();
                 }

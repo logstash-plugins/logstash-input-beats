@@ -30,11 +30,11 @@ public class Batch {
     }
 
     public boolean isEmpty() {
-        if(0 == messages.size()) {
-            return true;
-        } else {
-            return false;
-        }
+        return 0 == messages.size();
+    }
+
+    public boolean complete() {
+        return size() == getBatchSize();
     }
 
     public byte getProtocol() {
