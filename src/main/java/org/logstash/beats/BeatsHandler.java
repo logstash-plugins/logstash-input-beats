@@ -81,7 +81,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         writeAck(ctx, message.getBatch().getProtocol(), message.getSequence());
     }
 
-    public void writeAck(ChannelHandlerContext ctx, byte protocol, int sequence) {
+    private void writeAck(ChannelHandlerContext ctx, byte protocol, int sequence) {
         ByteBuf buffer = ctx.alloc().buffer(6);
         buffer.writeByte(protocol);
         buffer.writeByte('A');
