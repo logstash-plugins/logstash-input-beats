@@ -57,7 +57,6 @@ public class Server {
             ServerBootstrap server = new ServerBootstrap();
             server.group(bossGroup, workGroup)
                     .channel(NioServerSocketChannel.class)
-                    .handler(new LoggingHandler())
                     .childHandler(beatsInitializer);
 
             Channel channel = server.bind(port).sync().channel();
