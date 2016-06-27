@@ -16,11 +16,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     private static Logger logger = LogManager.getLogger(BeatsHandler.class.getName());
     private final AtomicBoolean processing = new AtomicBoolean(false);
-    private final IMessageListener messageListener;
+    private final MessageListener messageListener;
     private ChannelHandlerContext context;
 
 
-    public BeatsHandler(IMessageListener listener) {
+    public BeatsHandler(MessageListener listener) {
         messageListener = listener;
     }
 

@@ -31,7 +31,7 @@ public class Server {
     private int port;
     private NioEventLoopGroup bossGroup;
     private NioEventLoopGroup workGroup;
-    private IMessageListener messageListener = new MessageListener();
+    private MessageListener messageListener = new MessageListener();
     private SslSimpleBuilder sslBuilder;
 
     public Server(int p) {
@@ -82,7 +82,7 @@ public class Server {
         logger.debug("Server stopped");
     }
 
-    public void setMessageListener(IMessageListener listener) {
+    public void setMessageListener(MessageListener listener) {
         messageListener = listener;
     }
 

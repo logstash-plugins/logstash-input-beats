@@ -1,18 +1,16 @@
 # encoding: utf-8
 require "thread_safe"
 require "logstash-input-beats_jars"
-import "org.logstash.beats.IMessageListener"
+import "org.logstash.beats.MessageListener"
 
 module LogStash module Inputs class Beats
-  class MessageListener
+  class MessageListener < org.logstash.beats.MessageListener
     FILEBEAT_LOG_LINE_FIELD = "message".freeze
     LSF_LOG_LINE_FIELD = "line".freeze
 
     ConnectionState = Struct.new(:ctx, :codec)
 
     attr_reader :logger, :input, :connections_list
-
-    include org.logstash.beats.IMessageListener
 
     def initialize(queue, input)
       @connections_list = ThreadSafe::Hash.new
