@@ -38,8 +38,6 @@ public class Server {
         port = p;
         bossGroup = new NioEventLoopGroup();
         workGroup = new NioEventLoopGroup();
-
-
     }
 
     public void enableSSL(SslSimpleBuilder builder) {
@@ -52,7 +50,7 @@ public class Server {
         try {
             logger.info("Starting server on port: {}", this.port);
 
-            beatsInitializer = new BeatsInitializer(this);
+            beatsInitializer = new BeatsInitializer(isSslEnable(), messageListener);
 
             ServerBootstrap server = new ServerBootstrap();
             server.group(bossGroup, workGroup)
@@ -87,11 +85,7 @@ public class Server {
     }
 
     public boolean isSslEnable() {
-        if(this.sslBuilder != null) {
-            return true;
-        } else {
-            return false;
-        }
+        return this.sslBuilder != null;
     }
 
     private class BeatsInitializer extends ChannelInitializer<SocketChannel> {
@@ -109,11 +103,12 @@ public class Server {
         private final EventExecutorGroup idleExecutorGroup;
         private final BeatsHandler beatsHandler;
         private final LoggingHandler loggingHandler = new LoggingHandler();
-        private final Server server;
 
-        public BeatsInitializer(Server s) {
-            server = s;
-            beatsHandler = new BeatsHandler(server.messageListener);
+        private boolean enableSSL = false;
+
+        public BeatsInitializer(Boolean secure, MessageListener messageListener) {
+            enableSSL = secure;
+            beatsHandler = new BeatsHandler(messageListener);
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
         }
 
@@ -122,7 +117,7 @@ public class Server {
 
             pipeline.addLast(LOGGER_HANDLER, loggingHandler);
 
-            if(server.isSslEnable()) {
+            if(enableSSL) {
                 SslHandler sslHandler = sslBuilder.build(socket.alloc());
                 pipeline.addLast(SSL_HANDLER, sslHandler);
             }
