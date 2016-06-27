@@ -25,10 +25,10 @@ dependencies {
     compile 'org.apache.logging.log4j:log4j-api:2.6.1'
     compile 'org.apache.logging.log4j:log4j-core:2.6.1'
     compile 'org.javassist:javassist:3.20.0-GA'
-    compile 'com.fasterxml.jackson.core:jackson-core:2.7.4'
-    compile 'com.fasterxml.jackson.core:jackson-annotations:2.7.4'
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.7.4'
-    compile 'com.fasterxml.jackson.module:jackson-module-afterburner:2.7.4'
+    compile 'com.fasterxml.jackson.core:jackson-core:2.7.5'
+    compile 'com.fasterxml.jackson.core:jackson-annotations:2.7.5'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.7.5'
+    compile 'com.fasterxml.jackson.module:jackson-module-afterburner:2.7.5'
 }
 
 task run (type: JavaExec, dependsOn: classes){
