@@ -100,7 +100,12 @@ public class Server {
         private final String KEEP_ALIVE_HANDLER = "keep-alive-handler";
         private final String BEATS_PARSER = "beats-parser";
         private final String BEATS_HANDLER = "beats-handler";
+
         private final int DEFAULT_IDLESTATEHANDLER_THREAD = 4;
+        private final int IDLESTATE_READER_IDLE_TIME_SECONDS = 50 * 15;
+        private final int IDLESTATE_WRITER_IDLE_TIME_SECONDS = 5;
+        private final int IDLESTATE_ALL_IDLE_TIME_SECONDS = 0;
+
         private final EventExecutorGroup idleExecutorGroup;
         private final BeatsHandler beatsHandler;
         private final LoggingHandler loggingHandler = new LoggingHandler();
@@ -124,7 +129,7 @@ public class Server {
 
             // We have set a specific executor for the idle check, because the `beatsHandler` can be
             // blocked on the queue, this the idleStateHandler manage the `KeepAlive` signal.
-            pipeline.addLast(idleExecutorGroup, KEEP_ALIVE_HANDLER, new IdleStateHandler(60*15, 5, 0));
+            pipeline.addLast(idleExecutorGroup, KEEP_ALIVE_HANDLER, new IdleStateHandler(IDLESTATE_READER_IDLE_TIME_SECONDS, IDLESTATE_WRITER_IDLE_TIME_SECONDS , IDLESTATE_ALL_IDLE_TIME_SECONDS));
             pipeline.addLast(BEATS_PARSER, new BeatsParser());
             pipeline.addLast(BEATS_HANDLER, beatsHandler);
         }
