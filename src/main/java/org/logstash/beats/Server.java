@@ -50,7 +50,7 @@ public class Server {
         BeatsInitializer beatsInitializer = null;
 
         try {
-            logger.info("Starting server listing port: " + this.port);
+            logger.info("Starting server on port: {}", this.port);
 
             beatsInitializer = new BeatsInitializer(this);
 
@@ -72,7 +72,7 @@ public class Server {
     }
 
     public void stop() throws InterruptedException {
-        logger.debug("Server shutdown...");
+        logger.debug("Server shutting down");
 
         Future<?> bossWait = bossGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         Future<?> workWait = workGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);

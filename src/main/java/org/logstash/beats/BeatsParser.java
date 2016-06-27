@@ -194,8 +194,6 @@ public class BeatsParser extends ByteToMessageDecoder {
                     logger.debug("Sending batch size: {}, windowSize: {} , seq: {}", batch.size(), batch.getBatchSize(), sequence);
                     out.add(batch);
                     batchComplete();
-                } else {
-                    logger.debug("Not sending batch size: {}, windowSize: {} , seq: {}", batch.size(), batch.getBatchSize(), sequence);
                 }
 
                 transitionToReadHeader();
@@ -213,7 +211,7 @@ public class BeatsParser extends ByteToMessageDecoder {
     }
 
     private void transition(States next, long need) {
-        logger.debug("Transition, from: " + currentState + " to: " + next + " required bytes: " + need);
+        logger.debug("Transition, from: {}, to: {}, requiring {} bytes", currentState, next, need);
         currentState = next;
         requiredBytes = need;
     }

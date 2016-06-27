@@ -42,7 +42,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         processing.compareAndSet(false, true);
 
         for(Message message : batch.getMessages()) {
-            logger.debug("Sending a new message for the listener, sequence: " + message.getSequence());
+            logger.debug("Sending a new message for the listener, sequence: {}", message.getSequence());
             messageListener.onNewMessage(ctx, message);
 
             if(needAck(message)) {

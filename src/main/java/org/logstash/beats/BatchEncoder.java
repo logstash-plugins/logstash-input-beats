@@ -58,7 +58,7 @@ public class BatchEncoder extends MessageToByteEncoder<Batch> {
             byte[] key = ((String) e.getKey()).getBytes();
             byte[] value = ((String) e.getValue()).getBytes();
 
-            logger.debug("New entry: key l: " + key.length  + ", value: " + value.length);
+            logger.debug("New entry: key: {}, value: {}", key, value);
 
             payload.writeInt(key.length);
             payload.writeBytes(key);

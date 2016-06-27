@@ -11,19 +11,21 @@ public class MessageListener implements IMessageListener {
 
     @Override
     public void onNewMessage(ChannelHandlerContext ctx, Message message) {
-        logger.info("New message: " + (String) message.getData().get("message"));
+        logger.debug("onNewMessage");
     }
 
     @Override
     public void onNewConnection(ChannelHandlerContext ctx) {
+        logger.debug("onNewConnection");
     }
 
     @Override
     public void onConnectionClose(ChannelHandlerContext ctx) {
+        logger.debug("onConnectionClose");
     }
 
     @Override
     public void onException(ChannelHandlerContext ctx) {
-
+        logger.debug("onException");
     }
 }
