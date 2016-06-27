@@ -31,7 +31,7 @@ public class Server {
     private int port;
     private NioEventLoopGroup bossGroup;
     private NioEventLoopGroup workGroup;
-    private MessageListener messageListener = new MessageListener();
+    private IMessageListener messageListener = new MessageListener();
     private SslSimpleBuilder sslBuilder;
 
     public Server(int p) {
@@ -80,7 +80,7 @@ public class Server {
         logger.debug("Server stopped");
     }
 
-    public void setMessageListener(MessageListener listener) {
+    public void setMessageListener(IMessageListener listener) {
         messageListener = listener;
     }
 
@@ -106,7 +106,7 @@ public class Server {
 
         private boolean enableSSL = false;
 
-        public BeatsInitializer(Boolean secure, MessageListener messageListener) {
+        public BeatsInitializer(Boolean secure, IMessageListener messageListener) {
             enableSSL = secure;
             beatsHandler = new BeatsHandler(messageListener);
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);

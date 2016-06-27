@@ -20,7 +20,7 @@ public class BeatsHandlerTest {
     private BeatsHandler beatsHandler;
     private Batch batch;
 
-    private class SpyListener extends MessageListener {
+    private class SpyListener implements IMessageListener {
         private boolean onNewConnectionCalled = false;
         private boolean onNewMessageCalled = false;
         private boolean onConnectionCloseCalled = false;

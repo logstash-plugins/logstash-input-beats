@@ -4,7 +4,9 @@ require "logstash-input-beats_jars"
 import "org.logstash.beats.MessageListener"
 
 module LogStash module Inputs class Beats
-  class MessageListener < org.logstash.beats.MessageListener
+  class MessageListener
+    include org.logstash.beats.IMessageListener
+
     FILEBEAT_LOG_LINE_FIELD = "message".freeze
     LSF_LOG_LINE_FIELD = "line".freeze
 

@@ -1,19 +1,13 @@
 package org.logstash.beats;
 
 import io.netty.channel.ChannelHandlerContext;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 
 /**
  * This class is implemented in ruby in `lib/logstash/inputs/beats/message_listener`,
  * this class is used to link the events triggered from the different connection to the actual
  * work inside the plugin.
  */
-// This need to be implemented in Ruby
-public class MessageListener implements IMessageListener {
-    private final static Logger logger = LogManager.getLogger(MessageListener.class.getName());
-
+public interface IMessageListener {
     /**
      * This is triggered on every new message parsed by the beats handler
      * and should be executed in the ruby world.
@@ -21,18 +15,14 @@ public class MessageListener implements IMessageListener {
      * @param ctx
      * @param message
      */
-    public void onNewMessage(ChannelHandlerContext ctx, Message message) {
-        logger.debug("onNewMessage");
-    }
+    public void onNewMessage(ChannelHandlerContext ctx, Message message);
 
     /**
      * Triggered when a new client connect to the input, this is used to link a connection
      * to a codec in the ruby world.
      * @param ctx
      */
-    public void onNewConnection(ChannelHandlerContext ctx) {
-        logger.debug("onNewConnection");
-    }
+    public void onNewConnection(ChannelHandlerContext ctx);
 
     /**
      * Triggered when a connection is close on the remote end and we need to flush buffered
@@ -40,9 +30,7 @@ public class MessageListener implements IMessageListener {
      *
      * @param ctx
      */
-    public void onConnectionClose(ChannelHandlerContext ctx) {
-        logger.debug("onConnectionClose");
-    }
+    public void onConnectionClose(ChannelHandlerContext ctx);
 
     /**
      * Called went something bad occur in the pipeline, allow to clear buffered codec went
@@ -50,7 +38,5 @@ public class MessageListener implements IMessageListener {
      *
      * @param ctx
      */
-    public void onException(ChannelHandlerContext ctx) {
-        logger.debug("onException");
-    }
+    public void onException(ChannelHandlerContext ctx);
 }
