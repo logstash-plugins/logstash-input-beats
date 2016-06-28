@@ -31,6 +31,10 @@ dependencies {
     compile 'com.fasterxml.jackson.module:jackson-module-afterburner:2.7.5'
 }
 
+test {
+    systemProperties.put "io.netty.leakDetectionLevel", "paranoid"
+}
+
 task run (type: JavaExec, dependsOn: classes){
     // turn on or off ssl
     if(project.hasProperty('providedargs')){
