@@ -37,7 +37,7 @@ public class BatchEncoder extends MessageToByteEncoder<Batch> {
         return payload;
     }
 
-    protected void encodeMessageWithJson(ByteBuf payload, Message message) throws JsonProcessingException {
+    private void encodeMessageWithJson(ByteBuf payload, Message message) throws JsonProcessingException {
         payload.writeByte(Protocol.VERSION_2);
         payload.writeByte('J');
         payload.writeInt(message.getSequence());
@@ -47,7 +47,7 @@ public class BatchEncoder extends MessageToByteEncoder<Batch> {
         payload.writeBytes(json);
     }
 
-    protected void encodeMessageWithFields(ByteBuf payload, Message message) {
+    private void encodeMessageWithFields(ByteBuf payload, Message message) {
         payload.writeByte(Protocol.VERSION_1);
         payload.writeByte('D');
         payload.writeInt(message.getSequence());

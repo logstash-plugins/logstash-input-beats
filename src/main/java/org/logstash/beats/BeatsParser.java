@@ -163,6 +163,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                 InputStream inflater = new InflaterInputStream(new ByteArrayInputStream(bytes));
                 ByteArrayOutputStream decompressed = new ByteArrayOutputStream();
 
+
                 byte[] chunk = new byte[CHUNK_SIZE];
                 int length = 0;
 
@@ -175,8 +176,12 @@ public class BeatsParser extends ByteToMessageDecoder {
 
                 transitionToReadHeader();
                 ByteBuf newInput = Unpooled.wrappedBuffer(decompressed.toByteArray());
-                while(newInput.readableBytes() > 0) {
-                    decode(ctx, newInput, out);
+                try {
+                    while (newInput.readableBytes() > 0) {
+                        decode(ctx, newInput, out);
+                    }
+                } finally {
+                    newInput.release();
                 }
 
                 break;
