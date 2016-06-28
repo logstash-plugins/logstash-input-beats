@@ -24,6 +24,7 @@ public class CompressedBatchEncoder extends BatchEncoder {
         payload.readBytes(chunk);
         outputDeflater.write(chunk);
         outputDeflater.close();
+        output.close();
 
         ByteBuf content = ctx.alloc().buffer();
         content.writeByte(batch.getProtocol());
