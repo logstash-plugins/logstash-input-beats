@@ -176,6 +176,7 @@ public class BeatsParser extends ByteToMessageDecoder {
 
                 transitionToReadHeader();
                 ByteBuf newInput = Unpooled.wrappedBuffer(decompressed.toByteArray());
+
                 try {
                     while (newInput.readableBytes() > 0) {
                         decode(ctx, newInput, out);

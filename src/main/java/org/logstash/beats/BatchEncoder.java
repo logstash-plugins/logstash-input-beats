@@ -11,6 +11,11 @@ import java.io.IOException;
 import java.util.Map;
 
 
+/**
+ *  This Class is mostly used in the test suite to make the right assertions with the encoded data frame.
+ *  This class support creating v1 or v2 lumberjack frames.
+ *
+ */
 public class BatchEncoder extends MessageToByteEncoder<Batch> {
     private final static Logger logger = LogManager.getLogger(BatchEncoder.class.getName());
 
@@ -20,7 +25,14 @@ public class BatchEncoder extends MessageToByteEncoder<Batch> {
         out.writeByte(batch.getProtocol());
         out.writeByte('W');
         out.writeInt(batch.size());
-        out.writeBytes(getPayload(ctx, batch));
+
+        ByteBuf buffer = getPayload(ctx, batch);
+
+        try {
+            out.writeBytes(buffer);
+        } finally {
+            buffer.release();
+        }
     }
 
     protected ByteBuf getPayload(ChannelHandlerContext ctx, Batch batch) throws IOException {

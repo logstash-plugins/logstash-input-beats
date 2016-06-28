@@ -26,13 +26,14 @@ public class CompressedBatchEncoder extends BatchEncoder {
         outputDeflater.close();
         output.close();
 
-        ByteBuf content = ctx.alloc().buffer();
+        ByteBuf content = ctx.alloc().buffer(output.writtenBytes());
         content.writeByte(batch.getProtocol());
         content.writeByte('C');
 
-
         content.writeInt(output.writtenBytes());
         content.writeBytes(output.buffer());
+
+        payload.release();
 
         return content;
     }
