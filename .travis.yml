@@ -6,7 +6,8 @@ rvm:
 - jruby-1.7.25
 before_script:
 - bundle exec rake test:integration:setup
-- gradle build
+- gradlew build
+- gradlew publishToMavenLocal
 script:
 - bundle exec rspec spec
 - bundle exec rspec spec --tag integration
