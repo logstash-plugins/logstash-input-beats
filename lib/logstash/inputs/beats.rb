@@ -130,11 +130,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   def create_server
     server = org.logstash.beats.Server.new(@port)
-    
     if @ssl
       private_key_converter = org.logstash.netty.PrivateKeyConverter.new(ssl_key, ssl_key_passphrase)
       ssl_builder = org.logstash.netty.SslSimpleBuilder.new(FileInputStream.new(ssl_certificate), private_key_converter.convert(), ssl_key_passphrase)
-        .setProtocols(convert_protocols) 
+        .setProtocols(convert_protocols)
         .setCipherSuites(normalized_ciphers)
 
       if client_authentification?
