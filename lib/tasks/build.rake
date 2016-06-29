@@ -4,7 +4,9 @@ require "fileutils"
 
 namespace :build do
   task :compile do
-    system("gradlew publishToMavenLocal")
+    system("gradlew build")
+    version = File.read("VERSION").strip
+    FileUtils.cp("build/libs/logstash-input-beats-#{version}.jar", "vendor/jar-dependencies")
   end
 
   desc "install vendored jars"

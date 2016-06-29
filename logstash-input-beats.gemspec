@@ -38,5 +38,16 @@ Gem::Specification.new do |s|
   s.add_development_dependency "childprocess" # To make filebeat/LSF integration test easier to write.
 
   s.platform = 'java'
-  s.requirements << "jar 'org.logstash.beats:beats', '#{BEATS_VERSION}'"
+
+  s.requirements << "jar 'org.bouncycastle:bcprov-jdk15on', '1.54'"
+  s.requirements << "jar 'org.bouncycastle:bcpkix-jdk15on', '1.54'"
+  s.requirements << "jar 'io.netty:netty-all', '4.1.1.Final'"
+  s.requirements << "jar 'io.netty:netty-tcnative-boringssl-static', '1.1.33.Fork17'"
+  s.requirements << "jar 'org.apache.logging.log4j:log4j-api', '2.6.1'"
+  s.requirements << "jar 'org.apache.logging.log4j:log4j-core', '2.6.1'"
+  s.requirements << "jar 'org.javassist:javassist', '3.20.0-GA'"
+  s.requirements << "jar 'com.fasterxml.jackson.core:jackson-core', '2.7.5'"
+  s.requirements << "jar 'com.fasterxml.jackson.core:jackson-annotations', '2.7.5'"
+  s.requirements << "jar 'com.fasterxml.jackson.core:jackson-databind', '2.7.5'"
+  s.requirements << "jar 'com.fasterxml.jackson.module:jackson-module-afterburner', '2.7.5'"
 end

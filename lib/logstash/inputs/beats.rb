@@ -5,14 +5,13 @@ require "logstash/timestamp"
 require "logstash/codecs/identity_map_codec"
 require "logstash/codecs/multiline"
 require "logstash/util"
+require "vendor/jar-dependencies/logstash-input-beats-3.1.0.beta1.jar"
 require "logstash-input-beats_jars"
 
 import "org.logstash.beats.Server"
 import "org.logstash.netty.SslSimpleBuilder"
 import "org.logstash.netty.PrivateKeyConverter"
 import "java.io.FileInputStream"
-
-Lumberjack::Beats::json = LogStash::Json
 
 # This input plugin enables Logstash to receive events from the
 # https://www.elastic.co/products/beats[Elastic Beats] framework.
