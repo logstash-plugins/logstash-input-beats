@@ -118,7 +118,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                 int fieldsCount = (int) in.readUnsignedInt();
                 int count = 0;
 
-                Map dataMap = new HashMap<String, String>();
+                Map dataMap = new HashMap<String, String>(fieldsCount);
 
                 while(count < fieldsCount) {
                     int fieldLength = (int) in.readUnsignedInt();
