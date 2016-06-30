@@ -2,6 +2,8 @@ package org.logstash.beats;
 
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufInputStream;
+import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
@@ -15,7 +17,9 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
+import java.util.zip.InflaterOutputStream;
 
 
 public class BeatsParser extends ByteToMessageDecoder {
@@ -163,33 +167,22 @@ public class BeatsParser extends ByteToMessageDecoder {
             case READ_COMPRESSED_FRAME: {
                 logger.debug("Running: READ_COMPRESSED_FRAME");
 
+                try (
+                        // Use the compressed size as the safe start for the buffer.
+                        ByteBufOutputStream buffOutput = new ByteBufOutputStream(ctx.alloc().buffer((int) requiredBytes));
+                        InflaterOutputStream inflater = new InflaterOutputStream(buffOutput, new Inflater());
+                ) {
 
-                byte[] bytes = new byte[(int) requiredBytes];
-                in.readBytes(bytes);
-
-                InputStream inflater = new InflaterInputStream(new ByteArrayInputStream(bytes));
-                ByteArrayOutputStream decompressed = new ByteArrayOutputStream();
-
-
-                byte[] chunk = new byte[CHUNK_SIZE];
-                int length = 0;
-
-                while ((length = inflater.read(chunk)) > 0) {
-                    decompressed.write(chunk, 0, length);
-                }
-
-                inflater.close();
-                decompressed.close();
-
-                transition(States.READ_HEADER);
-                ByteBuf newInput = Unpooled.wrappedBuffer(decompressed.toByteArray());
-
-                try {
-                    while (newInput.readableBytes() > 0) {
-                        decode(ctx, newInput, out);
+                    in.readBytes(inflater, (int) requiredBytes);
+                    ByteBuf buffer = buffOutput.buffer();
+                    transition(States.READ_HEADER);
+                    try {
+                        while (buffer.readableBytes() > 0) {
+                            decode(ctx, buffOutput.buffer(), out);
+                        }
+                    } finally {
+                        buffer.release();
                     }
-                } finally {
-                    newInput.release();
                 }
 
                 break;
