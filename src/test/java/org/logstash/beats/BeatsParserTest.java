@@ -14,64 +14,39 @@ import static org.junit.Assert.assertNotNull;
 
 public class BeatsParserTest {
     private Batch batch;
-    private Message message1;
-    private Message message2;
-    private final int numberOfMessage = 20;
+        private final int numberOfMessage = 20;
 
     @Before
     public void setup() {
         this.batch = new Batch();
         this.batch.setProtocol(Protocol.VERSION_2);
 
-        Map map1 = new HashMap<String, String>();
-        map1.put("line", "My super event log");
-        map1.put("from", "beats");
-
-        this.message1 = new Message(1, map1);
-        this.batch.addMessage(this.message1);
-
         for(int i = 0; i < numberOfMessage; i++) {
-            Map map2 = new HashMap<String, String>();
-            map2.put("line", "Another world");
-            map2.put("from", "Little big Adventure");
+            Map map = new HashMap<String, String>();
+            map.put("line", "Another world");
+            map.put("from", "Little big Adventure");
 
-            this.message2 = new Message(i + 1, map2);
-            this.batch.addMessage(this.message2);
+            Message message = new Message(i + 1, map);
+            this.batch.addMessage(message);
         }
     }
 
     @Test
     public void testEncodingDecodingJson() {
-        EmbeddedChannel channel = new EmbeddedChannel(new BatchEncoder(), new BeatsParser());
-        channel.writeOutbound(this.batch);
-        Object o = channel.readOutbound();
-        channel.writeInbound(o);
-
-        Batch decodedBatch = channel.readInbound();
+        Batch decodedBatch = decodeBatch();
         assertMessages(this.batch, decodedBatch);
     }
 
     @Test
     public void testCompressedEncodingDecodingJson() {
-        EmbeddedChannel channel = new EmbeddedChannel(new CompressedBatchEncoder(), new BeatsParser());
-        channel.writeOutbound(this.batch);
-        Object o = channel.readOutbound();
-        channel.writeInbound(o);
-
-        Batch decodedBatch = (Batch) channel.readInbound();
+        Batch decodedBatch = decodeCompressedBatch();
         assertMessages(this.batch, decodedBatch);
     }
 
     @Test
     public void testEncodingDecodingFields() {
         this.batch.setProtocol(Protocol.VERSION_1);
-
-        EmbeddedChannel channel = new EmbeddedChannel(new BatchEncoder(), new BeatsParser());
-        channel.writeOutbound(this.batch);
-        Object o = channel.readOutbound();
-        channel.writeInbound(o);
-
-        Batch decodedBatch = channel.readInbound();
+        Batch decodedBatch = decodeBatch();
         assertMessages(this.batch, decodedBatch);
     }
 
@@ -79,25 +54,36 @@ public class BeatsParserTest {
     @Test
     public void  testCompressedEncodingDecodingFields() {
         this.batch.setProtocol(Protocol.VERSION_1);
-
-        EmbeddedChannel channel = new EmbeddedChannel(new CompressedBatchEncoder(), new BeatsParser());
-        channel.writeOutbound(this.batch);
-        Object o = channel.readOutbound();
-        channel.writeInbound(o);
-
-        Batch decodedBatch = (Batch) channel.readInbound();
-
+        Batch decodedBatch = decodeCompressedBatch();
         assertMessages(this.batch, decodedBatch);
     }
 
     private void assertMessages(Batch expected, Batch actual) {
         assertNotNull(actual);
-        assertEquals(expected.getMessages().get(0).getSequence(), actual.getMessages().get(0).getSequence());
-        assertEquals(expected.getMessages().get(1).getSequence(), actual.getMessages().get(1).getSequence());
-        assertEquals(expected.getMessages().get(0).getData().get("line"), actual.getMessages().get(0).getData().get("line"));
-        assertEquals(expected.getMessages().get(1).getData().get("line"), actual.getMessages().get(1).getData().get("line"));
-        assertEquals(expected.getMessages().get(0).getData().get("from"), actual.getMessages().get(0).getData().get("from"));
-        assertEquals(expected.getMessages().get(1).getData().get("from"), actual.getMessages().get(1).getData().get("from"));
         assertEquals(expected.size(), actual.size());
+
+        for(int i=0; i < expected.size(); i++) {
+            assertEquals(expected.getMessages().get(i).getSequence(), actual.getMessages().get(i).getSequence());
+            assertEquals(expected.getMessages().get(i).getData().get("line"), actual.getMessages().get(i).getData().get("line"));
+            assertEquals(expected.getMessages().get(i).getData().get("from"), actual.getMessages().get(i).getData().get("from"));
+        }
+    }
+
+    private Batch decodeCompressedBatch() {
+        EmbeddedChannel channel = new EmbeddedChannel(new CompressedBatchEncoder(), new BeatsParser());
+        channel.writeOutbound(this.batch);
+        Object o = channel.readOutbound();
+        channel.writeInbound(o);
+
+        return (Batch) channel.readInbound();
+    }
+
+    private Batch decodeBatch() {
+        EmbeddedChannel channel = new EmbeddedChannel(new BatchEncoder(), new BeatsParser());
+        channel.writeOutbound(this.batch);
+        Object o = channel.readOutbound();
+        channel.writeInbound(o);
+
+        return (Batch) channel.readInbound();
     }
 }

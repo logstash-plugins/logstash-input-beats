@@ -33,7 +33,8 @@ public class BatchTest {
     @Test
     public void TestGetSetProtocol() {
         Batch batch = new Batch();
-        assertEquals(Protocol.VERSION_2, batch.getProtocol());
+        batch.setProtocol(Protocol.VERSION_1);
+        assertEquals(Protocol.VERSION_1, batch.getProtocol());
     }
 
     @Test

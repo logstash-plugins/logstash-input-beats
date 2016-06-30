@@ -42,6 +42,6 @@ public class Batch {
     }
 
     public void setProtocol(byte protocol) {
-        protocol = protocol;
+        this.protocol = protocol;
     }
 }

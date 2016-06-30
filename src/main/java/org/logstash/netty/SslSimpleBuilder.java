@@ -98,19 +98,23 @@ public class SslSimpleBuilder {
     public SslHandler build(ByteBufAllocator bufferAllocator) throws IOException, NoSuchAlgorithmException, CertificateException {
         SslContextBuilder builder = SslContextBuilder.forServer(sslCertificateFile, sslKeyFile, passPhrase);
 
+        if(logger.isDebugEnabled())
+            logger.debug("Ciphers: {} ", String.join(",", ciphers));
 
-        logger.debug("Ciphers: " + String.join(",", ciphers));
         builder.ciphers(Arrays.asList(ciphers));
 
         if(requireClientAuth()) {
-            logger.debug("Certificate Authorities: " + String.join(", ", certificateAuthorities));
+            if (logger.isDebugEnabled())
+                logger.debug("Certificate Authorities: " + String.join(", ", certificateAuthorities));
+
             builder.trustManager(loadCertificateCollection(certificateAuthorities));
         }
 
         SslContext context = builder.build();
         SslHandler sslHandler = context.newHandler(bufferAllocator);
 
-        logger.debug("TLS: " +  String.join(",", protocols));
+        if(logger.isDebugEnabled())
+            logger.debug("TLS: " + String.join(",", protocols));
 
         SSLEngine engine = sslHandler.engine();
         engine.setEnabledProtocols(protocols);
