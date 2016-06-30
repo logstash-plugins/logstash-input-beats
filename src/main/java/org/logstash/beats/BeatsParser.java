@@ -25,14 +25,21 @@ public class BeatsParser extends ByteToMessageDecoder {
     private Batch batch = new Batch();
 
     private enum States {
-        READ_HEADER,
-        READ_FRAME_TYPE,
-        READ_WINDOW_SIZE,
-        READ_JSON_HEADER,
-        READ_COMPRESSED_FRAME_HEADER,
-        READ_COMPRESSED_FRAME,
-        READ_JSON,
-        READ_DATA_FIELDS,
+        READ_HEADER(1),
+        READ_FRAME_TYPE(1),
+        READ_WINDOW_SIZE(4),
+        READ_JSON_HEADER(8),
+        READ_COMPRESSED_FRAME_HEADER(4),
+        READ_COMPRESSED_FRAME(-1), // -1 means the length to read is variable and defined in the frame itself.
+        READ_JSON(-1),
+        READ_DATA_FIELDS(-1);
+
+        private int value;
+
+        private States(int v) {
+            value = v;
+        }
+
     }
 
     private States currentState = States.READ_HEADER;
@@ -59,7 +66,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                     batch.setProtocol(Protocol.VERSION_1);
                 }
 
-                transition(States.READ_FRAME_TYPE, 1);
+                transition(States.READ_FRAME_TYPE);
                 break;
             }
             case READ_FRAME_TYPE: {
@@ -67,20 +74,20 @@ public class BeatsParser extends ByteToMessageDecoder {
 
                 switch(frameType) {
                     case Protocol.CODE_WINDOW_SIZE: {
-                        transition(States.READ_WINDOW_SIZE, 4);
+                        transition(States.READ_WINDOW_SIZE);
                         break;
                     }
                     case Protocol.CODE_JSON_FRAME: {
                         // Reading Sequence + size of the payload
-                        transition(States.READ_JSON_HEADER, 8);
+                        transition(States.READ_JSON_HEADER);
                         break;
                     }
                     case Protocol.CODE_COMPRESSED_FRAME: {
-                        transition(States.READ_COMPRESSED_FRAME_HEADER, 4);
+                        transition(States.READ_COMPRESSED_FRAME_HEADER);
                         break;
                     }
                     case Protocol.CODE_FRAME: {
-                        transition(States.READ_DATA_FIELDS, 8);
+                        transition(States.READ_DATA_FIELDS);
                         break;
                     }
                 }
@@ -101,7 +108,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                     batchComplete();
                 }
 
-                transitionToReadHeader();
+                transition(States.READ_HEADER);
                 break;
             }
             case READ_DATA_FIELDS: {
@@ -133,7 +140,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                     batchComplete();
                 }
 
-                transitionToReadHeader();
+                transition(States.READ_HEADER);
 
                 break;
             }
@@ -174,7 +181,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                 inflater.close();
                 decompressed.close();
 
-                transitionToReadHeader();
+                transition(States.READ_HEADER);
                 ByteBuf newInput = Unpooled.wrappedBuffer(decompressed.toByteArray());
 
                 try {
@@ -202,7 +209,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                     batchComplete();
                 }
 
-                transitionToReadHeader();
+                transition(States.READ_HEADER);
                 break;
             }
         }
@@ -212,8 +219,8 @@ public class BeatsParser extends ByteToMessageDecoder {
         return in.readableBytes() >= requiredBytes;
     }
 
-    private void transitionToReadHeader() {
-        transition(States.READ_HEADER, 1);
+    private void transition(States next) {
+        transition(next, next.value);
     }
 
     private void transition(States next, long need) {
