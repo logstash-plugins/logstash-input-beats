@@ -4,7 +4,7 @@ require "fileutils"
 
 namespace :build do
   task :compile do
-    system("gradlew build")
+    system("./gradlew build")
     version = File.read("VERSION").strip
     FileUtils.mkdir_p("vendor/jar-dependencies")
     FileUtils.cp("build/libs/logstash-input-beats-#{version}.jar", "vendor/jar-dependencies")

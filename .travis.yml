@@ -6,7 +6,7 @@ rvm:
 - jruby-1.7.25
 before_script:
 - bundle exec rake test:integration:setup
-- JARS_DEBUG=true JARS_VERBOSE=true bundle exec rake vendor
+- bundle exec rake vendor
 script:
 - bundle exec rspec spec
 - bundle exec rspec spec --tag integration
