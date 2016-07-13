@@ -26,8 +26,8 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "concurrent-ruby", [ ">= 0.9.2", "<= 1.0.0" ]
   s.add_runtime_dependency "thread_safe", "~> 0.3.5"
   s.add_runtime_dependency "logstash-codec-multiline", "~> 3.0"
+  s.add_runtime_dependency 'jar-dependencies', '~> 0.3.4'
 
-  s.add_development_dependency 'jar-dependencies', '~> 0.3.4'
   s.add_development_dependency "flores", "~>0.0.6"
   s.add_development_dependency "rspec"
   s.add_development_dependency "stud"
@@ -38,16 +38,4 @@ Gem::Specification.new do |s|
   s.add_development_dependency "childprocess" # To make filebeat/LSF integration test easier to write.
 
   s.platform = 'java'
-
-  s.requirements << "jar 'org.bouncycastle:bcprov-jdk15on', '1.54'"
-  s.requirements << "jar 'org.bouncycastle:bcpkix-jdk15on', '1.54'"
-  s.requirements << "jar 'io.netty:netty-all', '4.1.1.Final'"
-  s.requirements << "jar 'io.netty:netty-tcnative-boringssl-static', '1.1.33.Fork17'"
-  s.requirements << "jar 'org.apache.logging.log4j:log4j-api', '2.6.1'"
-  s.requirements << "jar 'org.apache.logging.log4j:log4j-core', '2.6.1'"
-  s.requirements << "jar 'org.javassist:javassist', '3.20.0-GA'"
-  s.requirements << "jar 'com.fasterxml.jackson.core:jackson-core', '2.7.5'"
-  s.requirements << "jar 'com.fasterxml.jackson.core:jackson-annotations', '2.7.5'"
-  s.requirements << "jar 'com.fasterxml.jackson.core:jackson-databind', '2.7.5'"
-  s.requirements << "jar 'com.fasterxml.jackson.module:jackson-module-afterburner', '2.7.5'"
 end
