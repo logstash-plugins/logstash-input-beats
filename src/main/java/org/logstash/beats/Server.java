@@ -126,6 +126,7 @@ public class Server {
             // blocked on the queue, this the idleStateHandler manage the `KeepAlive` signal.
             pipeline.addLast(idleExecutorGroup, KEEP_ALIVE_HANDLER, new IdleStateHandler(IDLESTATE_READER_IDLE_TIME_SECONDS, IDLESTATE_WRITER_IDLE_TIME_SECONDS , IDLESTATE_ALL_IDLE_TIME_SECONDS));
             pipeline.addLast(BEATS_PARSER, new BeatsParser());
+            pipeline.addLast("acker", new AckEncoder());
             pipeline.addLast(BEATS_HANDLER, beatsHandler);
         }
 

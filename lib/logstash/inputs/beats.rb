@@ -5,7 +5,7 @@ require "logstash/timestamp"
 require "logstash/codecs/identity_map_codec"
 require "logstash/codecs/multiline"
 require "logstash/util"
-require "vendor/jar-dependencies/logstash-input-beats-3.1.0.beta1.jar"
+require "logstash-input-beats-3.1.0.beta1.jar"
 require "logstash-input-beats_jars"
 
 import "org.logstash.beats.Server"

@@ -54,7 +54,7 @@ public class BatchEncoder extends MessageToByteEncoder<Batch> {
         payload.writeByte('J');
         payload.writeInt(message.getSequence());
 
-        byte[] json = JsonUtils.mapper.writeValueAsBytes(message.getData());
+        byte[] json = BeatsParser.MAPPER.writeValueAsBytes(message.getData());
         payload.writeInt(json.length);
         payload.writeBytes(json);
     }

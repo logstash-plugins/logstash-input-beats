@@ -7,6 +7,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.util.ReferenceCountUtil;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -36,7 +37,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     }
 
     @Override
-    public void channelRead0(ChannelHandlerContext ctx, Batch batch) {
+    public void channelRead0(ChannelHandlerContext ctx, Batch batch) throws Exception {
         logger.debug("Received a new payload");
 
         processing.compareAndSet(false, true);
@@ -49,8 +50,9 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
                 ack(ctx, message);
             }
         }
-
+        ctx.flush();
         processing.compareAndSet(true, false);
+
     }
 
     @Override
@@ -82,11 +84,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     }
 
     private void writeAck(ChannelHandlerContext ctx, byte protocol, int sequence) {
-        ByteBuf buffer = ctx.alloc().buffer(6);
-        buffer.writeByte(protocol);
-        buffer.writeByte('A');
-        buffer.writeInt(sequence);
-        ctx.writeAndFlush(buffer);
+        ctx.write(new Ack(protocol, sequence));
     }
 
     private void clientTimeout() {

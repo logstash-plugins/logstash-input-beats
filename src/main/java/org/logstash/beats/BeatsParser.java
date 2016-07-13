@@ -1,6 +1,8 @@
 package org.logstash.beats;
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
@@ -24,6 +26,7 @@ import java.util.zip.InflaterOutputStream;
 
 public class BeatsParser extends ByteToMessageDecoder {
     private static final int CHUNK_SIZE = 1024;
+    public final static ObjectMapper MAPPER = new ObjectMapper().registerModule(new AfterburnerModule());
     private final static Logger logger = LogManager.getLogger(Server.class.getName());
 
     private Batch batch = new Batch();
@@ -38,16 +41,16 @@ public class BeatsParser extends ByteToMessageDecoder {
         READ_JSON(-1),
         READ_DATA_FIELDS(-1);
 
-        private int value;
+        private int length;
 
-        private States(int v) {
-            value = v;
+        States(int length) {
+            this.length = length;
         }
 
     }
 
     private States currentState = States.READ_HEADER;
-    private long requiredBytes = 0;
+    private int requiredBytes = 0;
     private int sequence = 0;
 
     @Override
@@ -126,10 +129,14 @@ public class BeatsParser extends ByteToMessageDecoder {
 
                 while(count < fieldsCount) {
                     int fieldLength = (int) in.readUnsignedInt();
-                    String field = in.readBytes(fieldLength).toString(Charset.forName("UTF8"));
+                    ByteBuf fieldBuf = in.readBytes(fieldLength);
+                    String field = fieldBuf.toString(Charset.forName("UTF8"));
+                    fieldBuf.release();
 
                     int dataLength = (int) in.readUnsignedInt();
-                    String data = in.readBytes(dataLength).toString(Charset.forName("UTF8"));
+                    ByteBuf dataBuf = in.readBytes(dataLength);
+                    String data = dataBuf.toString(Charset.forName("UTF8"));
+                    dataBuf.release();
 
                     dataMap.put(field, data);
 
@@ -160,25 +167,23 @@ public class BeatsParser extends ByteToMessageDecoder {
             case READ_COMPRESSED_FRAME_HEADER: {
                 logger.debug("Running: READ_COMPRESSED_FRAME_HEADER");
 
-                transition(States.READ_COMPRESSED_FRAME, in.readUnsignedInt());
+                transition(States.READ_COMPRESSED_FRAME, in.readInt());
                 break;
             }
 
             case READ_COMPRESSED_FRAME: {
                 logger.debug("Running: READ_COMPRESSED_FRAME");
-
+                // Use the compressed size as the safe start for the buffer.
+                ByteBuf buffer = ctx.alloc().buffer(requiredBytes);
                 try (
-                        // Use the compressed size as the safe start for the buffer.
-                        ByteBufOutputStream buffOutput = new ByteBufOutputStream(ctx.alloc().buffer((int) requiredBytes));
+                        ByteBufOutputStream buffOutput = new ByteBufOutputStream(buffer);
                         InflaterOutputStream inflater = new InflaterOutputStream(buffOutput, new Inflater());
                 ) {
-
-                    in.readBytes(inflater, (int) requiredBytes);
-                    ByteBuf buffer = buffOutput.buffer();
+                    ByteBuf bytesRead = in.readBytes(inflater, requiredBytes);
                     transition(States.READ_HEADER);
                     try {
                         while (buffer.readableBytes() > 0) {
-                            decode(ctx, buffOutput.buffer(), out);
+                            decode(ctx, buffer, out);
                         }
                     } finally {
                         buffer.release();
@@ -190,9 +195,9 @@ public class BeatsParser extends ByteToMessageDecoder {
             case READ_JSON: {
                 logger.debug("Running: READ_JSON");
 
-                byte[] bytes = new byte[(int) requiredBytes];
+                byte[] bytes = new byte[requiredBytes];
                 in.readBytes(bytes);
-                Message message = new Message(sequence, (Map) JsonUtils.mapper.readValue(bytes, Object.class));
+                Message message = new Message(sequence, (Map) MAPPER.readValue(bytes, Object.class));
 
                 batch.addMessage(message);
 
@@ -213,13 +218,13 @@ public class BeatsParser extends ByteToMessageDecoder {
     }
 
     private void transition(States next) {
-        transition(next, next.value);
+        transition(next, next.length);
     }
 
-    private void transition(States next, long need) {
-        logger.debug("Transition, from: {}, to: {}, requiring {} bytes", currentState, next, need);
-        currentState = next;
-        requiredBytes = need;
+    private void transition(States nextState, int requiredBytes) {
+        logger.debug("Transition, from: {}, to: {}, requiring {} bytes", currentState, nextState, requiredBytes);
+        this.currentState = nextState;
+        this.requiredBytes = requiredBytes;
     }
 
     private void batchComplete() {

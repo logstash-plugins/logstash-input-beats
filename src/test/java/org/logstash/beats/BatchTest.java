@@ -1,5 +1,6 @@
 package org.logstash.beats;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -7,10 +8,15 @@ import java.util.HashMap;
 import static org.junit.Assert.*;
 
 public class BatchTest {
+    private Batch batch;
+
+    @Before
+    public void setUp() {
+        batch = new Batch();
+    }
 
     @Test
     public void testIsEmpty() {
-        Batch batch = new Batch();
         assertTrue(batch.isEmpty());
         batch.addMessage(new Message(1, new HashMap()));
         assertFalse(batch.isEmpty());
@@ -18,7 +24,6 @@ public class BatchTest {
 
     @Test
     public void testSize() {
-        Batch batch = new Batch();
         assertEquals(0, batch.size());
         batch.addMessage(new Message(1, new HashMap()));
         assertEquals(1, batch.size());
@@ -26,13 +31,11 @@ public class BatchTest {
 
     @Test
     public void TestGetDefaultProtocol() {
-        Batch batch = new Batch();
         assertEquals(Protocol.VERSION_2, batch.getProtocol());
     }
 
     @Test
     public void TestGetSetProtocol() {
-        Batch batch = new Batch();
         batch.setProtocol(Protocol.VERSION_1);
         assertEquals(Protocol.VERSION_1, batch.getProtocol());
     }
@@ -41,7 +44,6 @@ public class BatchTest {
     public void TestCompleteReturnTrueWhenIReceiveTheSameAmountOfEvent() {
         int numberOfEvent = 2;
 
-        Batch batch = new Batch();
         batch.setBatchSize(numberOfEvent);
 
         for(int i = 0; i < numberOfEvent; i++) {
@@ -55,7 +57,6 @@ public class BatchTest {
     public void TestCompleteReturnWhenTheNumberOfEventDoesntMatchBatchSize() {
         int numberOfEvent = 2;
 
-        Batch batch = new Batch();
         batch.setBatchSize(numberOfEvent);
 
         batch.addMessage(new Message(1, new HashMap()));
