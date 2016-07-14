@@ -1,3 +1,6 @@
+## 3.0.4
+  - Relax constraint on logstash-core-plugin-api to >= 1.60 <= 2.99
+
 ## 3.0.3
   - Fix an issue when parsing multiple frames received from a filebeat client using pipelining.
 ## 3.0.2
