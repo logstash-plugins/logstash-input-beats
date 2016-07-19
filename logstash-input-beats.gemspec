@@ -1,17 +1,18 @@
+BEATS_VERSION = File.read("VERSION").strip unless defined?(BEATS_VERSION)
+
 Gem::Specification.new do |s|
   s.name            = "logstash-input-beats"
-  s.version         = '3.0.4'
+  s.version         = BEATS_VERSION
   s.licenses        = ["Apache License (2.0)"]
   s.summary         = "Receive events using the lumberjack protocol."
   s.description     = "This gem is a Logstash plugin required to be installed on top of the Logstash core pipeline using $LS_HOME/bin/logstash-plugin install gemname. This gem is not a stand-alone program"
   s.authors         = ["Elastic"]
   s.email           = "info@elastic.co"
   s.homepage        = "http://www.elastic.co/guide/en/logstash/current/index.html"
-  s.require_paths = ["lib"]
+  s.require_paths = ["lib", "vendor/jar-dependencies"]
 
   # Files
-  s.files = Dir["lib/**/*","spec/**/*","*.gemspec","*.md","CONTRIBUTORS","Gemfile","LICENSE","NOTICE.TXT"]
-
+  s.files = Dir["lib/**/*","spec/**/*","*.gemspec","*.md","CONTRIBUTORS","Gemfile","LICENSE","NOTICE.TXT", "vendor/jar-dependencies/**/*.jar", "vendor/jar-dependencies/**/*.rb", "VERSION"]
   # Tests
   s.test_files = s.files.grep(%r{^(test|spec|features)/})
 
@@ -25,6 +26,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "concurrent-ruby", [ ">= 0.9.2", "<= 1.0.0" ]
   s.add_runtime_dependency "thread_safe", "~> 0.3.5"
   s.add_runtime_dependency "logstash-codec-multiline", "~> 3.0"
+  s.add_runtime_dependency 'jar-dependencies', '~> 0.3.4'
 
   s.add_development_dependency "flores", "~>0.0.6"
   s.add_development_dependency "rspec"
@@ -34,5 +36,6 @@ Gem::Specification.new do |s|
   s.add_development_dependency "logstash-devutils"
   s.add_development_dependency "logstash-codec-json"
   s.add_development_dependency "childprocess" # To make filebeat/LSF integration test easier to write.
-end
 
+  s.platform = 'java'
+end
