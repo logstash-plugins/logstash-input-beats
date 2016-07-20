@@ -1,12 +1,14 @@
 package org.logstash.beats;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -15,6 +17,7 @@ import static org.junit.Assert.assertNotNull;
 public class BeatsParserTest {
     private Batch batch;
         private final int numberOfMessage = 20;
+
 
     @Before
     public void setup() {
@@ -50,12 +53,23 @@ public class BeatsParserTest {
         assertMessages(this.batch, decodedBatch);
     }
 
-
     @Test
-    public void  testCompressedEncodingDecodingFields() {
+    public void testCompressedEncodingDecodingFields() {
         this.batch.setProtocol(Protocol.VERSION_1);
         Batch decodedBatch = decodeCompressedBatch();
         assertMessages(this.batch, decodedBatch);
+    }
+
+    @Test
+    public void testShouldNotCrashOnGarbageData() {
+        byte[] n = new byte[10000];
+        new Random().nextBytes(n);
+        ByteBuf randomBufferData = Unpooled.wrappedBuffer(n);
+
+        EmbeddedChannel channel = new EmbeddedChannel(new BeatsParser());
+        channel.writeOutbound(randomBufferData);
+        Object o = channel.readOutbound();
+        channel.writeInbound(o);
     }
 
     private void assertMessages(Batch expected, Batch actual) {

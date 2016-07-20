@@ -4,23 +4,17 @@ package org.logstash.beats;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.Inflater;
-import java.util.zip.InflaterInputStream;
 import java.util.zip.InflaterOutputStream;
 
 
@@ -96,6 +90,9 @@ public class BeatsParser extends ByteToMessageDecoder {
                     case Protocol.CODE_FRAME: {
                         transition(States.READ_DATA_FIELDS);
                         break;
+                    }
+                    default: {
+                        throw new InvalidFrameProtocol(frameType);
                     }
                 }
                 break;
@@ -231,5 +228,17 @@ public class BeatsParser extends ByteToMessageDecoder {
         requiredBytes = 0;
         sequence = 0;
         batch = new Batch();
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        logger.error("Exception: {}", cause.getMessage());
+        ctx.close();
+    }
+
+    public class InvalidFrameProtocol extends Exception {
+        public InvalidFrameProtocol(byte frameType) {
+            super("Invalid Frame Protocol, Received: " + frameType);
+        }
     }
 }
