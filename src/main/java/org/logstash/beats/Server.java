@@ -10,15 +10,12 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateHandler;
-import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
+import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.Future;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.netty.SslSimpleBuilder;
-
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -35,7 +32,6 @@ public class Server {
     private final int port;
     private final NioEventLoopGroup bossGroup;
     private final NioEventLoopGroup workGroup;
-
     private IMessageListener messageListener = new MessageListener();
     private SslSimpleBuilder sslBuilder;
 
@@ -106,6 +102,7 @@ public class Server {
         private final String KEEP_ALIVE_HANDLER = "keep-alive-handler";
         private final String BEATS_PARSER = "beats-parser";
         private final String BEATS_HANDLER = "beats-handler";
+        private final String BEATS_ACKER = "beats-acker";
 
         private final int DEFAULT_IDLESTATEHANDLER_THREAD = 4;
         private final int IDLESTATE_WRITER_IDLE_TIME_SECONDS = 5;
@@ -115,6 +112,7 @@ public class Server {
         private final BeatsHandler beatsHandler;
         private final IdleStateHandler idleStateHandler;
         private final LoggingHandler loggingHandler = new LoggingHandler();
+
 
         private boolean enableSSL = false;
 
@@ -137,10 +135,11 @@ public class Server {
 
             // We have set a specific executor for the idle check, because the `beatsHandler` can be
             // blocked on the queue, this the idleStateHandler manage the `KeepAlive` signal.
-            pipeline.addLast(idleExecutorGroup, KEEP_ALIVE_HANDLER, idleStateHandler);
+            pipeline.addLast(idleExecutorGroup, KEEP_ALIVE_HANDLER, idleStateHandler); 
             pipeline.addLast(BEATS_PARSER, new BeatsParser());
-            pipeline.addLast("acker", new AckEncoder());
+            pipeline.addLast(BEATS_ACKER, new AckEncoder());
             pipeline.addLast(BEATS_HANDLER, beatsHandler);
+
         }
 
         public void shutdownEventExecutor() {
