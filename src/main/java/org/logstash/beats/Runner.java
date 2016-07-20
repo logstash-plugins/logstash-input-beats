@@ -38,7 +38,9 @@ public class Runner {
 //            SslSimpleBuilder sslBuilder = new SslSimpleBuilder(sslCertificate, sslKey, null)
             SslSimpleBuilder sslBuilder = new SslSimpleBuilder(new FileInputStream(sslCertificate), converter.convert(), null)
                     .setProtocols(new String[] { "TLSv1.2" })
-                    .setCertificateAuthorities(certificateAuthorities);
+                    .setCertificateAuthorities(certificateAuthorities)
+                    .setHandshakeTimeoutMilliseconds(10000);
+
             server.enableSSL(sslBuilder);
         }
 

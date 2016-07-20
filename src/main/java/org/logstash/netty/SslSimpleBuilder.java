@@ -23,16 +23,19 @@ import java.util.Arrays;
  * Created by ph on 2016-05-27.
  */
 public class SslSimpleBuilder {
+
+
     public static enum SslClientVerifyMode {
         VERIFY_PEER,
         FORCE_PEER,
     }
     public static Logger logger = LogManager.getLogger(SslSimpleBuilder.class.getName());
 
-
     private InputStream sslKeyFile;
     private InputStream sslCertificateFile;
     private SslClientVerifyMode verifyMode = SslClientVerifyMode.FORCE_PEER;
+
+    private long handshakeTimeoutMilliseconds = 10000;
 
     /*
     Mordern Ciphers List from
@@ -79,6 +82,11 @@ public class SslSimpleBuilder {
 
     public SslSimpleBuilder setCertificateAuthorities(String[] cert) {
         certificateAuthorities = cert;
+        return this;
+    }
+
+    public SslSimpleBuilder setHandshakeTimeoutMilliseconds(int timeout) {
+        handshakeTimeoutMilliseconds = timeout;
         return this;
     }
 
@@ -132,6 +140,8 @@ public class SslSimpleBuilder {
                 engine.setWantClientAuth(true);
             }
         }
+
+        sslHandler.setHandshakeTimeoutMillis(handshakeTimeoutMilliseconds);
 
         return sslHandler;
     }
