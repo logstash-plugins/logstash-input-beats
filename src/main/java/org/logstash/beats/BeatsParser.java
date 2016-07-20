@@ -230,12 +230,6 @@ public class BeatsParser extends ByteToMessageDecoder {
         batch = new Batch();
     }
 
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        logger.error("Exception: {}", cause.getMessage());
-        ctx.close();
-    }
-
     public class InvalidFrameProtocol extends Exception {
         public InvalidFrameProtocol(byte frameType) {
             super("Invalid Frame Protocol, Received: " + frameType);

@@ -4,19 +4,25 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 
 public class BeatsParserTest {
     private Batch batch;
-        private final int numberOfMessage = 20;
+    private final int numberOfMessage = 20;
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
 
     @Before
@@ -66,6 +72,7 @@ public class BeatsParserTest {
         new Random().nextBytes(n);
         ByteBuf randomBufferData = Unpooled.wrappedBuffer(n);
 
+        thrown.expectCause(isA(BeatsParser.InvalidFrameProtocol.class));
         EmbeddedChannel channel = new EmbeddedChannel(new BeatsParser());
         channel.writeOutbound(randomBufferData);
         Object o = channel.readOutbound();
