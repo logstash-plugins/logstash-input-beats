@@ -10,13 +10,12 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateHandler;
-import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.Future;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.netty.SslSimpleBuilder;
-import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -29,10 +28,13 @@ public class Server {
     static final long SHUTDOWN_TIMEOUT_SECONDS = 10;
 
     private int port;
+
     private NioEventLoopGroup bossGroup;
     private NioEventLoopGroup workGroup;
     private IMessageListener messageListener = new MessageListener();
     private SslSimpleBuilder sslBuilder;
+
+    private int clientInactivityTimeoutSeconds = 15;
 
     public Server(int p) {
         port = p;
@@ -50,7 +52,7 @@ public class Server {
         try {
             logger.info("Starting server on port: {}", this.port);
 
-            beatsInitializer = new BeatsInitializer(isSslEnable(), messageListener);
+            beatsInitializer = new BeatsInitializer(isSslEnable(), messageListener, clientInactivityTimeoutSeconds);
 
             ServerBootstrap server = new ServerBootstrap();
             server.group(bossGroup, workGroup)
@@ -67,6 +69,10 @@ public class Server {
         }
 
         return this;
+    }
+
+    public void setClientInactivityTimeout(int time) {
+        clientInactivityTimeoutSeconds = time;
     }
 
     public void stop() throws InterruptedException {
@@ -96,20 +102,21 @@ public class Server {
         private final String BEATS_HANDLER = "beats-handler";
 
         private final int DEFAULT_IDLESTATEHANDLER_THREAD = 4;
-        private final int IDLESTATE_READER_IDLE_TIME_SECONDS = 50 * 15;
         private final int IDLESTATE_WRITER_IDLE_TIME_SECONDS = 5;
         private final int IDLESTATE_ALL_IDLE_TIME_SECONDS = 0;
 
         private final EventExecutorGroup idleExecutorGroup;
         private final BeatsHandler beatsHandler;
+        private final IdleStateHandler idleStateHandler;
         private final LoggingHandler loggingHandler = new LoggingHandler();
 
         private boolean enableSSL = false;
 
-        public BeatsInitializer(Boolean secure, IMessageListener messageListener) {
+        public BeatsInitializer(Boolean secure, IMessageListener messageListener, int clientInactivityTimeoutSeconds) {
             enableSSL = secure;
             beatsHandler = new BeatsHandler(messageListener);
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
+            idleStateHandler = new IdleStateHandler(clientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS , IDLESTATE_ALL_IDLE_TIME_SECONDS);
         }
 
         public void initChannel(SocketChannel socket) throws IOException, NoSuchAlgorithmException, CertificateException {
@@ -124,7 +131,7 @@ public class Server {
 
             // We have set a specific executor for the idle check, because the `beatsHandler` can be
             // blocked on the queue, this the idleStateHandler manage the `KeepAlive` signal.
-            pipeline.addLast(idleExecutorGroup, KEEP_ALIVE_HANDLER, new IdleStateHandler(IDLESTATE_READER_IDLE_TIME_SECONDS, IDLESTATE_WRITER_IDLE_TIME_SECONDS , IDLESTATE_ALL_IDLE_TIME_SECONDS));
+            pipeline.addLast(idleExecutorGroup, KEEP_ALIVE_HANDLER, idleStateHandler);
             pipeline.addLast(BEATS_PARSER, new BeatsParser());
             pipeline.addLast("acker", new AckEncoder());
             pipeline.addLast(BEATS_HANDLER, beatsHandler);
