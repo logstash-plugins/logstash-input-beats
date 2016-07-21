@@ -92,7 +92,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                         break;
                     }
                     default: {
-                        throw new InvalidFrameProtocol(frameType);
+                        throw new InvalidFrameProtocolException("Invalid Frame Type, received: " +frameType);
                     }
                 }
                 break;
@@ -121,6 +121,10 @@ public class BeatsParser extends ByteToMessageDecoder {
                 sequence = (int) in.readUnsignedInt();
                 int fieldsCount = (int) in.readUnsignedInt();
                 int count = 0;
+
+                if(fieldsCount <= 0) {
+                    throw new InvalidFrameProtocolException("Invalid number of fields, received: " + fieldsCount);
+                }
 
                 Map dataMap = new HashMap<String, String>(fieldsCount);
 
@@ -157,6 +161,10 @@ public class BeatsParser extends ByteToMessageDecoder {
 
                 sequence = (int) in.readUnsignedInt();
                 int jsonPayloadSize = (int) in.readUnsignedInt();
+
+                if(jsonPayloadSize <= 0) {
+                    throw new InvalidFrameProtocolException("Invalid json length, received: " + jsonPayloadSize);
+                }
 
                 transition(States.READ_JSON, jsonPayloadSize);
                 break;
@@ -230,9 +238,10 @@ public class BeatsParser extends ByteToMessageDecoder {
         batch = new Batch();
     }
 
-    public class InvalidFrameProtocol extends Exception {
-        public InvalidFrameProtocol(byte frameType) {
-            super("Invalid Frame Protocol, Received: " + frameType);
+    public class InvalidFrameProtocolException extends Exception {
+        InvalidFrameProtocolException(String message) {
+            super(message);
         }
     }
+
 }
