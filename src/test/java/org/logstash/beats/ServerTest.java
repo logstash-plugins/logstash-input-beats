@@ -62,7 +62,7 @@ public class ServerTest {
             Long ended = System.currentTimeMillis() / 1000L;
 
             double diff = ended - started;
-            assertThat(diff, is(closeTo(inactivityTime, 0)));
+            assertThat(diff, is(closeTo(inactivityTime, 0.1)));
 
         } finally {
             group.shutdownGracefully();
