@@ -10,9 +10,11 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import org.junit.Before;
 import org.junit.Test;
 import java.util.concurrent.ThreadLocalRandom;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
+import static org.hamcrest.number.IsCloseTo.closeTo;
+
 
 public class ServerTest {
     private int randomPort;
@@ -25,8 +27,8 @@ public class ServerTest {
     public void testServerShouldTerminateConnectionIdleForTooLong() throws InterruptedException {
         int inactivityTime = 3; // in seconds
 
-        Server server = new Server(randomPort);
-        server.setClientInactivityTimeout(inactivityTime);
+        Server server = new Server(randomPort, inactivityTime);
+
 
         Runnable serverTask = () -> {
             try {
@@ -59,8 +61,9 @@ public class ServerTest {
 
             Long ended = System.currentTimeMillis() / 1000L;
 
-            int diff = (int) (ended - started);
-            assertThat(diff, is(greaterThanOrEqualTo(inactivityTime)));
+            double diff = ended - started;
+            assertThat(diff, is(closeTo(inactivityTime, 0)));
+
         } finally {
             group.shutdownGracefully();
             server.stop();
