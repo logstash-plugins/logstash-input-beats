@@ -16,6 +16,9 @@ import io.netty.util.concurrent.Future;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.netty.SslSimpleBuilder;
+
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -26,18 +29,25 @@ import java.util.concurrent.TimeUnit;
 public class Server {
     static final Logger logger = LogManager.getLogger(Server.class.getName());
     static final long SHUTDOWN_TIMEOUT_SECONDS = 10;
+    private static final int DEFAULT_CLIENT_TIMEOUT_SECONDS = 15;
 
-    private int port;
 
-    private NioEventLoopGroup bossGroup;
-    private NioEventLoopGroup workGroup;
+    private final int port;
+    private final NioEventLoopGroup bossGroup;
+    private final NioEventLoopGroup workGroup;
+
     private IMessageListener messageListener = new MessageListener();
     private SslSimpleBuilder sslBuilder;
 
-    private int clientInactivityTimeoutSeconds = 15;
+    private final int clientInactivityTimeoutSeconds;
 
     public Server(int p) {
+        this(p, DEFAULT_CLIENT_TIMEOUT_SECONDS);
+    }
+
+    public Server(int p, int timeout) {
         port = p;
+        clientInactivityTimeoutSeconds = timeout;
         bossGroup = new NioEventLoopGroup();
         workGroup = new NioEventLoopGroup();
     }
@@ -69,10 +79,6 @@ public class Server {
         }
 
         return this;
-    }
-
-    public void setClientInactivityTimeout(int time) {
-        clientInactivityTimeoutSeconds = time;
     }
 
     public void stop() throws InterruptedException {
