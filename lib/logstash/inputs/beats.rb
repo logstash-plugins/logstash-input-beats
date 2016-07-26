@@ -86,6 +86,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # This option needs to be used with `ssl_certificate_authorities` and a defined list of CAs.
   config :ssl_verify_mode, :validate => ["none", "peer", "force_peer"], :default => "none"
 
+  # Time in milliseconds for an incomplete ssl handshake to timeout
+  config :ssl_handshake_timeout, :validate => :number, :default => 10000
+
   # The number of seconds before we raise a timeout. 
   # This option is useful to control how much time to wait if something is blocking the pipeline.
   config :congestion_threshold, :validate => :number, :default => 5
@@ -137,11 +140,12 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
         .setProtocols(convert_protocols)
         .setCipherSuites(normalized_ciphers)
 
+      ssl_builder.setHandshakeTimeoutMilliseconds(@ssl_handshake_timeout)
+
       if client_authentification?
         if @ssl_verify_mode.upcase == "FORCE_PEER"
             ssl_builder.setVerifyMode(org.logstash.netty.SslSimpleBuilder::SslClientVerifyMode::FORCE_PEER)
         end
-
         ssl_builder.setCertificateAuthorities(@ssl_certificate_authorities)
       end
 
