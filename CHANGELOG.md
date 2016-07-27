@@ -1,3 +1,6 @@
+## 3.1.0.beta3
+    - Jars were missing from the latest release on rubygems
+
 ## 3.1.0.beta2
     - Better handling of connection timeout, added a new option to set the value for it, the default is 15 seconds #108
     - Make sure that incomplete SSL handshake doesn't take down the server #101
