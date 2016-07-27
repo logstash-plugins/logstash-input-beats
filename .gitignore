@@ -18,13 +18,11 @@ logstash-forwarder
 *.iml
 *.crt
 *.key
-*.json
 vendor/
 .bundle/
 build/
 .idea
 .gradle
-null
 *.iml
 *.class
 *.ipr

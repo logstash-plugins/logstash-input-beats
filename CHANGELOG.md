@@ -1,3 +1,12 @@
+## 3.1.0.beta3
+    - Jars were missing from the latest release on rubygems
+
+## 3.1.0.beta2
+    - Better handling of connection timeout, added a new option to set the value for it, the default is 15 seconds #108
+    - Make sure that incomplete SSL handshake doesn't take down the server #101
+    - Sending Garbage data will now raise a specific exception `InvalidFrameProtocolException` #100
+    - Adding assertions on the payload size and the fields count to make the parser more resilient to erronous frames #99
+
 ## 3.1.0.beta1
     - Rewrite of the beats input in Java using the Netty framewwork, this rewrite is meant to be backward compatible with the previous implementation
 
