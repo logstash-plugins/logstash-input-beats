@@ -39,6 +39,9 @@ dependencies {
 
 test {
     systemProperties.put "io.netty.leakDetectionLevel", "paranoid"
+    testLogging {
+        exceptionFormat = 'full'
+    }
 }
 
 task run (type: JavaExec, dependsOn: classes){
