@@ -86,7 +86,7 @@ public class ServerTest {
                 try {
                     connectClient().addListener((future) -> {
                         // Just make sure we ignore any possible failures
-                        // since this is not a full blow client yet.
+                        // since this is not a complete client implementation.
                     });
 
                 } catch (InterruptedException e) {
@@ -95,8 +95,18 @@ public class ServerTest {
             };
             new Thread(clientTask).start();
         }
-        // HACK, I want to make sure we have at least X multiple connection at the same time.
-        Thread.sleep(1000);
+        // HACK: I didnt not find a nice solutions to test if the connection was still
+        // open on the client without actually sending data down the wire.
+        int iteration = 0;
+        int maxIteration = 30;
+        while(listener.getReceivedCount() < ConcurrentConnections) {
+            Thread.sleep(1000);
+            iteration++;
+
+            if (iteration >= maxIteration)
+                break;
+
+        }
         assertThat(listener.getReceivedCount(), is(ConcurrentConnections));
 
         group.shutdownGracefully();
@@ -117,10 +127,14 @@ public class ServerTest {
                                  }
                              }
                     );
-
             return b.connect("localhost", randomPort);
     }
 
+
+    /**
+     * A dummy class to send a unique batch to an active server
+     *
+     */
     private class DummySender extends SimpleChannelInboundHandler<String> {
         public void channelActive(ChannelHandlerContext ctx) {
             Batch batch = new Batch();
@@ -140,6 +154,9 @@ public class ServerTest {
         }
     }
 
+    /**
+     *  Used to assert the number of messages send to the server
+     */
     private class SpyListener extends MessageListener {
         private AtomicInteger receivedCount;
 
