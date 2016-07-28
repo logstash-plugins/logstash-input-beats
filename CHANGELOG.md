@@ -1,3 +1,6 @@
+## 3.1.0.beta4
+    - Fix a problem that would would make the server refuse concurrent connection to the server #111
+
 ## 3.1.0.beta3
     - Jars were missing from the latest release on rubygems
 
