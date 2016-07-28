@@ -78,4 +78,6 @@ public class BatchEncoder extends MessageToByteEncoder<Batch> {
             payload.writeBytes(value);
         }
     }
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {}
 }
