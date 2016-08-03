@@ -86,6 +86,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # This option needs to be used with `ssl_certificate_authorities` and a defined list of CAs.
   config :ssl_verify_mode, :validate => ["none", "peer", "force_peer"], :default => "none"
 
+  config :include_codec_tag, :validate => :boolean, :default => true
+
   # Time in milliseconds for an incomplete ssl handshake to timeout
   config :ssl_handshake_timeout, :validate => :number, :default => 10000
 

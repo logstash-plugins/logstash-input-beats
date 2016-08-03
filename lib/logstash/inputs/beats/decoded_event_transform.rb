@@ -11,7 +11,7 @@ module LogStash module Inputs class Beats
       event.set("@timestamp", ts) unless ts.nil?
       hash.each { |k, v| event.set(k, v) }
       super(event)
-      event.tag("beats_input_codec_#{codec_name}_applied")
+      event.tag("beats_input_codec_#{codec_name}_applied") if include_codec_tag?
       event
     end
 

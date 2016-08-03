@@ -11,7 +11,7 @@ module LogStash module Inputs class Beats
   class RawEventTransform < EventTransformCommon
     def transform(event)
       super(event)
-      event.tag("beats_input_raw_event")
+      event.tag("beats_input_raw_event") if include_codec_tag?
       event
     end
   end

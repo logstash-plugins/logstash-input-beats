@@ -44,5 +44,9 @@ module LogStash module Inputs class Beats
       decorate(event)
       event
     end
+
+    def include_codec_tag?
+      @input.include_codec_tag
+    end
   end
 end; end; end
