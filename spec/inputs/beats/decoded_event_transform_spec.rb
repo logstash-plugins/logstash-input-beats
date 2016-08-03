@@ -71,4 +71,11 @@ describe LogStash::Inputs::Beats::DecodedEventTransform do
       expect(subject.get("tags")).to include("beats_input_codec_dummy_applied")
     end
   end
+
+  context "when configured to not include codec tag" do
+    before { config.update("include_codec_tag" => false) }
+    it "does not tag the event" do
+      expect(subject.get("tags")).not_to include("beats_input_codec_plain_applied")
+    end
+  end
 end
