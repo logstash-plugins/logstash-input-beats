@@ -110,7 +110,7 @@ public class Server {
 
         private final EventExecutorGroup idleExecutorGroup;
         private final BeatsHandler beatsHandler;
-        private final IdleStateHandler idleStateHandler;
+        private int clientInactivityTimeoutSeconds;
         private final LoggingHandler loggingHandler = new LoggingHandler();
 
 
@@ -119,8 +119,8 @@ public class Server {
         public BeatsInitializer(Boolean secure, IMessageListener messageListener, int clientInactivityTimeoutSeconds) {
             enableSSL = secure;
             beatsHandler = new BeatsHandler(messageListener);
+            this.clientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
-            idleStateHandler = new IdleStateHandler(clientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS , IDLESTATE_ALL_IDLE_TIME_SECONDS);
         }
 
         public void initChannel(SocketChannel socket) throws IOException, NoSuchAlgorithmException, CertificateException {
@@ -135,7 +135,8 @@ public class Server {
 
             // We have set a specific executor for the idle check, because the `beatsHandler` can be
             // blocked on the queue, this the idleStateHandler manage the `KeepAlive` signal.
-            pipeline.addLast(idleExecutorGroup, KEEP_ALIVE_HANDLER, idleStateHandler); 
+            pipeline.addLast(idleExecutorGroup, KEEP_ALIVE_HANDLER, new IdleStateHandler(clientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS , IDLESTATE_ALL_IDLE_TIME_SECONDS));
+
             pipeline.addLast(BEATS_PARSER, new BeatsParser());
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
             pipeline.addLast(BEATS_HANDLER, beatsHandler);
