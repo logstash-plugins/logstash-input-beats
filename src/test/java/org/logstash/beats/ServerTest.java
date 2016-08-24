@@ -77,6 +77,7 @@ public class ServerTest {
         };
 
         new Thread(serverTask).start();
+        sleep(1000); // start server give is some time.
 
         // Each connection is sending 1 batch.
         int ConcurrentConnections = 5;
@@ -95,7 +96,7 @@ public class ServerTest {
             };
             new Thread(clientTask).start();
         }
-        // HACK: I didnt not find a nice solutions to test if the connection was still
+        // HACK: I didn't not find a nice solutions to test if the connection was still
         // open on the client without actually sending data down the wire.
         int iteration = 0;
         int maxIteration = 30;
@@ -105,8 +106,10 @@ public class ServerTest {
             Thread.sleep(1000);
             iteration++;
 
-            if (iteration >= maxIteration)
+            if (iteration >= maxIteration) {
                 break;
+                System.out.println("reached max iteration" + maxIteration);
+            }
 
         }
         assertThat(listener.getReceivedCount(), is(ConcurrentConnections));
