@@ -66,7 +66,7 @@ public class ServerTest {
 
     @Test
     public void testServerShouldAcceptConcurrentConnection() throws InterruptedException {
-        Server server = new Server(randomPort, 3);
+        Server server = new Server(randomPort, 30);
         SpyListener listener = new SpyListener();
         server.setMessageListener(listener);
         Runnable serverTask = () -> {
@@ -99,6 +99,8 @@ public class ServerTest {
         // open on the client without actually sending data down the wire.
         int iteration = 0;
         int maxIteration = 30;
+
+
         while(listener.getReceivedCount() < ConcurrentConnections) {
             Thread.sleep(1000);
             iteration++;
