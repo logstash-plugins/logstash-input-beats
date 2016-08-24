@@ -46,6 +46,7 @@ public class ServerTest {
 
         Thread thread = new Thread(serverTask);
         thread.start();
+        sleep(1000); // give some time to travis..
 
         EventLoopGroup group = new NioEventLoopGroup();
 
