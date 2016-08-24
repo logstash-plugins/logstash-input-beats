@@ -6,6 +6,7 @@ require "logstash/codecs/identity_map_codec"
 require "logstash/codecs/multiline"
 require "logstash/util"
 require "logstash-input-beats_jars"
+require "logstash/logging" rescue nil # removed in logstash 5
 
 import "org.logstash.beats.Server"
 import "org.logstash.netty.SslSimpleBuilder"
@@ -113,6 +114,11 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   config :client_inactivity_timeout, :validate => :number, :default => 15
 
   def register
+    # Compatibilty with logstash < 5 and pre Log4j integration
+    if LogStash::Logging && LogStash::Logging.respond_to?(:setup_log4j)
+      LogStash::Logging.setup_log4j(@logger)
+    end
+
     if !@ssl
       @logger.warn("Beats input: SSL Certificate will not be used") unless @ssl_certificate.nil?
       @logger.warn("Beats input: SSL Key will not be used") unless @ssl_key.nil?
