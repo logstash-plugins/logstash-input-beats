@@ -36,11 +36,17 @@ public class PrivateKeyConverter {
     public InputStream convert() throws IOException, InvalidKeySpecException, NoSuchAlgorithmException {
         logger.debug("Converting Private keys if needed");
         PrivateKey kp = loadKeyPair();
-        return generatePkcs8(kp);
+        if (kp == null) {
+            throw new InvalidKeySpecException();
+        } else {
+            return generatePkcs8(kp);
+        }
     }
 
     private InputStream generatePkcs8(PrivateKey kp) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-        logger.debug("Generate a Pkcs8 private key: " + kp.getFormat());
+        if(kp.getFormat() != null) {
+            logger.debug("Private key format: {} ",  kp.getFormat());
+        }
 
         StringWriter out = new StringWriter();
         JcaPEMWriter writer = new JcaPEMWriter(out);
@@ -57,11 +63,19 @@ public class PrivateKeyConverter {
         JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
 
         while((pemObject = reader.readObject()) != null) {
+            logger.debug("PEMReader: Reading, class {}", pemObject.getClass().toString());
+
             if(pemObject instanceof PEMKeyPair) {
                 PrivateKeyInfo pki = ((PEMKeyPair) pemObject).getPrivateKeyInfo();
                 return converter.getPrivateKey(pki);
             }
+
+            if(pemObject instanceof PrivateKeyInfo) {
+                PrivateKeyInfo pki = ((PrivateKeyInfo) pemObject);
+                return converter.getPrivateKey(pki);
+            }
         }
+        logger.debug("Cannot extract certificate from the PEM file.");
 
         return null;
     }
