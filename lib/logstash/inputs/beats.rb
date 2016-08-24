@@ -115,7 +115,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   def register
     # Compatibilty with logstash < 5 and pre Log4j integration
-    if LogStash::Logging && LogStash::Logging.respond_to?(:setup_log4j)
+    if LogStash.defined?(Logging) && LogStash::Logging.respond_to?(:setup_log4j)
       LogStash::Logging.setup_log4j(@logger)
     end
 
