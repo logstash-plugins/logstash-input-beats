@@ -107,8 +107,8 @@ public class ServerTest {
             iteration++;
 
             if (iteration >= maxIteration) {
-                break;
                 System.out.println("reached max iteration" + maxIteration);
+                break;
             }
 
         }
