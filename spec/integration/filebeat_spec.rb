@@ -15,6 +15,7 @@ require_relative "../support/client_process_helpers"
 
 FILEBEAT_BINARY = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "vendor", "filebeat", "filebeat"))
 
+
 describe "Filebeat", :integration => true do
   include ClientProcessHelpers
   include FileHelpers
@@ -34,13 +35,13 @@ describe "Filebeat", :integration => true do
 
   let_empty_tmp_file(:registry_file)
   let(:filebeat_config) do
-    { 
-      "filebeat" => { 
+    {
+      "filebeat" => {
         "prospectors" => [{ "paths" => [log_file],  "input_type" => "log" }],
         "registry_file" => registry_file,
         "scan_frequency" => "1s"
       },
-      "output" => { 
+      "output" => {
         "logstash" => { "hosts" => ["#{host}:#{port}"] },
         "logging" => { "level" => "debug" }
       }
@@ -99,7 +100,8 @@ describe "Filebeat", :integration => true do
 
       let(:certificate_authorities) { [certificate_file] }
       let(:certificate_data) { Flores::PKI.generate }
-      let_tmp_file(:certificate_key_file) { certificate_data.last } 
+
+      let_tmp_file(:certificate_key_file) { convert_to_pkcs8(certificate_data.last) }
       let_tmp_file(:certificate_file) { certificate_data.first }
 
       context "self signed certificate" do
@@ -155,10 +157,10 @@ describe "Filebeat", :integration => true do
         context "with a self signed certificate" do
           let(:certificate_authorities) { [certificate_file] }
           let(:certificate_data) { Flores::PKI.generate }
-          let_tmp_file(:certificate_key_file) { certificate_data.last } 
+          let_tmp_file(:certificate_key_file) { convert_to_pkcs8(certificate_data.last) }
           let_tmp_file(:certificate_file) { certificate_data.first }
           let_tmp_file(:server_certificate_file) { certificate_data.first }
-          let_tmp_file(:server_certificate_key_file) { certificate_data.last }
+          let_tmp_file(:server_certificate_key_file) { convert_to_pkcs8(certificate_data.last) }
 
           include_examples "send events"
         end
@@ -167,7 +169,7 @@ describe "Filebeat", :integration => true do
           include_context "Root CA"
 
           let_tmp_file(:server_certificate_file) { server_certificate_data.first }
-          let_tmp_file(:server_certificate_key_file) { server_certificate_data.last }
+          let_tmp_file(:server_certificate_key_file) { convert_to_pkcs8(server_certificate_data.last) }
 
           context "directly signed client certificate" do
             let(:certificate_authorities) { [root_ca_certificate_file] }
@@ -197,7 +199,7 @@ describe "Filebeat", :integration => true do
 
               let(:secondary_client_certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", secondary_ca_certificate, secondary_ca_key) }
               let_tmp_file(:secondary_client_certificate_file) { secondary_client_certificate_data.first }
-              let_tmp_file(:secondary_client_certificate_key_file) { secondary_client_certificate_data.last }
+              let_tmp_file(:secondary_client_certificate_key_file) { convert_to_pkcs8(secondary_client_certificate_data.last) }
               let(:certificate_authorities) { [root_ca_certificate_file, secondary_ca_certificate_file] }
               let(:certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", root_ca_certificate, root_ca_key) }
 

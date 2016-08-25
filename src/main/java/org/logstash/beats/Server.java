@@ -82,9 +82,7 @@ public class Server {
 
         Future<?> bossWait = bossGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         Future<?> workWait = workGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-        bossWait.await();
-        workWait.await();
+        
         logger.debug("Server stopped");
     }
 
