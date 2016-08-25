@@ -97,13 +97,13 @@ public class SslSimpleBuilder {
         SslContextBuilder builder = SslContextBuilder.forServer(sslCertificateFile, sslKeyFile, passPhrase);
 
         if(logger.isDebugEnabled())
-            logger.debug("Ciphers: {} ", String.join(",", ciphers));
+            logger.debug("Ciphers: {} ", ciphers.toString());
 
         builder.ciphers(Arrays.asList(ciphers));
 
         if(requireClientAuth()) {
             if (logger.isDebugEnabled())
-                logger.debug("Certificate Authorities: " + String.join(", ", certificateAuthorities));
+                logger.debug("Certificate Authorities: {}", certificateAuthorities.toString());
 
             builder.trustManager(loadCertificateCollection(certificateAuthorities));
         }
@@ -112,7 +112,7 @@ public class SslSimpleBuilder {
         SslHandler sslHandler = context.newHandler(bufferAllocator);
 
         if(logger.isDebugEnabled())
-            logger.debug("TLS: " + String.join(",", protocols));
+            logger.debug("TLS: {}", protocols.toString());
 
         SSLEngine engine = sslHandler.engine();
         engine.setEnabledProtocols(protocols);

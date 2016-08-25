@@ -10,8 +10,8 @@ version "${new File("VERSION").text.trim()}"
 
 description = "Beats/Lumberjack Netty implementation"
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
 
 repositories {
     mavenCentral()
