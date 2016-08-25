@@ -18,7 +18,7 @@ public class Runner {
 
         Server server = new Server(DEFAULT_PORT);
 
-        //if(args.length > 0 && args[0].equals("ssl")) {
+            if(args.length > 0 && args[0].equals("ssl")) {
             logger.debug("Using SSL");
 
             String sslCertificate = "/Users/ph/es/certificates/certificate.crt";
@@ -28,14 +28,13 @@ public class Runner {
 
 
 
-//          SslSimpleBuilder sslBuilder = new SslSimpleBuilder(sslCertificate, sslKey, null)
             SslSimpleBuilder sslBuilder = new SslSimpleBuilder(sslCertificate, sslKey, null)
                     .setProtocols(new String[] { "TLSv1.2" })
-                    //.setCertificateAuthorities(certificateAuthorities)
+                    .setCertificateAuthorities(certificateAuthorities)
                     .setHandshakeTimeoutMilliseconds(10000);
 
             server.enableSSL(sslBuilder);
-        //}
+        }
 
         server.listen();
     }

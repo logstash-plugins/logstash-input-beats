@@ -3,7 +3,7 @@
    - Replace FileInputStream with File reference to let netty handle correctly the certificates
    - Tests now uses OpenSSL binary to convert PKCS7 Private generated from ruby to PKCS8
    - Remove dependency on bouncycastle
-   - Fix an issue when the Input could hang when stopping logstash
+   - Fix an issue when the input could hang forever when stopping Logstash
    - [Doc changes] Add Logstash config example and clarify use of the `type` config option
 
 
