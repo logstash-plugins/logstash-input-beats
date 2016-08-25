@@ -52,7 +52,7 @@ public class SslSimpleBuilder {
             "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
     };
 
-    private String[] ciphers;
+    private String[] ciphers = DEFAULT_CIPHERS;
     private String[] protocols = new String[] { "TLSv1.2" };
     private String[] certificateAuthorities;
     private String passPhrase;

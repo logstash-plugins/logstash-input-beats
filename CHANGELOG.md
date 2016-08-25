@@ -1,3 +1,8 @@
+## 3.1.0
+   - Fix a NullPointer Exception https://github.com/elastic/logstash/issues/5756
+   - Log4j ERROR will now be propagated upstream, IE: InvalidCertificate OR InvalidFrameType.
+   - Relax constraints on multiline to make it work under 2.4
+
 ## 3.1.0.beta4
     - Fix a problem that would would make the server refuse concurrent connection to the server #111
 

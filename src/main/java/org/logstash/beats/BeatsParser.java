@@ -92,7 +92,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                         break;
                     }
                     default: {
-                        throw new InvalidFrameProtocolException("Invalid Frame Type, received: " +frameType);
+                        throw new InvalidFrameProtocolException("Invalid Frame Type, received: " + frameType);
                     }
                 }
                 break;
