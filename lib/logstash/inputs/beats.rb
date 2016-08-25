@@ -16,6 +16,32 @@ import "java.io.FileInputStream"
 # This input plugin enables Logstash to receive events from the
 # https://www.elastic.co/products/beats[Elastic Beats] framework.
 #
+# The following example shows how to configure Logstash to listen on port
+# 5044 for incoming Beats connections and to index into Elasticsearch:
+#
+# [source,ruby]
+# ------------------------------------------------------------------------------
+# input {
+#   beats {
+#     port => 5044
+#   }
+# }
+# 
+# output {
+#   elasticsearch {
+#     hosts => "localhost:9200"
+#     manage_template => false
+#     index => "%{[@metadata][beat]}-%{+YYYY.MM.dd}"
+#     document_type => "%{[@metadata][type]}"
+#   }
+# }
+# ------------------------------------------------------------------------------
+#
+# NOTE: The Beats shipper automatically sets the `type` field on the event.
+# You cannot override this setting in the Logstash config. If you specify
+# a setting for the <<plugins-inputs-beats-type,`type`>> config option in
+# Logstash, it is ignored.
+#
 class LogStash::Codecs::Base
   # This monkey patch add callback based
   # flow to the codec until its shipped with core.
