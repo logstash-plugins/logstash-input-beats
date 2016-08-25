@@ -34,13 +34,16 @@ public class ServerTest {
     public void testServerShouldTerminateConnectionIdleForTooLong() throws InterruptedException {
         int inactivityTime = 3; // in seconds
 
-        Server server = new Server(randomPort, inactivityTime);
+        final Server server = new Server(randomPort, inactivityTime);
 
 
-        Runnable serverTask = () -> {
-            try {
-                server.listen();
-            } catch (InterruptedException e) {
+        Runnable serverTask = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    server.listen();
+                } catch (InterruptedException e) {
+                }
             }
         };
 
@@ -67,13 +70,16 @@ public class ServerTest {
 
     @Test
     public void testServerShouldAcceptConcurrentConnection() throws InterruptedException {
-        Server server = new Server(randomPort, 30);
+        final Server server = new Server(randomPort, 30);
         SpyListener listener = new SpyListener();
         server.setMessageListener(listener);
-        Runnable serverTask = () -> {
-            try {
-                server.listen();
-            } catch (InterruptedException e) {
+        Runnable serverTask = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    server.listen();
+                } catch (InterruptedException e) {
+                }
             }
         };
 
@@ -84,17 +90,24 @@ public class ServerTest {
         int ConcurrentConnections = 5;
 
         for(int i = 0; i < ConcurrentConnections; i++) {
-            Runnable clientTask = () -> {
-                try {
-                    connectClient().addListener((future) -> {
-                        // Just make sure we ignore any possible failures
-                        // since this is not a complete client implementation.
-                    });
+            Runnable clientTask = new Runnable(){
 
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                @Override
+                public void run() {
+                    try {
+
+                        connectClient().addListener(new ChannelFutureListener() {
+                            @Override
+                            public void operationComplete(ChannelFuture future) throws Exception {
+                            }
+                        });
+
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
             };
+
             new Thread(clientTask).start();
         }
         // HACK: I didn't not find a nice solutions to test if the connection was still

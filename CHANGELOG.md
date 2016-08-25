@@ -1,5 +1,12 @@
 ## 3.1.1
+   - Remove the SSL Converter, Private Key must be in the PKCS8 format, which is the default of any newer OpenSSL library
+   - Replace FileInputStream with File reference to let netty handle correctly the certificates
+   - Tests now uses OpenSSL binary to convert PKCS7 Private generated from ruby to PKCS8
+   - Remove dependency on bouncycastle
+   - Fix an issue when the Input could hang when stopping logstash
    - [Doc changes] Add Logstash config example and clarify use of the `type` config option
+
+
 
 ## 3.1.0
    - Fix a NullPointer Exception https://github.com/elastic/logstash/issues/5756
