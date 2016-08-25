@@ -10,7 +10,6 @@ require "logstash/logging" rescue nil # removed in logstash 5
 
 import "org.logstash.beats.Server"
 import "org.logstash.netty.SslSimpleBuilder"
-import "org.logstash.netty.PrivateKeyConverter"
 import "java.io.FileInputStream"
 
 # This input plugin enables Logstash to receive events from the
@@ -169,8 +168,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   def create_server
     server = org.logstash.beats.Server.new(@port)
     if @ssl
-      private_key_converter = org.logstash.netty.PrivateKeyConverter.new(ssl_key, ssl_key_passphrase)
-      ssl_builder = org.logstash.netty.SslSimpleBuilder.new(FileInputStream.new(ssl_certificate), private_key_converter.convert(), ssl_key_passphrase)
+      ssl_builder = org.logstash.netty.SslSimpleBuilder.new(ssl_certificate, ssl_key, ssl_key_passphrase)
         .setProtocols(convert_protocols)
         .setCipherSuites(normalized_ciphers)
 

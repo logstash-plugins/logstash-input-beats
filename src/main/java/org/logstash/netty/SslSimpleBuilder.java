@@ -8,11 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLException;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -31,8 +27,8 @@ public class SslSimpleBuilder {
     }
     public static Logger logger = LogManager.getLogger(SslSimpleBuilder.class.getName());
 
-    private InputStream sslKeyFile;
-    private InputStream sslCertificateFile;
+    private File sslKeyFile;
+    private File sslCertificateFile;
     private SslClientVerifyMode verifyMode = SslClientVerifyMode.FORCE_PEER;
 
     private long handshakeTimeoutMilliseconds = 10000;
@@ -58,16 +54,10 @@ public class SslSimpleBuilder {
     private String passPhrase;
 
     public SslSimpleBuilder(String sslCertificateFilePath, String sslKeyFilePath, String pass) throws FileNotFoundException {
-        sslCertificateFile = createFileInputStream(sslCertificateFilePath);
-        sslKeyFile = createFileInputStream(sslKeyFilePath);
+        sslCertificateFile = new File(sslCertificateFilePath);
+        sslKeyFile = new File(sslKeyFilePath);
         passPhrase = pass;
         ciphers = DEFAULT_CIPHERS;
-    }
-
-    public SslSimpleBuilder(InputStream sslCertificateFilePath, InputStream sslKeyFilePath, String pass) throws FileNotFoundException {
-        sslCertificateFile = sslCertificateFilePath;
-        sslKeyFile = sslKeyFilePath;
-        passPhrase = pass;
     }
 
     public SslSimpleBuilder setProtocols(String[] protocols) {
@@ -95,11 +85,11 @@ public class SslSimpleBuilder {
         return this;
     }
 
-    public InputStream getSslKeyFile() {
+    public File getSslKeyFile() {
         return sslKeyFile;
     }
 
-    public InputStream getSslCertificateFile() {
+    public File getSslCertificateFile() {
         return sslCertificateFile;
     }
 
