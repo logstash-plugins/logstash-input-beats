@@ -86,7 +86,7 @@ describe LogStash::Inputs::Beats::MessageListener do
 
   context "onException" do
     it "remove the connection to the connection list" do
-      expect { subject.onException(ctx) }.to change { subject.connections_list.count }.by(-1)
+      expect { subject.onException(ctx, double("Exception")) }.to change { subject.connections_list.count }.by(-1)
     end
 
     it "calls flush on codec" do
