@@ -138,6 +138,11 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   config :client_inactivity_timeout, :validate => :number, :default => 15
 
   def register
+    # Logstash 2.4
+    if defined?(LogStash::Logging) && LogStash::Logging.respond_to?(:setup_log4j)
+      LogStash::Logging.setup_log4j(@logger)
+    end
+
     if !@ssl
       @logger.warn("Beats input: SSL Certificate will not be used") unless @ssl_certificate.nil?
       @logger.warn("Beats input: SSL Key will not be used") unless @ssl_key.nil?
