@@ -1,13 +1,10 @@
 package org.logstash.beats;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
-import io.netty.util.ReferenceCountUtil;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -57,7 +54,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        messageListener.onException(ctx);
+        messageListener.onException(ctx, cause);
         logger.error("Exception: {}", cause.getMessage());
         ctx.close();
     }

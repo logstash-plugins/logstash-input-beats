@@ -2,6 +2,7 @@ package org.logstash.beats;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -108,6 +109,7 @@ public class Server {
 
         private final EventExecutorGroup idleExecutorGroup;
         private final BeatsHandler beatsHandler;
+        private final IMessageListener message;
         private int clientInactivityTimeoutSeconds;
         private final LoggingHandler loggingHandler = new LoggingHandler();
 
@@ -116,7 +118,8 @@ public class Server {
 
         public BeatsInitializer(Boolean secure, IMessageListener messageListener, int clientInactivityTimeoutSeconds) {
             enableSSL = secure;
-            beatsHandler = new BeatsHandler(messageListener);
+            this.message = messageListener;
+            beatsHandler = new BeatsHandler(this.message);
             this.clientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
         }
@@ -139,6 +142,11 @@ public class Server {
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
             pipeline.addLast(BEATS_HANDLER, beatsHandler);
 
+        }
+
+        @Override
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+            this.message.onChannelInitializeException(ctx, cause);
         }
 
         public void shutdownEventExecutor() {
