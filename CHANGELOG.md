@@ -1,3 +1,6 @@
+## 3.1.1
+   - [Doc changes] Add Logstash config example and clarify use of the `type` config option
+
 ## 3.1.0
    - Fix a NullPointer Exception https://github.com/elastic/logstash/issues/5756
    - Log4j ERROR will now be propagated upstream, IE: InvalidCertificate OR InvalidFrameType.
@@ -62,7 +65,7 @@
 
 ## 2.2.4
 
-  - Fix bug where using `ssl_key_passphrase` wouldn't work 
+  - Fix bug where using `ssl_key_passphrase` wouldn't work
 
 ## 2.2.2
 
@@ -93,7 +96,7 @@
 
 ## 2.1.1
 
-  - Release a new version of the gem that doesn't included any other gems, 2.1.0 is yanked from rubygems 
+  - Release a new version of the gem that doesn't included any other gems, 2.1.0 is yanked from rubygems
 
 ## 2.1.0
 
