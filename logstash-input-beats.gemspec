@@ -1,4 +1,4 @@
-BEATS_VERSION = File.read("VERSION").strip unless defined?(BEATS_VERSION)
+BEATS_VERSION = File.read(File.expand_path(File.join(File.dirname(__FILE__), "VERSION"))).strip unless defined?(BEATS_VERSION)
 
 Gem::Specification.new do |s|
   s.name            = "logstash-input-beats"

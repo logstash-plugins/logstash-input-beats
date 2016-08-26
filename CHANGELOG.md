@@ -1,3 +1,6 @@
+## 3.1.3
+   - Use a relative path for the VERSION, this change is needed by the doc generation tool to read the gemspec.
+
 ## 3.1.2
    - Propagate SSL handshake error correctly
    - Move back to log4j 1, to make it work better under logstash 2.4
