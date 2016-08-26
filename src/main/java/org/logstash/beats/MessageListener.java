@@ -1,8 +1,7 @@
 package org.logstash.beats;
 
 import io.netty.channel.ChannelHandlerContext;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.log4j.Logger;
 
 
 /**
@@ -12,7 +11,8 @@ import org.apache.logging.log4j.Logger;
  */
 // This need to be implemented in Ruby
 public class MessageListener implements IMessageListener {
-    private final static Logger logger = LogManager.getLogger(MessageListener.class.getName());
+    private final static Logger logger = Logger.getLogger(MessageListener.class);
+
 
     /**
      * This is triggered on every new message parsed by the beats handler

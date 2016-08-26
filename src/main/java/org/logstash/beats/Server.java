@@ -11,12 +11,12 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateHandler;
-import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.Future;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.log4j.Logger;
 import org.logstash.netty.SslSimpleBuilder;
+
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -25,7 +25,8 @@ import java.util.concurrent.TimeUnit;
 
 
 public class Server {
-    static final Logger logger = LogManager.getLogger(Server.class.getName());
+    private final static Logger logger = Logger.getLogger(Server.class);
+
     static final long SHUTDOWN_TIMEOUT_SECONDS = 10;
     private static final int DEFAULT_CLIENT_TIMEOUT_SECONDS = 15;
 
@@ -57,7 +58,7 @@ public class Server {
         BeatsInitializer beatsInitializer = null;
 
         try {
-            logger.info("Starting server on port: {}", this.port);
+            logger.info("Starting server on port: " +  this.port);
 
             beatsInitializer = new BeatsInitializer(isSslEnable(), messageListener, clientInactivityTimeoutSeconds);
 
