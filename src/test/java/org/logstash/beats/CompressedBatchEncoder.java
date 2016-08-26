@@ -3,14 +3,14 @@ package org.logstash.beats;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.channel.ChannelHandlerContext;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
 public class CompressedBatchEncoder extends BatchEncoder {
-    private final static Logger logger = LogManager.getLogger(BatchEncoder.class.getName());
+    private final static Logger logger = Logger.getLogger(CompressedBatchEncoder.class);
+
 
     @Override
     protected ByteBuf getPayload(ChannelHandlerContext ctx, Batch batch) throws IOException {

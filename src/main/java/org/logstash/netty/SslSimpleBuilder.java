@@ -4,8 +4,8 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.log4j.Logger;
+import org.logstash.beats.Server;
 
 import javax.net.ssl.SSLEngine;
 import java.io.*;
@@ -25,7 +25,8 @@ public class SslSimpleBuilder {
         VERIFY_PEER,
         FORCE_PEER,
     }
-    public static Logger logger = LogManager.getLogger(SslSimpleBuilder.class.getName());
+    private final static Logger logger = Logger.getLogger(SslSimpleBuilder.class);
+
 
     private File sslKeyFile;
     private File sslCertificateFile;
@@ -97,13 +98,13 @@ public class SslSimpleBuilder {
         SslContextBuilder builder = SslContextBuilder.forServer(sslCertificateFile, sslKeyFile, passPhrase);
 
         if(logger.isDebugEnabled())
-            logger.debug("Ciphers: {} ", ciphers.toString());
+            logger.debug("Ciphers:  " + ciphers.toString());
 
         builder.ciphers(Arrays.asList(ciphers));
 
         if(requireClientAuth()) {
             if (logger.isDebugEnabled())
-                logger.debug("Certificate Authorities: {}", certificateAuthorities.toString());
+                logger.debug("Certificate Authorities: " + certificateAuthorities.toString());
 
             builder.trustManager(loadCertificateCollection(certificateAuthorities));
         }
@@ -112,7 +113,7 @@ public class SslSimpleBuilder {
         SslHandler sslHandler = context.newHandler(bufferAllocator);
 
         if(logger.isDebugEnabled())
-            logger.debug("TLS: {}", protocols.toString());
+            logger.debug("TLS: " + protocols.toString());
 
         SSLEngine engine = sslHandler.engine();
         engine.setEnabledProtocols(protocols);
