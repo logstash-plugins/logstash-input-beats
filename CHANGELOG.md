@@ -1,3 +1,7 @@
+## 3.1.2
+   - Propagate SSL handshake error correctly
+   - Move back to log4j 1, to make it work better under logstash 2.4
+
 ## 3.1.1
    - Remove the SSL Converter, Private Key must be in the PKCS8 format, which is the default of any newer OpenSSL library
    - Replace FileInputStream with File reference to let netty handle correctly the certificates
@@ -5,8 +9,6 @@
    - Remove dependency on bouncycastle
    - Fix an issue when the input could hang forever when stopping Logstash
    - [Doc changes] Add Logstash config example and clarify use of the `type` config option
-
-
 
 ## 3.1.0
    - Fix a NullPointer Exception https://github.com/elastic/logstash/issues/5756
