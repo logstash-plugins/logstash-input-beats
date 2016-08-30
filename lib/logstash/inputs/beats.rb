@@ -85,6 +85,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   config :ssl_certificate, :validate => :path
 
   # SSL key to use.
+  # NOTE: This key need to be in the PKCS8 format, you can convert it with https://www.openssl.org/docs/manmaster/apps/pkcs8.html[OpenSSL]
+  # for more information.
   config :ssl_key, :validate => :path
 
   # SSL key passphrase to use.
