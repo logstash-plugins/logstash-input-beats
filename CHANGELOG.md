@@ -1,3 +1,6 @@
+## 3.1.4
+   - Add a note concerning the requirement of the PKCS8 format for the private key.
+
 ## 3.1.3
    - Use a relative path for the VERSION, this change is needed by the doc generation tool to read the gemspec.
 
