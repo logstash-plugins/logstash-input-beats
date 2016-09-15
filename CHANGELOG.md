@@ -1,3 +1,6 @@
+## 3.1.5
+   - Use correct log4j logger call to be compatible with 2.4
+
 ## 3.1.4
    - Add a note concerning the requirement of the PKCS8 format for the private key.
 

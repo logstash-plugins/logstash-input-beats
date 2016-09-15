@@ -141,8 +141,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   def register
     # Logstash 2.4
-    if defined?(LogStash::Logging) && LogStash::Logging.respond_to?(:setup_log4j)
-      LogStash::Logging.setup_log4j(@logger)
+    if defined?(LogStash::Logger) && LogStash::Logger.respond_to?(:setup_log4j)
+      LogStash::Logger.setup_log4j(@logger)
     end
 
     if !@ssl
