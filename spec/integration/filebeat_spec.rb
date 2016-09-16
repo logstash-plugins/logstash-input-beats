@@ -39,7 +39,8 @@ describe "Filebeat", :integration => true do
       "filebeat" => {
         "prospectors" => [{ "paths" => [log_file],  "input_type" => "log" }],
         "registry_file" => registry_file,
-        "scan_frequency" => "1s"
+        "scan_frequency" => "1s",
+        "idle_timeout" => "1s"
       },
       "output" => {
         "logstash" => { "hosts" => ["#{host}:#{port}"] },
@@ -84,7 +85,7 @@ describe "Filebeat", :integration => true do
           "output" => {
             "logstash" => {
               "hosts" => ["#{host}:#{port}"],
-              "tls" => { "certificate_authorities" => certificate_authorities }
+              "ssl" => { "certificate_authorities" => certificate_authorities }
             },
             "logging" => { "level" => "debug" }
           }})
@@ -134,10 +135,10 @@ describe "Filebeat", :integration => true do
             "output" => {
               "logstash" => {
                 "hosts" => ["#{host}:#{port}"],
-                "tls" => { 
+                "ssl" => {
                   "certificate_authorities" => certificate_authorities,
                   "certificate" => certificate_file,
-                  "certificate_key" => certificate_key_file
+                  "key" => certificate_key_file
                 }
               },
               "logging" => { "level" => "debug" }
@@ -215,10 +216,10 @@ describe "Filebeat", :integration => true do
                     "output" => {
                       "logstash" => {
                         "hosts" => ["#{host}:#{port}"],
-                        "tls" => { 
+                        "ssl" => {
                           "certificate_authorities" => certificate_authorities,
                           "certificate" => secondary_client_certificate_file,
-                          "certificate_key" => secondary_client_certificate_key_file
+                          "key" => secondary_client_certificate_key_file
                         }
                       },
                       "logging" => { "level" => "debug" }
