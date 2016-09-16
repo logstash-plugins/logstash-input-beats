@@ -1,4 +1,22 @@
+## 3.1.5
+   - Use correct log4j logger call to be compatible with 2.4
+
+## 3.1.4
+   - Add a note concerning the requirement of the PKCS8 format for the private key.
+
+## 3.1.3
+   - Use a relative path for the VERSION, this change is needed by the doc generation tool to read the gemspec.
+
+## 3.1.2
+   - Propagate SSL handshake error correctly
+   - Move back to log4j 1, to make it work better under logstash 2.4
+
 ## 3.1.1
+   - Remove the SSL Converter, Private Key must be in the PKCS8 format, which is the default of any newer OpenSSL library
+   - Replace FileInputStream with File reference to let netty handle correctly the certificates
+   - Tests now uses OpenSSL binary to convert PKCS7 Private generated from ruby to PKCS8
+   - Remove dependency on bouncycastle
+   - Fix an issue when the input could hang forever when stopping Logstash
    - [Doc changes] Add Logstash config example and clarify use of the `type` config option
 
 ## 3.1.0

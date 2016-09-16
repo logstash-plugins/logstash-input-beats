@@ -44,7 +44,11 @@ public class BeatsHandlerTest {
         }
 
         @Override
-        public void onException(ChannelHandlerContext ctx) { onExceptionCalled = true; }
+        public void onException(ChannelHandlerContext ctx, Throwable cause) { onExceptionCalled = true; }
+
+        @Override
+        public void onChannelInitializeException(ChannelHandlerContext ctx, Throwable cause) {
+        }
 
         public boolean isOnNewConnectionCalled() {
             return onNewConnectionCalled;

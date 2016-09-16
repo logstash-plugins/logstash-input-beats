@@ -84,7 +84,7 @@ describe "Logstash-Forwarder", :integration => true do
 
       let(:certificate_data) { Flores::PKI.generate }
       let_tmp_file(:certificate_file) { certificate_data.first }
-      let_tmp_file(:certificate_key_file) { certificate_data.last } 
+      let_tmp_file(:certificate_key_file) { convert_to_pkcs8(certificate_data.last) }
       let(:certificate_authorities) { certificate_file }
 
       context "self signed certificate" do

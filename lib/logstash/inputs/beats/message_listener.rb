@@ -50,12 +50,26 @@ module LogStash module Inputs class Beats
       unregister_connection(ctx)
     end
 
-    def onException(ctx)
-      unregister_connection(ctx)
+    def onChannelInitializeException(ctx, cause)
+      # This is mostly due to a bad certificate or keys, running Logstash in debug mode will show more information
+      if cause.is_a?(Java::JavaLang::IllegalArgumentException)
+        if input.logger.debug?
+          input.logger.error("Looks like you either have an invalid key or your private key was not in PKCS8 format.")
+        else
+          input.logger.error("Looks like you either have an invalid key or your private key was not in PKCS8 format.", :exception => cause)
+        end
+      else
+        input.logger.warn("Error when creating a connection", :exception => cause.to_s)
+      end
+    end
+
+    def onException(ctx, cause)
+      unregister_connection(ctx) unless connections_list[ctx].nil?
     end
 
     private
     def codec(ctx)
+      return if connections_list[ctx].nil?
       connections_list[ctx].codec
     end
 
@@ -69,8 +83,9 @@ module LogStash module Inputs class Beats
     end
 
     def flush_buffer(ctx)
-      transformer = EventTransformCommon.new(@input)
+      return if codec(ctx).nil?
 
+      transformer = EventTransformCommon.new(@input)
       codec(ctx).flush do |event|
         transformer.transform(event)
         @queue << event

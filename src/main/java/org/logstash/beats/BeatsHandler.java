@@ -1,21 +1,17 @@
 package org.logstash.beats;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
-import io.netty.util.ReferenceCountUtil;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @ChannelHandler.Sharable
 public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
-    private static Logger logger = LogManager.getLogger(BeatsHandler.class.getName());
+    private final static Logger logger = Logger.getLogger(BeatsHandler.class);
     private final AtomicBoolean processing = new AtomicBoolean(false);
     private final IMessageListener messageListener;
     private ChannelHandlerContext context;
@@ -43,7 +39,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         processing.compareAndSet(false, true);
 
         for(Message message : batch.getMessages()) {
-            logger.debug("Sending a new message for the listener, sequence: {}", message.getSequence());
+            logger.debug("Sending a new message for the listener, sequence: " + message.getSequence());
             messageListener.onNewMessage(ctx, message);
 
             if(needAck(message)) {
@@ -57,8 +53,8 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        messageListener.onException(ctx);
-        logger.error("Exception: {}", cause.getMessage());
+        messageListener.onException(ctx, cause);
+        logger.error("Exception: " + cause.getMessage());
         ctx.close();
     }
 

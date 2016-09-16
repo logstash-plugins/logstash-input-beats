@@ -2,6 +2,7 @@ package org.logstash.beats;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -10,12 +11,12 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateHandler;
-import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.Future;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.log4j.Logger;
 import org.logstash.netty.SslSimpleBuilder;
+
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -24,7 +25,8 @@ import java.util.concurrent.TimeUnit;
 
 
 public class Server {
-    static final Logger logger = LogManager.getLogger(Server.class.getName());
+    private final static Logger logger = Logger.getLogger(Server.class);
+
     static final long SHUTDOWN_TIMEOUT_SECONDS = 10;
     private static final int DEFAULT_CLIENT_TIMEOUT_SECONDS = 15;
 
@@ -56,7 +58,7 @@ public class Server {
         BeatsInitializer beatsInitializer = null;
 
         try {
-            logger.info("Starting server on port: {}", this.port);
+            logger.info("Starting server on port: " +  this.port);
 
             beatsInitializer = new BeatsInitializer(isSslEnable(), messageListener, clientInactivityTimeoutSeconds);
 
@@ -82,9 +84,7 @@ public class Server {
 
         Future<?> bossWait = bossGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         Future<?> workWait = workGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-        bossWait.await();
-        workWait.await();
+        
         logger.debug("Server stopped");
     }
 
@@ -110,6 +110,7 @@ public class Server {
 
         private final EventExecutorGroup idleExecutorGroup;
         private final BeatsHandler beatsHandler;
+        private final IMessageListener message;
         private int clientInactivityTimeoutSeconds;
         private final LoggingHandler loggingHandler = new LoggingHandler();
 
@@ -118,7 +119,8 @@ public class Server {
 
         public BeatsInitializer(Boolean secure, IMessageListener messageListener, int clientInactivityTimeoutSeconds) {
             enableSSL = secure;
-            beatsHandler = new BeatsHandler(messageListener);
+            this.message = messageListener;
+            beatsHandler = new BeatsHandler(this.message);
             this.clientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
         }
@@ -141,6 +143,11 @@ public class Server {
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
             pipeline.addLast(BEATS_HANDLER, beatsHandler);
 
+        }
+
+        @Override
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+            this.message.onChannelInitializeException(ctx, cause);
         }
 
         public void shutdownEventExecutor() {

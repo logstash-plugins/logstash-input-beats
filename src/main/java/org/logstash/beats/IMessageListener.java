@@ -37,6 +37,15 @@ public interface IMessageListener {
      * somethign goes wrong.
      *
      * @param ctx
+     * @param cause
      */
-    public void onException(ChannelHandlerContext ctx);
+    public void onException(ChannelHandlerContext ctx, Throwable cause);
+
+    /**
+     * Called when a error occur in the channel initialize, usually ssl handshake error.
+     *
+     * @param ctx
+     * @param cause
+     */
+    public void onChannelInitializeException(ChannelHandlerContext ctx, Throwable cause);
 }

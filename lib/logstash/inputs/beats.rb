@@ -6,11 +6,9 @@ require "logstash/codecs/identity_map_codec"
 require "logstash/codecs/multiline"
 require "logstash/util"
 require "logstash-input-beats_jars"
-require "logstash/logging" rescue nil # removed in logstash 5
 
 import "org.logstash.beats.Server"
 import "org.logstash.netty.SslSimpleBuilder"
-import "org.logstash.netty.PrivateKeyConverter"
 import "java.io.FileInputStream"
 
 # This input plugin enables Logstash to receive events from the
@@ -87,6 +85,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   config :ssl_certificate, :validate => :path
 
   # SSL key to use.
+  # NOTE: This key need to be in the PKCS8 format, you can convert it with https://www.openssl.org/docs/manmaster/apps/pkcs8.html[OpenSSL]
+  # for more information.
   config :ssl_key, :validate => :path
 
   # SSL key passphrase to use.
@@ -140,9 +140,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   config :client_inactivity_timeout, :validate => :number, :default => 15
 
   def register
-    # Compatibilty with logstash < 5 and pre Log4j integration
-    if defined?(LogStash::Logging) && LogStash::Logging.respond_to?(:setup_log4j)
-      LogStash::Logging.setup_log4j(@logger)
+    # Logstash 2.4
+    if defined?(LogStash::Logger) && LogStash::Logger.respond_to?(:setup_log4j)
+      LogStash::Logger.setup_log4j(@logger)
     end
 
     if !@ssl
@@ -169,8 +169,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   def create_server
     server = org.logstash.beats.Server.new(@port)
     if @ssl
-      private_key_converter = org.logstash.netty.PrivateKeyConverter.new(ssl_key, ssl_key_passphrase)
-      ssl_builder = org.logstash.netty.SslSimpleBuilder.new(FileInputStream.new(ssl_certificate), private_key_converter.convert(), ssl_key_passphrase)
+      ssl_builder = org.logstash.netty.SslSimpleBuilder.new(ssl_certificate, ssl_key, ssl_key_passphrase)
         .setProtocols(convert_protocols)
         .setCipherSuites(normalized_ciphers)
 

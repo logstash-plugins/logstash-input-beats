@@ -4,15 +4,11 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.log4j.Logger;
+import org.logstash.beats.Server;
 
 import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLException;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -29,10 +25,11 @@ public class SslSimpleBuilder {
         VERIFY_PEER,
         FORCE_PEER,
     }
-    public static Logger logger = LogManager.getLogger(SslSimpleBuilder.class.getName());
+    private final static Logger logger = Logger.getLogger(SslSimpleBuilder.class);
 
-    private InputStream sslKeyFile;
-    private InputStream sslCertificateFile;
+
+    private File sslKeyFile;
+    private File sslCertificateFile;
     private SslClientVerifyMode verifyMode = SslClientVerifyMode.FORCE_PEER;
 
     private long handshakeTimeoutMilliseconds = 10000;
@@ -58,16 +55,10 @@ public class SslSimpleBuilder {
     private String passPhrase;
 
     public SslSimpleBuilder(String sslCertificateFilePath, String sslKeyFilePath, String pass) throws FileNotFoundException {
-        sslCertificateFile = createFileInputStream(sslCertificateFilePath);
-        sslKeyFile = createFileInputStream(sslKeyFilePath);
+        sslCertificateFile = new File(sslCertificateFilePath);
+        sslKeyFile = new File(sslKeyFilePath);
         passPhrase = pass;
         ciphers = DEFAULT_CIPHERS;
-    }
-
-    public SslSimpleBuilder(InputStream sslCertificateFilePath, InputStream sslKeyFilePath, String pass) throws FileNotFoundException {
-        sslCertificateFile = sslCertificateFilePath;
-        sslKeyFile = sslKeyFilePath;
-        passPhrase = pass;
     }
 
     public SslSimpleBuilder setProtocols(String[] protocols) {
@@ -95,11 +86,11 @@ public class SslSimpleBuilder {
         return this;
     }
 
-    public InputStream getSslKeyFile() {
+    public File getSslKeyFile() {
         return sslKeyFile;
     }
 
-    public InputStream getSslCertificateFile() {
+    public File getSslCertificateFile() {
         return sslCertificateFile;
     }
 
@@ -107,13 +98,13 @@ public class SslSimpleBuilder {
         SslContextBuilder builder = SslContextBuilder.forServer(sslCertificateFile, sslKeyFile, passPhrase);
 
         if(logger.isDebugEnabled())
-            logger.debug("Ciphers: {} ", String.join(",", ciphers));
+            logger.debug("Ciphers:  " + ciphers.toString());
 
         builder.ciphers(Arrays.asList(ciphers));
 
         if(requireClientAuth()) {
             if (logger.isDebugEnabled())
-                logger.debug("Certificate Authorities: " + String.join(", ", certificateAuthorities));
+                logger.debug("Certificate Authorities: " + certificateAuthorities.toString());
 
             builder.trustManager(loadCertificateCollection(certificateAuthorities));
         }
@@ -122,7 +113,7 @@ public class SslSimpleBuilder {
         SslHandler sslHandler = context.newHandler(bufferAllocator);
 
         if(logger.isDebugEnabled())
-            logger.debug("TLS: " + String.join(",", protocols));
+            logger.debug("TLS: " + protocols.toString());
 
         SSLEngine engine = sslHandler.engine();
         engine.setEnabledProtocols(protocols);

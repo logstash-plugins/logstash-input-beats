@@ -7,8 +7,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.log4j.Logger;
+
 
 import java.nio.charset.Charset;
 import java.util.HashMap;
@@ -21,7 +21,7 @@ import java.util.zip.InflaterOutputStream;
 public class BeatsParser extends ByteToMessageDecoder {
     private static final int CHUNK_SIZE = 1024;
     public final static ObjectMapper MAPPER = new ObjectMapper().registerModule(new AfterburnerModule());
-    private final static Logger logger = LogManager.getLogger(Server.class.getName());
+    private final static Logger logger = Logger.getLogger(BeatsParser.class);
 
     private Batch batch = new Batch();
 
@@ -207,7 +207,8 @@ public class BeatsParser extends ByteToMessageDecoder {
                 batch.addMessage(message);
 
                 if(batch.size() == batch.getBatchSize()) {
-                    logger.debug("Sending batch size: {}, windowSize: {} , seq: {}", batch.size(), batch.getBatchSize(), sequence);
+                    logger.debug("Sending batch size: " + this.batch.size() + ", windowSize: " + batch.getBatchSize() +  " , seq: " + sequence);
+
                     out.add(batch);
                     batchComplete();
                 }
@@ -227,7 +228,7 @@ public class BeatsParser extends ByteToMessageDecoder {
     }
 
     private void transition(States nextState, int requiredBytes) {
-        logger.debug("Transition, from: {}, to: {}, requiring {} bytes", currentState, nextState, requiredBytes);
+        logger.debug("Transition, from: " + currentState + ", to: " +  nextState + ", requiring " + requiredBytes + " bytes");
         this.currentState = nextState;
         this.requiredBytes = requiredBytes;
     }
