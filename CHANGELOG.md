@@ -1,4 +1,6 @@
 ## 3.1.5
+   - Fix an issue when using a passphrase was raising a TypeError #138
+   - Fix the filebeat integration suite to use the new `ssl` option instead of `tls`
    - Use correct log4j logger call to be compatible with 2.4
 
 ## 3.1.4
