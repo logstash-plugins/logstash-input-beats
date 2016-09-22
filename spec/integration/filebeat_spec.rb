@@ -33,13 +33,12 @@ describe "Filebeat", :integration => true do
 
   let(:filebeat_exec) { FILEBEAT_BINARY }
 
-  let_empty_tmp_file(:registry_file)
   let(:filebeat_config) do
     {
       "filebeat" => {
         "prospectors" => [{ "paths" => [log_file],  "input_type" => "log" }],
-        "registry_file" => registry_file,
-        "scan_frequency" => "1s"
+        "scan_frequency" => "1s",
+        "idle_timeout" => "1s"
       },
       "output" => {
         "logstash" => { "hosts" => ["#{host}:#{port}"] },
@@ -84,14 +83,14 @@ describe "Filebeat", :integration => true do
           "output" => {
             "logstash" => {
               "hosts" => ["#{host}:#{port}"],
-              "tls" => { "certificate_authorities" => certificate_authorities }
+              "ssl" => { "certificate_authorities" => certificate_authorities }
             },
             "logging" => { "level" => "debug" }
           }})
       end
 
       let(:input_config) do
-        super.merge({ 
+        super.merge({
           "ssl" => true,
           "ssl_certificate" => certificate_file,
           "ssl_key" => certificate_key_file
@@ -106,7 +105,37 @@ describe "Filebeat", :integration => true do
 
       context "self signed certificate" do
         include_examples "send events"
+
+
+        # Refactor this to use Flores's PKI instead of openssl command line
+        # see: https://github.com/jordansissel/ruby-flores/issues/7
+        context "with a passphrase" do
+          let!(:temporary_directory) { Stud::Temporary.pathname }
+          let(:certificate_key_file) { ::File.join(temporary_directory, "certificate.key") }
+          let(:certificate_key_file_pkcs8) { ::File.join(temporary_directory, "certificate.pkcs8.key") }
+          let(:certificate_file) { ::File.join(temporary_directory, "certificate.crt") }
+          let(:passphrase) { "foobar" }
+          let(:beats) {
+            # Since we are using a shared context, this not obvious to make sure the openssl command
+            # is run before starting beats so we do it just before initializing it.
+            FileUtils.mkdir_p(temporary_directory)
+            openssl_cmd = "openssl req -x509  -batch -newkey rsa:2048 -keyout #{temporary_directory}/certificate.key -out #{temporary_directory}/certificate.crt -subj /CN=localhost -passout pass:#{passphrase}"
+            system(openssl_cmd)
+            convert_key_cmd = "openssl pkcs8 -topk8 -in #{temporary_directory}/certificate.key -out #{certificate_key_file_pkcs8} -passin pass:#{passphrase} -passout pass:#{passphrase}"
+            system(convert_key_cmd)
+
+            LogStash::Inputs::Beats.new(input_config)
+          }
+          let(:input_config) {
+            super.merge({
+            "ssl_key_passphrase" => passphrase,
+            "ssl_key" => certificate_key_file_pkcs8
+          })}
+
+          include_examples "send events"
+        end
       end
+
 
       context "CA root" do
         include_context "Root CA"
@@ -134,10 +163,10 @@ describe "Filebeat", :integration => true do
             "output" => {
               "logstash" => {
                 "hosts" => ["#{host}:#{port}"],
-                "tls" => { 
+                "ssl" => {
                   "certificate_authorities" => certificate_authorities,
                   "certificate" => certificate_file,
-                  "certificate_key" => certificate_key_file
+                  "key" => certificate_key_file
                 }
               },
               "logging" => { "level" => "debug" }
@@ -215,10 +244,10 @@ describe "Filebeat", :integration => true do
                     "output" => {
                       "logstash" => {
                         "hosts" => ["#{host}:#{port}"],
-                        "tls" => { 
+                        "ssl" => {
                           "certificate_authorities" => certificate_authorities,
                           "certificate" => secondary_client_certificate_file,
-                          "certificate_key" => secondary_client_certificate_key_file
+                          "key" => secondary_client_certificate_key_file
                         }
                       },
                       "logging" => { "level" => "debug" }
