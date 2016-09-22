@@ -1,3 +1,6 @@
+## 3.1.6
+   - Fix an issue with the `READER_IDLE` that was closing a connection in a middle of working on a batch #141
+
 ## 3.1.5
    - Fix an issue when using a passphrase was raising a TypeError #138
    - Fix the filebeat integration suite to use the new `ssl` option instead of `tls`
