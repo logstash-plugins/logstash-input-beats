@@ -50,7 +50,10 @@ describe "Filebeat", :integration => true do
   let_tmp_file(:filebeat_config_path) { YAML.dump(filebeat_config) }
   before :each do
     start_client
-    sleep(2) # give some time to FB to send something
+    sleep(10) # give some time to FB to send something
+  end
+
+  after :each do
     stop_client
   end
 
