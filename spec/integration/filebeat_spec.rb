@@ -49,6 +49,7 @@ describe "Filebeat", :integration => true do
 
   let_tmp_file(:filebeat_config_path) { YAML.dump(filebeat_config) }
   before :each do
+    FileUtils.rm_rf(File.join(File.dirname(__FILE__), "..", "..", "vendor", "filebeat", "data"))
     start_client
     sleep(20) # give some time to FB to send something
   end
