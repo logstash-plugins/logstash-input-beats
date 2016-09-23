@@ -137,7 +137,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   config :cipher_suites, :validate => :array, :default => org.logstash.netty.SslSimpleBuilder::DEFAULT_CIPHERS
 
   # Close Idle clients after X seconds of inactivity.
-  config :client_inactivity_timeout, :validate => :number, :default => 15
+  config :client_inactivity_timeout, :validate => :number, :default => 60
 
   def register
     # Logstash 2.4
