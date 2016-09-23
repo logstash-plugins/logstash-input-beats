@@ -1,6 +1,7 @@
 ## 3.1.6
    - Fix an issue with the `READER_IDLE` that was closing a connection in a middle of working on a batch #141
-   - Fix an issue when the plugin did not accept a specific host to bind to.
+   - Fix an issue when the plugin did not accept a specific host to bind to. #146
+   - Fix an issue when forcing a logstash shutdown that could result in an `InterruptedException` #145
 
 ## 3.1.5
    - Fix an issue when using a passphrase was raising a TypeError #138
