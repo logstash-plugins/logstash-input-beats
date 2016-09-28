@@ -30,20 +30,21 @@ public class Server {
     static final long SHUTDOWN_TIMEOUT_SECONDS = 10;
     private static final int DEFAULT_CLIENT_TIMEOUT_SECONDS = 15;
 
-
     private final int port;
     private final NioEventLoopGroup bossGroup;
     private final NioEventLoopGroup workGroup;
+    private final String host;
     private IMessageListener messageListener = new MessageListener();
     private SslSimpleBuilder sslBuilder;
 
     private final int clientInactivityTimeoutSeconds;
 
-    public Server(int p) {
-        this(p, DEFAULT_CLIENT_TIMEOUT_SECONDS);
+    public Server(String host, int p) {
+        this(host, p, DEFAULT_CLIENT_TIMEOUT_SECONDS);
     }
 
-    public Server(int p, int timeout) {
+    public Server(String host, int p, int timeout) {
+        this.host = host;
         port = p;
         clientInactivityTimeoutSeconds = timeout;
         bossGroup = new NioEventLoopGroup();
@@ -67,7 +68,7 @@ public class Server {
                     .channel(NioServerSocketChannel.class)
                     .childHandler(beatsInitializer);
 
-            Channel channel = server.bind(port).sync().channel();
+            Channel channel = server.bind(host, port).sync().channel();
             channel.closeFuture().sync();
         } finally {
             beatsInitializer.shutdownEventExecutor();

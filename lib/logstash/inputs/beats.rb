@@ -167,7 +167,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end # def register
 
   def create_server
-    server = org.logstash.beats.Server.new(@port)
+    server = org.logstash.beats.Server.new(@host, @port)
     if @ssl
       ssl_builder = org.logstash.netty.SslSimpleBuilder.new(@ssl_certificate, @ssl_key, @ssl_key_passphrase.nil? ? nil : @ssl_key_passphrase.value)
         .setProtocols(convert_protocols)

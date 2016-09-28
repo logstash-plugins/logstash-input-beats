@@ -25,7 +25,7 @@ shared_examples "Common Event Transformation" do
     expect(subject.get("tags")).to include(tag)
   end
 
-  context "when the `beast.hotname` doesnt exist on the event" do
+  context "when the `beats.hostname` doesnt exist on the event" do
     let(:already_exist) { "already_exist" }
     let(:event_map) { super.merge({ "host" => already_exist }) }
 
