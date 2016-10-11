@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 public class ServerTest {
     private int randomPort;
     private EventLoopGroup group;
+    private final String host = "0.0.0.0";
 
     @Before
     public void setUp() {
@@ -34,7 +35,7 @@ public class ServerTest {
     public void testServerShouldTerminateConnectionIdleForTooLong() throws InterruptedException {
         int inactivityTime = 3; // in seconds
 
-        final Server server = new Server(randomPort, inactivityTime);
+        final Server server = new Server(host, randomPort, inactivityTime);
 
 
         Runnable serverTask = new Runnable() {
@@ -70,7 +71,7 @@ public class ServerTest {
 
     @Test
     public void testServerShouldAcceptConcurrentConnection() throws InterruptedException {
-        final Server server = new Server(randomPort, 30);
+        final Server server = new Server(host, randomPort, 30);
         SpyListener listener = new SpyListener();
         server.setMessageListener(listener);
         Runnable serverTask = new Runnable() {

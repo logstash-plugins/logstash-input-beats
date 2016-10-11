@@ -84,8 +84,10 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     }
 
     private void clientTimeout() {
-        logger.debug("Client Timeout");
-        this.context.close();
+        if(!processing.get()) {
+            logger.debug("Client Timeout");
+            this.context.close();
+        }
     }
 
     private void sendKeepAlive() {

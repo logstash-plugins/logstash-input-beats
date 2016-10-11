@@ -27,23 +27,23 @@ import java.util.concurrent.TimeUnit;
 public class Server {
     private final static Logger logger = Logger.getLogger(Server.class);
 
-    static final long SHUTDOWN_TIMEOUT_SECONDS = 10;
     private static final int DEFAULT_CLIENT_TIMEOUT_SECONDS = 15;
-
 
     private final int port;
     private final NioEventLoopGroup bossGroup;
     private final NioEventLoopGroup workGroup;
+    private final String host;
     private IMessageListener messageListener = new MessageListener();
     private SslSimpleBuilder sslBuilder;
 
     private final int clientInactivityTimeoutSeconds;
 
-    public Server(int p) {
-        this(p, DEFAULT_CLIENT_TIMEOUT_SECONDS);
+    public Server(String host, int p) {
+        this(host, p, DEFAULT_CLIENT_TIMEOUT_SECONDS);
     }
 
-    public Server(int p, int timeout) {
+    public Server(String host, int p, int timeout) {
+        this.host = host;
         port = p;
         clientInactivityTimeoutSeconds = timeout;
         bossGroup = new NioEventLoopGroup();
@@ -67,13 +67,12 @@ public class Server {
                     .channel(NioServerSocketChannel.class)
                     .childHandler(beatsInitializer);
 
-            Channel channel = server.bind(port).sync().channel();
+            Channel channel = server.bind(host, port).sync().channel();
             channel.closeFuture().sync();
         } finally {
+            bossGroup.shutdownGracefully().sync();
+            workGroup.shutdownGracefully().sync();
             beatsInitializer.shutdownEventExecutor();
-
-            bossGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            workGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         }
 
         return this;
@@ -82,9 +81,9 @@ public class Server {
     public void stop() throws InterruptedException {
         logger.debug("Server shutting down");
 
-        Future<?> bossWait = bossGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        Future<?> workWait = workGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        
+        bossGroup.shutdownGracefully().sync();
+        workGroup.shutdownGracefully().sync();
+
         logger.debug("Server stopped");
     }
 
@@ -147,11 +146,16 @@ public class Server {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+            logger.warn("Channel initializer");
             this.message.onChannelInitializeException(ctx, cause);
         }
 
         public void shutdownEventExecutor() {
-            idleExecutorGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            try {
+                idleExecutorGroup.shutdownGracefully().sync();
+            } catch (InterruptedException e) {
+                // we are shutting down we don't care about any errors here.
+            }
         }
     }
 }

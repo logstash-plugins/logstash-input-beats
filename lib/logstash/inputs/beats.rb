@@ -137,7 +137,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   config :cipher_suites, :validate => :array, :default => org.logstash.netty.SslSimpleBuilder::DEFAULT_CIPHERS
 
   # Close Idle clients after X seconds of inactivity.
-  config :client_inactivity_timeout, :validate => :number, :default => 15
+  config :client_inactivity_timeout, :validate => :number, :default => 60
 
   def register
     # Logstash 2.4
@@ -167,7 +167,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end # def register
 
   def create_server
-    server = org.logstash.beats.Server.new(@port)
+    server = org.logstash.beats.Server.new(@host, @port)
     if @ssl
       ssl_builder = org.logstash.netty.SslSimpleBuilder.new(@ssl_certificate, @ssl_key, @ssl_key_passphrase.nil? ? nil : @ssl_key_passphrase.value)
         .setProtocols(convert_protocols)
