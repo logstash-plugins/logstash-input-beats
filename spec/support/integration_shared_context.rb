@@ -48,14 +48,6 @@ shared_context "beats configuration" do
 
     @server = Thread.new do
       begin
-        # use to know what lumberjack is actually doing
-        if ENV["DEBUG"]
-          logger = Logger.new(STDOUT)
-          beats.logger = Cabin::Channel.new
-          beats.logger.subscribe(logger)
-          beats.logger.level = :debug
-        end
-
         beats.run(queue)
       rescue => e
         retry unless beats.stop?
