@@ -10,6 +10,7 @@ require "logstash-input-beats_jars"
 import "org.logstash.beats.Server"
 import "org.logstash.netty.SslSimpleBuilder"
 import "java.io.FileInputStream"
+java_import "io.netty.handler.ssl.OpenSsl"
 
 # This input plugin enables Logstash to receive events from the
 # https://www.elastic.co/products/beats[Elastic Beats] framework.
@@ -169,9 +170,14 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   def create_server
     server = org.logstash.beats.Server.new(@host, @port)
     if @ssl
+
+      begin
       ssl_builder = org.logstash.netty.SslSimpleBuilder.new(@ssl_certificate, @ssl_key, @ssl_key_passphrase.nil? ? nil : @ssl_key_passphrase.value)
         .setProtocols(convert_protocols)
         .setCipherSuites(normalized_ciphers)
+      rescue java.lang.IllegalArgumentException => e
+        raise LogStash::ConfigurationError, e
+      end
 
       ssl_builder.setHandshakeTimeoutMilliseconds(@ssl_handshake_timeout)
 
@@ -203,7 +209,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end # def run
 
   def stop
-    @server.stop
+    @server.stop unless @server.nil?
   end
 
   def need_identity_map?

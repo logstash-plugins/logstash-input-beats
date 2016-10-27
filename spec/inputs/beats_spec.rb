@@ -61,6 +61,15 @@ describe LogStash::Inputs::Beats do
           expect {plugin.register}.to raise_error(LogStash::ConfigurationError)
         end
       end
+
+      context "with invalid ciphers" do
+        let(:config)   { { "port" => 0, "ssl" => true, "ssl_certificate" => certificate.ssl_cert, "type" => "example", "tags" => "Beats", "cipher_suites" => "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA38"} }
+
+        it "should raise a configuration error" do
+          plugin = LogStash::Inputs::Beats.new(config)
+          expect { plugin.register }.to raise_error(LogStash::ConfigurationError)
+        end
+      end
     end
 
     context "with ssl disabled" do
