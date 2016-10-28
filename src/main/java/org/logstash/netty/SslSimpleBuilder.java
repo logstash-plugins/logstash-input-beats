@@ -13,7 +13,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Created by ph on 2016-05-27.
@@ -104,7 +107,7 @@ public class SslSimpleBuilder {
 
         if(requireClientAuth()) {
             if (logger.isDebugEnabled())
-                logger.debug("Certificate Authorities: " + certificateAuthorities.toString());
+                logger.debug("Certificate Authorities: " + Arrays.toString(certificateAuthorities));
 
             builder.trustManager(loadCertificateCollection(certificateAuthorities));
         }
@@ -138,26 +141,20 @@ public class SslSimpleBuilder {
     }
 
     private X509Certificate[] loadCertificateCollection(String[] certificates) throws IOException, CertificateException {
+        logger.debug("Load certificates collection");
         CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
 
-        X509Certificate[] collections = new X509Certificate[certificates.length];
+        List<X509Certificate> collections = new ArrayList<X509Certificate>();
 
         for(int i = 0; i < certificates.length; i++) {
             String certificate = certificates[i];
 
-            InputStream in = null;
-
-            try {
-                in = new FileInputStream(certificate);
-                collections[i] = (X509Certificate) certificateFactory.generateCertificate(in);
-            } finally {
-                if(in != null) {
-                    in.close();
-                }
+            try(InputStream in = new FileInputStream(certificate)) {
+                List<X509Certificate> certificatesChains = (List<X509Certificate>) certificateFactory.generateCertificates(in);
+                collections.addAll(certificatesChains);
             }
         }
-
-        return collections;
+        return collections.toArray(new X509Certificate[collections.size()]);
     }
 
     private boolean requireClientAuth() {
