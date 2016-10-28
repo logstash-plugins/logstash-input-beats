@@ -15,12 +15,13 @@ require_relative "../support/client_process_helpers"
 
 FILEBEAT_BINARY = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "vendor", "filebeat", "filebeat"))
 
-
 describe "Filebeat", :integration => true do
   include ClientProcessHelpers
   include FileHelpers
 
   before :all do
+    LogStash::Logging::Logger.configure_logging("debug") if ENV["DEBUG"] == 1
+
     unless File.exist?(FILEBEAT_BINARY)
       raise "Cannot find `Filebeat` binary in `vendor/filebeat`. Did you run `bundle exec rake test:integration:setup` before running the integration suite?"
     end
@@ -212,13 +213,27 @@ describe "Filebeat", :integration => true do
             include_examples "send events"
           end
 
-          ### DOESNT WORK
           context "intermediate create server and client certificate" do
             include_context "Intermediate CA"
 
             let(:certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", intermediate_ca_certificate, intermediate_ca_key) }
             let(:server_certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", intermediate_ca_certificate, intermediate_ca_key) } 
             let(:certificate_authorities) { [intermediate_ca_certificate_file] }
+
+            include_examples "send events"
+          end
+
+          context "with multiples different CA, and unrelated CA appear first in the file" do
+            include_context "Intermediate CA"
+
+            let(:secondary_ca) { Flores::PKI.generate }
+            let(:secondary_ca_key) { secondary_ca.last }
+            let(:secondary_ca_certificate) { secondary_ca.first }
+            let_tmp_file(:ca_file) { Flores::PKI.chain_certificates(secondary_ca_certificate, intermediate_ca_certificate) }
+
+            let(:certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", intermediate_ca_certificate, intermediate_ca_key) }
+            let(:server_certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", intermediate_ca_certificate, intermediate_ca_key) }
+            let(:certificate_authorities) { [ca_file] }
 
             include_examples "send events"
           end
