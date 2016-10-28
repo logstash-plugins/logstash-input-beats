@@ -149,6 +149,8 @@ public class SslSimpleBuilder {
         for(int i = 0; i < certificates.length; i++) {
             String certificate = certificates[i];
 
+            logger.debug("Loading certificates from file " + certificate);
+
             try(InputStream in = new FileInputStream(certificate)) {
                 List<X509Certificate> certificatesChains = (List<X509Certificate>) certificateFactory.generateCertificates(in);
                 collections.addAll(certificatesChains);
