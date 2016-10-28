@@ -153,6 +153,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       raise LogStash::ConfigurationError, "Certificate or Certificate Key not configured"
     end
 
+    if @ssl && require_certificate_authorities? && !client_authentification?
+      raise LogStash::ConfigurationError, "Using `verify_mode` set to PEER or FORCE_PEER, requires the configuration of `certificate_authorities`"
+    end
+
     @logger.info("Beats inputs: Starting input listener", :address => "#{@host}:#{@port}")
 
     # wrap the configured codec to support identity stream
@@ -218,6 +222,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   def client_authentification?
     @ssl_certificate_authorities && @ssl_certificate_authorities.size > 0
+  end
+
+  def require_certificate_authorities?
+    @ssl_verify_mode == "force_peer" || @ssl_verify_mode == "peer"
   end
 
   def normalized_ciphers
