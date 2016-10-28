@@ -1,3 +1,6 @@
+## 3.1.7
+  - Fix an issue when only the first CA found in the certificate authorities was taking into consideration to verify clients #153
+
 ## 3.1.6
    - Fix an issue with the `READER_IDLE` that was closing a connection in a middle of working on a batch #141
    - Fix an issue when the plugin did not accept a specific host to bind to. #146
