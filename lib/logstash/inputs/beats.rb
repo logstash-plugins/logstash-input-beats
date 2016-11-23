@@ -169,7 +169,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end # def register
 
   def create_server
-    server = org.logstash.beats.Server.new(@host, @port)
+    server = org.logstash.beats.Server.new(@host, @port, @client_inactivity_timeout)
     if @ssl
 
       begin
