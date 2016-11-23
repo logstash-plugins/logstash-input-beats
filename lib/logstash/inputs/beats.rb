@@ -118,7 +118,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   # The number of seconds before we raise a timeout. 
   # This option is useful to control how much time to wait if something is blocking the pipeline.
-  config :congestion_threshold, :validate => :number, :default => 5, :deprecated => "This option is now deprecated, the plugin now use a keep alive mechanism to inform Filebeat"
+  config :congestion_threshold, :validate => :number, :default => 5, :deprecated => "This option is now deprecated since congestion control is done automatically"
 
   # This is the default field to which the specified codec will be applied.
   config :target_field_for_codec, :validate => :string, :default => "message", :deprecated => "This option is now deprecated, the plugin is now compatible with Filebeat and Logstash-Forwarder"
