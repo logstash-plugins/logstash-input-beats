@@ -10,6 +10,7 @@ require "logstash-input-beats_jars"
 import "org.logstash.beats.Server"
 import "org.logstash.netty.SslSimpleBuilder"
 import "java.io.FileInputStream"
+java_import "io.netty.handler.ssl.OpenSsl"
 
 # This input plugin enables Logstash to receive events from the
 # https://www.elastic.co/products/beats[Elastic Beats] framework.
@@ -96,9 +97,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # You can define multiple files or paths. All the certificates will
   # be read and added to the trust store. You need to configure the `ssl_verify_mode`
   # to `peer` or `force_peer` to enable the verification.
-  #
-  # This feature only supports certificates that are directly signed by your root CA.
-  # Intermediate CAs are currently not supported.
   # 
   config :ssl_certificate_authorities, :validate => :array, :default => []
 
@@ -152,6 +150,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       raise LogStash::ConfigurationError, "Certificate or Certificate Key not configured"
     end
 
+    if @ssl && require_certificate_authorities? && !client_authentification?
+      raise LogStash::ConfigurationError, "Using `verify_mode` set to PEER or FORCE_PEER, requires the configuration of `certificate_authorities`"
+    end
+
     @logger.info("Beats inputs: Starting input listener", :address => "#{@host}:#{@port}")
 
     # wrap the configured codec to support identity stream
@@ -169,9 +171,14 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   def create_server
     server = org.logstash.beats.Server.new(@host, @port)
     if @ssl
+
+      begin
       ssl_builder = org.logstash.netty.SslSimpleBuilder.new(@ssl_certificate, @ssl_key, @ssl_key_passphrase.nil? ? nil : @ssl_key_passphrase.value)
         .setProtocols(convert_protocols)
         .setCipherSuites(normalized_ciphers)
+      rescue java.lang.IllegalArgumentException => e
+        raise LogStash::ConfigurationError, e
+      end
 
       ssl_builder.setHandshakeTimeoutMilliseconds(@ssl_handshake_timeout)
 
@@ -203,7 +210,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end # def run
 
   def stop
-    @server.stop
+    @server.stop unless @server.nil?
   end
 
   def need_identity_map?
@@ -212,6 +219,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   def client_authentification?
     @ssl_certificate_authorities && @ssl_certificate_authorities.size > 0
+  end
+
+  def require_certificate_authorities?
+    @ssl_verify_mode == "force_peer" || @ssl_verify_mode == "peer"
   end
 
   def normalized_ciphers

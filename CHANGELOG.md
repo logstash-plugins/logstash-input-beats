@@ -1,3 +1,13 @@
+## 3.1.9
+  - Docs: Removed statement about intermediate CAs not being supported
+
+## 3.1.8
+  - Fix a typo in the default ciphers suite, added validations for the configured ciphers #156
+  - validate the presence of `ssl_certificate_authorities` when `verify_mode` is set to FORCE_PEER or peer #155
+
+## 3.1.7
+  - Fix an issue when only the first CA found in the certificate authorities was taking into consideration to verify clients #153
+
 ## 3.1.6
    - Fix an issue with the `READER_IDLE` that was closing a connection in a middle of working on a batch #141
    - Fix an issue when the plugin did not accept a specific host to bind to. #146

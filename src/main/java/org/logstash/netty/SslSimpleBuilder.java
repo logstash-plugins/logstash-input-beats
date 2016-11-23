@@ -1,6 +1,7 @@
 package org.logstash.netty;
 
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.handler.ssl.OpenSsl;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
@@ -13,7 +14,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Created by ph on 2016-05-27.
@@ -40,7 +44,7 @@ public class SslSimpleBuilder {
     This list require the OpenSSl engine for netty.
     */
     public final static String[] DEFAULT_CIPHERS = new String[] {
-            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA38",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
             "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
             "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
             "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
@@ -66,7 +70,15 @@ public class SslSimpleBuilder {
         return this;
     }
 
-    public SslSimpleBuilder setCipherSuites(String[] ciphersSuite) {
+    public SslSimpleBuilder setCipherSuites(String[] ciphersSuite) throws IllegalArgumentException {
+        for(String cipher : ciphersSuite) {
+            if(!OpenSsl.isCipherSuiteAvailable(cipher)) {
+                throw new IllegalArgumentException("Cipher `" + cipher + "` is not available");
+            } else {
+                logger.debug("Cipher is supported: " + cipher);
+            }
+        }
+
         ciphers = ciphersSuite;
         return this;
     }
@@ -98,13 +110,15 @@ public class SslSimpleBuilder {
         SslContextBuilder builder = SslContextBuilder.forServer(sslCertificateFile, sslKeyFile, passPhrase);
 
         if(logger.isDebugEnabled())
-            logger.debug("Ciphers:  " + ciphers.toString());
+            logger.debug("Available ciphers:" + Arrays.toString(OpenSsl.availableOpenSslCipherSuites().toArray()));
+            logger.debug("Ciphers:  " + Arrays.toString(ciphers));
+
 
         builder.ciphers(Arrays.asList(ciphers));
 
         if(requireClientAuth()) {
             if (logger.isDebugEnabled())
-                logger.debug("Certificate Authorities: " + certificateAuthorities.toString());
+                logger.debug("Certificate Authorities: " + Arrays.toString(certificateAuthorities));
 
             builder.trustManager(loadCertificateCollection(certificateAuthorities));
         }
@@ -113,7 +127,7 @@ public class SslSimpleBuilder {
         SslHandler sslHandler = context.newHandler(bufferAllocator);
 
         if(logger.isDebugEnabled())
-            logger.debug("TLS: " + protocols.toString());
+            logger.debug("TLS: " + Arrays.toString(protocols));
 
         SSLEngine engine = sslHandler.engine();
         engine.setEnabledProtocols(protocols);
@@ -138,26 +152,22 @@ public class SslSimpleBuilder {
     }
 
     private X509Certificate[] loadCertificateCollection(String[] certificates) throws IOException, CertificateException {
+        logger.debug("Load certificates collection");
         CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
 
-        X509Certificate[] collections = new X509Certificate[certificates.length];
+        List<X509Certificate> collections = new ArrayList<X509Certificate>();
 
         for(int i = 0; i < certificates.length; i++) {
             String certificate = certificates[i];
 
-            InputStream in = null;
+            logger.debug("Loading certificates from file " + certificate);
 
-            try {
-                in = new FileInputStream(certificate);
-                collections[i] = (X509Certificate) certificateFactory.generateCertificate(in);
-            } finally {
-                if(in != null) {
-                    in.close();
-                }
+            try(InputStream in = new FileInputStream(certificate)) {
+                List<X509Certificate> certificatesChains = (List<X509Certificate>) certificateFactory.generateCertificates(in);
+                collections.addAll(certificatesChains);
             }
         }
-
-        return collections;
+        return collections.toArray(new X509Certificate[collections.size()]);
     }
 
     private boolean requireClientAuth() {

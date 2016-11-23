@@ -15,12 +15,13 @@ require_relative "../support/client_process_helpers"
 
 FILEBEAT_BINARY = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "vendor", "filebeat", "filebeat"))
 
-
 describe "Filebeat", :integration => true do
   include ClientProcessHelpers
   include FileHelpers
 
   before :all do
+    LogStash::Logging::Logger.configure_logging("debug") if ENV["DEBUG"] == 1
+
     unless File.exist?(FILEBEAT_BINARY)
       raise "Cannot find `Filebeat` binary in `vendor/filebeat`. Did you run `bundle exec rake test:integration:setup` before running the integration suite?"
     end
@@ -110,6 +111,51 @@ describe "Filebeat", :integration => true do
       context "self signed certificate" do
         include_examples "send events"
 
+        context "when specifying a cipher" do
+          let(:filebeat_config) do
+            super.merge({
+              "output" => {
+                "logstash" => {
+                  "hosts" => ["#{host}:#{port}"],
+                  "ssl" => {
+                    "certificate_authorities" => certificate_authorities,
+                    "versions" => ["TLSv1.2"],
+                    "cipher_suites" => [beats_cipher]
+                  }
+                },
+                "logging" => { "level" => "debug" }
+              }})
+          end
+
+          let(:input_config) {
+            super.merge({
+              "cipher_suites" => [logstash_cipher],
+              "tls_min_version" => "1.2"
+            })
+          }
+
+          context "when the cipher is supported" do
+            {
+              #Not Working? "ECDHE-ECDSA-AES-256-GCM-SHA384" => "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+              "ECDHE-RSA-AES-256-GCM-SHA384" => "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+              #Not working? "ECDHE-ECDSA-AES-128-GCM-SHA256" => "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+              "ECDHE-RSA-AES-128-GCM-SHA256" => "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            }.each do |b_cipher, l_cipher|
+              context "with protocol: `TLSv1.2` and cipher: beats: #{b_cipher}, logstash: #{l_cipher}" do
+                let(:beats_cipher) { b_cipher }
+                let(:logstash_cipher) { l_cipher }
+                include_examples "send events"
+              end
+            end
+
+            context "when the cipher is not supported" do
+              let(:beats_cipher) { "ECDHE-RSA-AES-128-GCM-SHA256" }
+              let(:logstash_cipher) { "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"}
+
+              include_examples "doesn't send events"
+            end
+          end
+        end
 
         # Refactor this to use Flores's PKI instead of openssl command line
         # see: https://github.com/jordansissel/ruby-flores/issues/7
@@ -212,13 +258,27 @@ describe "Filebeat", :integration => true do
             include_examples "send events"
           end
 
-          ### DOESNT WORK
           context "intermediate create server and client certificate" do
             include_context "Intermediate CA"
 
             let(:certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", intermediate_ca_certificate, intermediate_ca_key) }
             let(:server_certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", intermediate_ca_certificate, intermediate_ca_key) } 
             let(:certificate_authorities) { [intermediate_ca_certificate_file] }
+
+            include_examples "send events"
+          end
+
+          context "with multiples different CA, and unrelated CA appear first in the file" do
+            include_context "Intermediate CA"
+
+            let(:secondary_ca) { Flores::PKI.generate }
+            let(:secondary_ca_key) { secondary_ca.last }
+            let(:secondary_ca_certificate) { secondary_ca.first }
+            let_tmp_file(:ca_file) { Flores::PKI.chain_certificates(secondary_ca_certificate, intermediate_ca_certificate) }
+
+            let(:certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", intermediate_ca_certificate, intermediate_ca_key) }
+            let(:server_certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", intermediate_ca_certificate, intermediate_ca_key) }
+            let(:certificate_authorities) { [ca_file] }
 
             include_examples "send events"
           end
