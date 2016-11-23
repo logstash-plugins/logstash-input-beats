@@ -1,5 +1,6 @@
 ## 3.1.10
   - Correctly send the client_inactivity_timeout to the Server classe #163
+  - Mark congestion_threshold as deprecated, the java implementation now use a keep alive mechanism
 
 ## 3.1.9
   - Docs: Removed statement about intermediate CAs not being supported
