@@ -1,3 +1,6 @@
+## 3.1.10
+  - Correctly send the client_inactivity_timeout to the Server classe #163
+
 ## 3.1.9
   - Docs: Removed statement about intermediate CAs not being supported
 
