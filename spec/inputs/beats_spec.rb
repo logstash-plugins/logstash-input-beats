@@ -15,6 +15,20 @@ describe LogStash::Inputs::Beats do
   let(:config)   { { "port" => 0, "ssl_certificate" => certificate.ssl_cert, "ssl_key" => certificate.ssl_key, "type" => "example", "tags" => "beats"} }
 
   context "#register" do
+    context "host related configuration" do
+      let(:config) { super.merge!({ "host" => host, "port" => port, "client_inactivity_timeout" => client_inactivity_timeout }) }
+      let(:host) { "192.168.1.20" }
+      let(:port) { 9000 }
+      let(:client_inactivity_timeout) { 400 }
+
+      subject(:plugin) { LogStash::Inputs::Beats.new(config) }
+
+      it "sends the required options to the server" do
+        expect(org.logstash.beats.Server).to receive(:new).with(host, port, client_inactivity_timeout)
+        subject.register
+      end
+    end
+
     context "identity map" do
       subject(:plugin) { LogStash::Inputs::Beats.new(config) }
       before { plugin.register }
