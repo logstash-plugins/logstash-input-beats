@@ -1,3 +1,6 @@
+## 3.1.9
+  - Docs: Removed statement about intermediate CAs not being supported
+
 ## 3.1.8
   - Fix a typo in the default ciphers suite, added validations for the configured ciphers #156
   - validate the presence of `ssl_certificate_authorities` when `verify_mode` is set to FORCE_PEER or peer #155

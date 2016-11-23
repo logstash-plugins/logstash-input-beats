@@ -97,9 +97,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # You can define multiple files or paths. All the certificates will
   # be read and added to the trust store. You need to configure the `ssl_verify_mode`
   # to `peer` or `force_peer` to enable the verification.
-  #
-  # This feature only supports certificates that are directly signed by your root CA.
-  # Intermediate CAs are currently not supported.
   # 
   config :ssl_certificate_authorities, :validate => :array, :default => []
 
