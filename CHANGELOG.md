@@ -1,3 +1,6 @@
+## 3.1.11
+  - Uses SO_linger for the socket option to force the server to completely disconnect the idle clients https://github.com/elastic/logstash/issues/6300
+
 ## 3.1.10
   - Correctly send the client_inactivity_timeout to the Server classe #163
   - Mark congestion_threshold as deprecated, the java implementation now use a keep alive mechanism
