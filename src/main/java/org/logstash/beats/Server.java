@@ -1,10 +1,7 @@
 package org.logstash.beats;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelPipeline;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -65,6 +62,7 @@ public class Server {
             ServerBootstrap server = new ServerBootstrap();
             server.group(bossGroup, workGroup)
                     .channel(NioServerSocketChannel.class)
+                    .childOption(ChannelOption.SO_LINGER, 0) // Since the protocol doesn't support yet a remote close from the server and we don't want to have 'unclosed' socket lying around we have to use `SO_LINGER` to force the close of the socket.
                     .childHandler(beatsInitializer);
 
             Channel channel = server.bind(host, port).sync().channel();
