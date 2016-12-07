@@ -7,11 +7,6 @@ require "logstash/codecs/multiline"
 require "logstash/util"
 require "logstash-input-beats_jars"
 
-import "org.logstash.beats.Server"
-import "org.logstash.netty.SslSimpleBuilder"
-import "java.io.FileInputStream"
-java_import "io.netty.handler.ssl.OpenSsl"
-
 # This input plugin enables Logstash to receive events from the
 # https://www.elastic.co/products/beats[Elastic Beats] framework.
 #
@@ -138,10 +133,19 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   config :client_inactivity_timeout, :validate => :number, :default => 60
 
   def register
-    # Logstash 2.4
+    # For Logstash 2.4 we need to make sure that the logger is correctly set for the
+    # java classes before actually loading them.
+    #
+    # if we don't do this we will get this error:
+    # log4j:WARN No appenders could be found for logger (io.netty.util.internal.logging.InternalLoggerFactory)
     if defined?(LogStash::Logger) && LogStash::Logger.respond_to?(:setup_log4j)
       LogStash::Logger.setup_log4j(@logger)
     end
+
+    java_import "org.logstash.beats.Server"
+    java_import "org.logstash.netty.SslSimpleBuilder"
+    java_import "java.io.FileInputStream"
+    java_import "io.netty.handler.ssl.OpenSsl"
 
     if !@ssl
       @logger.warn("Beats input: SSL Certificate will not be used") unless @ssl_certificate.nil?
