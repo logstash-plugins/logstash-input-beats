@@ -1,10 +1,10 @@
 # encoding: utf-8
+require "spec_helper"
 require "logstash/inputs/beats"
 require "stud/temporary"
 require "flores/pki"
 require "fileutils"
 require "thread"
-require "spec_helper"
 require "yaml"
 require "fileutils"
 require "flores/pki"

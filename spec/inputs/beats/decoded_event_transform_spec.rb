@@ -1,9 +1,9 @@
 # encoding: utf-8
+require "spec_helper"
 require "logstash/event"
 require "logstash/timestamp"
 require "logstash/inputs/beats"
 require_relative "../../support/shared_examples"
-require "spec_helper"
 
 describe LogStash::Inputs::Beats::DecodedEventTransform do
   let(:config) do
