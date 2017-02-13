@@ -5,17 +5,14 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.util.AttributeKey;
 import org.apache.log4j.Logger;
-
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @ChannelHandler.Sharable
 public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     private final static Logger logger = Logger.getLogger(BeatsHandler.class);
-    private final AtomicBoolean processing = new AtomicBoolean(false);
     private final IMessageListener messageListener;
-    private ChannelHandlerContext context;
-
+    private final static AttributeKey<Boolean> PROCESSING = AttributeKey.newInstance("processing");
 
     public BeatsHandler(IMessageListener listener) {
         messageListener = listener;
@@ -23,7 +20,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
 
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
-        context = ctx;
+        ctx.channel().attr(PROCESSING).set(false);
         messageListener.onNewConnection(ctx);
     }
 
@@ -36,19 +33,20 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     public void channelRead0(ChannelHandlerContext ctx, Batch batch) throws Exception {
         logger.debug("Received a new payload");
 
-        processing.compareAndSet(false, true);
+        ctx.channel().attr(PROCESSING).set(true);
+        try {
+            for(Message message : batch.getMessages()) {
+                logger.debug("Sending a new message for the listener, sequence: " + message.getSequence());
+                messageListener.onNewMessage(ctx, message);
 
-        for(Message message : batch.getMessages()) {
-            logger.debug("Sending a new message for the listener, sequence: " + message.getSequence());
-            messageListener.onNewMessage(ctx, message);
-
-            if(needAck(message)) {
-                ack(ctx, message);
+                if(needAck(message)) {
+                    ack(ctx, message);
+                }
             }
+            ctx.flush();
+        } finally {
+            ctx.channel().attr(PROCESSING).set(false);
         }
-        ctx.flush();
-        processing.compareAndSet(true, false);
-
     }
 
     @Override
@@ -64,9 +62,9 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
             IdleStateEvent e = (IdleStateEvent) event;
 
             if(e.state() == IdleState.WRITER_IDLE) {
-                sendKeepAlive();
+                sendKeepAlive(ctx);
             } else if(e.state() == IdleState.READER_IDLE) {
-                clientTimeout();
+                clientTimeout(ctx);
             }
         }
     }
@@ -83,18 +81,18 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         ctx.write(new Ack(protocol, sequence));
     }
 
-    private void clientTimeout() {
-        if(!processing.get()) {
-            logger.debug("Client Timeout");
-            this.context.close();
+    private void clientTimeout(ChannelHandlerContext ctx) {
+        if(!ctx.channel().attr(PROCESSING).get()) {
+            logger.debug("Client Timeout: " + ctx.channel().id());
+            ctx.close();
         }
     }
 
-    private void sendKeepAlive() {
+    private void sendKeepAlive(ChannelHandlerContext ctx) {
         // If we are actually blocked on processing
         // we can send a keep alive.
-        if(processing.get()) {
-            writeAck(context, Protocol.VERSION_2, 0);
+        if(ctx.channel().attr(PROCESSING).get()) {
+            writeAck(ctx, Protocol.VERSION_2, 0);
         }
     }
 }

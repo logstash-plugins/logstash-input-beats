@@ -1,8 +1,8 @@
 # encoding: utf-8
+require "logstash/devutils/rspec/spec_helper"
 require "rspec"
 require "rspec/mocks"
 require "rspec/wait"
-require "logstash/devutils/rspec/spec_helper"
 require "logstash/codecs/plain"
 require_relative "support/logstash_test"
 require_relative "support/helpers"
