@@ -9,7 +9,6 @@ import org.apache.log4j.Logger;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-@ChannelHandler.Sharable
 public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     private final static Logger logger = Logger.getLogger(BeatsHandler.class);
     private final AtomicBoolean processing = new AtomicBoolean(false);

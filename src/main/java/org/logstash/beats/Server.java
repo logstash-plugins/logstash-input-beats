@@ -106,7 +106,6 @@ public class Server {
         private final int IDLESTATE_ALL_IDLE_TIME_SECONDS = 0;
 
         private final EventExecutorGroup idleExecutorGroup;
-        private final BeatsHandler beatsHandler;
         private final IMessageListener message;
         private int clientInactivityTimeoutSeconds;
         private final LoggingHandler loggingHandler = new LoggingHandler();
@@ -117,7 +116,6 @@ public class Server {
         public BeatsInitializer(Boolean secure, IMessageListener messageListener, int clientInactivityTimeoutSeconds) {
             enableSSL = secure;
             this.message = messageListener;
-            beatsHandler = new BeatsHandler(this.message);
             this.clientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
         }
@@ -138,7 +136,7 @@ public class Server {
 
             pipeline.addLast(BEATS_PARSER, new BeatsParser());
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
-            pipeline.addLast(BEATS_HANDLER, beatsHandler);
+            pipeline.addLast(BEATS_HANDLER, new BeatsHandler(this.message));
 
         }
 
