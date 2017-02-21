@@ -1,7 +1,7 @@
 # encoding: utf-8
+require "spec_helper"
 require "logstash/inputs/beats"
 require "logstash/event"
-require "spec_helper"
 require "thread"
 
 describe LogStash::Inputs::Beats::CodecCallbackListener do
