@@ -1,3 +1,6 @@
+## 3.1.13
+ - Fix: remove monkeypatch from the main class to fix the documentation generator issues
+
 ## 3.1.12
   - Fix the Logger initialization in logstash 2.4.X #166
 

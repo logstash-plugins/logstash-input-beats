@@ -6,6 +6,7 @@ require "logstash/codecs/identity_map_codec"
 require "logstash/codecs/multiline"
 require "logstash/util"
 require "logstash-input-beats_jars"
+require_relative "beats/patch"
 
 # This input plugin enables Logstash to receive events from the
 # https://www.elastic.co/products/beats[Elastic Beats] framework.
@@ -36,24 +37,6 @@ require "logstash-input-beats_jars"
 # a setting for the <<plugins-inputs-beats-type,`type`>> config option in
 # Logstash, it is ignored.
 #
-class LogStash::Codecs::Base
-  # This monkey patch add callback based
-  # flow to the codec until its shipped with core.
-  # This give greater flexibility to the implementation by
-  # sending more data to the actual block.
-  if !method_defined?(:accept)
-    def accept(listener)
-      decode(listener.data) do |event|
-        listener.process_event(event)
-      end
-    end
-  end
-  if !method_defined?(:auto_flush)
-    def auto_flush(*)
-    end
-  end
-end
-
 class LogStash::Inputs::Beats < LogStash::Inputs::Base
   require "logstash/inputs/beats/codec_callback_listener"
   require "logstash/inputs/beats/event_transform_common"
