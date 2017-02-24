@@ -207,8 +207,9 @@ public class BeatsParser extends ByteToMessageDecoder {
                 batch.addMessage(message);
 
                 if(batch.size() == batch.getBatchSize()) {
-                    if(logger.isTraceEnabled())
-                        logger.trace("Sending batch size: " + this.batch.size() + ", windowSize: " + batch.getBatchSize() +  " , seq: " + sequence);
+                    if(logger.isTraceEnabled()) {
+                        logger.trace("Sending batch size: " + this.batch.size() + ", windowSize: " + batch.getBatchSize() + " , seq: " + sequence);
+                    }
 
                     out.add(batch);
                     batchComplete();
@@ -229,8 +230,9 @@ public class BeatsParser extends ByteToMessageDecoder {
     }
 
     private void transition(States nextState, int requiredBytes) {
-        if(logger.isTraceEnabled())
-            logger.trace("Transition, from: " + currentState + ", to: " +  nextState + ", requiring " + requiredBytes + " bytes");
+        if(logger.isTraceEnabled()) {
+            logger.trace("Transition, from: " + currentState + ", to: " + nextState + ", requiring " + requiredBytes + " bytes");
+        }
         this.currentState = nextState;
         this.requiredBytes = requiredBytes;
     }
