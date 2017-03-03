@@ -1,3 +1,7 @@
+## 3.1.14
+ - Fix: Make sure idle connection are correctly close for the right client, #185, #178
+ - Fix: remoge string interpolation for logging in critical path #184
+
 ## 3.1.13
  - Fix: remove monkeypatch from the main class to fix the documentation generator issues
 
