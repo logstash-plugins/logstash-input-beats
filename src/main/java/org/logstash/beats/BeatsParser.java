@@ -55,15 +55,15 @@ public class BeatsParser extends ByteToMessageDecoder {
 
         switch (currentState) {
             case READ_HEADER: {
-                logger.debug("Running: READ_HEADER");
+                logger.trace("Running: READ_HEADER");
 
                 byte currentVersion = in.readByte();
 
                 if(Protocol.isVersion2(currentVersion)) {
-                    logger.debug("Frame version 2 detected");
+                    logger.trace("Frame version 2 detected");
                     batch.setProtocol(Protocol.VERSION_2);
                 } else {
-                    logger.debug("Frame version 1 detected");
+                    logger.trace("Frame version 1 detected");
                     batch.setProtocol(Protocol.VERSION_1);
                 }
 
@@ -98,7 +98,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                 break;
             }
             case READ_WINDOW_SIZE: {
-                logger.debug("Running: READ_WINDOW_SIZE");
+                logger.trace("Running: READ_WINDOW_SIZE");
 
                 batch.setBatchSize((int) in.readUnsignedInt());
 
@@ -117,7 +117,7 @@ public class BeatsParser extends ByteToMessageDecoder {
             }
             case READ_DATA_FIELDS: {
                 // Lumberjack version 1 protocol, which use the Key:Value format.
-                logger.debug("Running: READ_DATA_FIELDS");
+                logger.trace("Running: READ_DATA_FIELDS");
                 sequence = (int) in.readUnsignedInt();
                 int fieldsCount = (int) in.readUnsignedInt();
                 int count = 0;
@@ -157,7 +157,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                 break;
             }
             case READ_JSON_HEADER: {
-                logger.debug("Running: READ_JSON_HEADER");
+                logger.trace("Running: READ_JSON_HEADER");
 
                 sequence = (int) in.readUnsignedInt();
                 int jsonPayloadSize = (int) in.readUnsignedInt();
@@ -170,14 +170,14 @@ public class BeatsParser extends ByteToMessageDecoder {
                 break;
             }
             case READ_COMPRESSED_FRAME_HEADER: {
-                logger.debug("Running: READ_COMPRESSED_FRAME_HEADER");
+                logger.trace("Running: READ_COMPRESSED_FRAME_HEADER");
 
                 transition(States.READ_COMPRESSED_FRAME, in.readInt());
                 break;
             }
 
             case READ_COMPRESSED_FRAME: {
-                logger.debug("Running: READ_COMPRESSED_FRAME");
+                logger.trace("Running: READ_COMPRESSED_FRAME");
                 // Use the compressed size as the safe start for the buffer.
                 ByteBuf buffer = ctx.alloc().buffer(requiredBytes);
                 try (
@@ -198,7 +198,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                 break;
             }
             case READ_JSON: {
-                logger.debug("Running: READ_JSON");
+                logger.trace("Running: READ_JSON");
 
                 byte[] bytes = new byte[requiredBytes];
                 in.readBytes(bytes);
@@ -207,7 +207,9 @@ public class BeatsParser extends ByteToMessageDecoder {
                 batch.addMessage(message);
 
                 if(batch.size() == batch.getBatchSize()) {
-                    logger.debug("Sending batch size: " + this.batch.size() + ", windowSize: " + batch.getBatchSize() +  " , seq: " + sequence);
+                    if(logger.isTraceEnabled()) {
+                        logger.trace("Sending batch size: " + this.batch.size() + ", windowSize: " + batch.getBatchSize() + " , seq: " + sequence);
+                    }
 
                     out.add(batch);
                     batchComplete();
@@ -228,7 +230,9 @@ public class BeatsParser extends ByteToMessageDecoder {
     }
 
     private void transition(States nextState, int requiredBytes) {
-        logger.debug("Transition, from: " + currentState + ", to: " +  nextState + ", requiring " + requiredBytes + " bytes");
+        if(logger.isTraceEnabled()) {
+            logger.trace("Transition, from: " + currentState + ", to: " + nextState + ", requiring " + requiredBytes + " bytes");
+        }
         this.currentState = nextState;
         this.requiredBytes = requiredBytes;
     }

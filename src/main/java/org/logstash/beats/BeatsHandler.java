@@ -9,7 +9,6 @@ import org.apache.log4j.Logger;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-@ChannelHandler.Sharable
 public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     private final static Logger logger = Logger.getLogger(BeatsHandler.class);
     private final AtomicBoolean processing = new AtomicBoolean(false);
@@ -39,7 +38,9 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         processing.compareAndSet(false, true);
 
         for(Message message : batch.getMessages()) {
-            logger.debug("Sending a new message for the listener, sequence: " + message.getSequence());
+            if(logger.isDebugEnabled()) {
+                logger.debug("Sending a new message for the listener, sequence: " + message.getSequence());
+            }
             messageListener.onNewMessage(ctx, message);
 
             if(needAck(message)) {

@@ -1,23 +1,31 @@
 package org.logstash.beats;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.*;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.net.ConnectException;
 import java.util.Collections;
+import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Thread.sleep;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.number.IsCloseTo.closeTo;
-import static org.junit.Assert.assertTrue;
 
 
 public class ServerTest {
@@ -32,11 +40,43 @@ public class ServerTest {
     }
 
     @Test
-    public void testServerShouldTerminateConnectionIdleForTooLong() throws InterruptedException {
+    public void testServerShouldTerminateConnectionWhenExceptionHappen() throws InterruptedException {
         int inactivityTime = 3; // in seconds
+        int concurrentConnections = 10;
+
+        final Random random = new Random();
+
+        final CountDownLatch latch = new CountDownLatch(concurrentConnections);
 
         final Server server = new Server(host, randomPort, inactivityTime);
+        final AtomicBoolean otherCause = new AtomicBoolean(false);
+        server.setMessageListener(new MessageListener() {
+            public void onNewConnection(ChannelHandlerContext ctx) {
+                // Make sure connection is closed on exception too.
+                if (random.nextInt(10) < 1) {
+                    throw new RuntimeException("Dummy");
+                }
+            }
 
+            @Override
+            public void onConnectionClose(ChannelHandlerContext ctx) {
+                latch.countDown();
+            }
+
+            @Override
+            public void onNewMessage(ChannelHandlerContext ctx, Message message) {
+                // Make sure connection is closed on exception too.
+                throw new RuntimeException("Dummy");
+            }
+
+            @Override
+            public void onException(ChannelHandlerContext ctx, Throwable cause) {
+                // Make sure only intended exception is thrown
+                if (!"Dummy".equals(cause.getMessage())) {
+                    otherCause.set(true);
+                }
+            }
+        });
 
         Runnable serverTask = new Runnable() {
             @Override
@@ -52,18 +92,74 @@ public class ServerTest {
         thread.start();
         sleep(1000); // give some time to travis..
 
-        EventLoopGroup group = new NioEventLoopGroup();
+        try {
+            for (int i = 0; i < concurrentConnections; i++) {
+                connectClient();
+            }
+            assertThat(latch.await(10, TimeUnit.SECONDS), is(true));
+            assertThat(otherCause.get(), is(false));
+        } finally {
+            server.stop();
+        }
+    }
+    @Test
+    public void testServerShouldTerminateConnectionIdleForTooLong() throws InterruptedException {
+        int inactivityTime = 3; // in seconds
+        int concurrentConnections = 10;
+
+        final Random random = new Random();
+
+        final CountDownLatch latch = new CountDownLatch(concurrentConnections);
+        final AtomicBoolean exceptionClose = new AtomicBoolean(false);
+        final Server server = new Server(host, randomPort, inactivityTime);
+        server.setMessageListener(new MessageListener() {
+            @Override
+            public void onNewConnection(ChannelHandlerContext ctx) {
+            }
+
+            @Override
+            public void onConnectionClose(ChannelHandlerContext ctx) {
+                latch.countDown();
+            }
+
+            @Override
+            public void onNewMessage(ChannelHandlerContext ctx, Message message) {
+            }
+
+            @Override
+            public void onException(ChannelHandlerContext ctx, Throwable cause) {
+                    exceptionClose.set(true);
+            }
+        });
+
+        Runnable serverTask = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    server.listen();
+                } catch (InterruptedException e) {
+                }
+            }
+        };
+
+        Thread thread = new Thread(serverTask);
+        thread.start();
+        sleep(1000); // give some time to travis..
 
         try {
             Long started = System.currentTimeMillis() / 1000L;
 
-            connectClient().sync().channel().closeFuture().sync();
+
+            for (int i = 0; i < concurrentConnections; i++) {
+                connectClient();
+            }
+            assertThat(latch.await(10, TimeUnit.SECONDS), is(true));
 
             Long ended = System.currentTimeMillis() / 1000L;
 
             double diff = ended - started;
             assertThat(diff, is(closeTo(inactivityTime, 0.1)));
-
+            assertThat(exceptionClose.get(), is(false));
         } finally {
             server.stop();
         }
