@@ -7,6 +7,8 @@ import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import org.apache.log4j.Logger;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
@@ -54,8 +56,14 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        InetSocketAddress remoteAddress = (InetSocketAddress) ctx.channel().remoteAddress();
+
+        if (remoteAddress != null) {
+            logger.error("Exception: " + cause.getMessage() + ", from: " + remoteAddress.toString());
+        } else {
+            logger.error("Exception: " + cause.getMessage());
+        }
         messageListener.onException(ctx, cause);
-        logger.error("Exception: " + cause.getMessage());
         ctx.close();
     }
 

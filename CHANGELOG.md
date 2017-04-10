@@ -1,3 +1,6 @@
+## 3.1.15
+ - DEBUG: Add information about the remote when an exception is catched #192
+
 ## 3.1.14
  - Fix: Make sure idle connection are correctly close for the right client, #185, #178
  - Fix: remoge string interpolation for logging in critical path #184
