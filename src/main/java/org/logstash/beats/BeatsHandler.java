@@ -59,9 +59,9 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         InetSocketAddress remoteAddress = (InetSocketAddress) ctx.channel().remoteAddress();
 
         if (remoteAddress != null) {
-            logger.error("Exception: " + cause.getMessage() + ", from: " + remoteAddress.toString());
+            logger.info("Exception: " + cause.getMessage() + ", from: " + remoteAddress.toString());
         } else {
-            logger.error("Exception: " + cause.getMessage());
+            logger.info("Exception: " + cause.getMessage());
         }
         messageListener.onException(ctx, cause);
         ctx.close();
