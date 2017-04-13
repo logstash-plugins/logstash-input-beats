@@ -19,6 +19,8 @@ module LogStash module Inputs class Beats
       @queue = queue
       @logger = input.logger
       @input = input
+      @metric = @input.metric
+      @peak_connection_count = Concurrent::AtomicFixnum.new(0)
 
       @nocodec_transformer = RawEventTransform.new(@input)
       @codec_transformer = DecodedEventTransform.new(@input)
@@ -44,10 +46,12 @@ module LogStash module Inputs class Beats
 
     def onNewConnection(ctx)
       register_connection(ctx)
+      increment_connection_count()
     end
 
     def onConnectionClose(ctx)
       unregister_connection(ctx)
+      decrement_connection_count()
     end
 
     def onChannelInitializeException(ctx, cause)
@@ -106,6 +110,19 @@ module LogStash module Inputs class Beats
 
     def from_logstash_forwarder?(hash)
       !hash[LSF_LOG_LINE_FIELD].nil?
+    end
+
+    def increment_connection_count
+      current_connection_count = @connections_list.size
+      @metric.gauge(:current_connections, current_connection_count)
+      if current_connection_count > @peak_connection_count.value
+        @peak_connection_count.value = current_connection_count
+        @metric.gauge(:peak_connections, @peak_connection_count.value)
+      end
+    end
+
+    def decrement_connection_count
+      @metric.gauge(:current_connections, @connections_list.size)
     end
   end
 end; end; end

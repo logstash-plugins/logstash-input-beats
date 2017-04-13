@@ -1,7 +1,9 @@
 # encoding: utf-8
+require "logstash-core"
 require "logstash/inputs/beats"
 require "logstash/event"
 require "logstash/inputs/beats/message_listener"
+require "logstash/instrument/namespaced_null_metric"
 require "thread"
 
 class MockMessage
@@ -47,6 +49,30 @@ describe LogStash::Inputs::Beats::MessageListener do
   context "onNewConnection" do
     it "register the connection to the connection list" do
       expect { subject.onNewConnection(double("ChannelHandlerContext")) }.to change { subject.connections_list.count }.by(1)
+    end
+
+    describe "metrics" do
+      it "new connection should increment connection count" do
+        expect(subject).to receive(:increment_connection_count).once
+        subject.onNewConnection(double("ChannelHandlerContext"))
+      end
+
+      describe "peak connections" do
+        it "closing and open connections should keep highest count" do
+          expect(subject.instance_eval("@peak_connection_count").value).to eq(1)
+          subject.onNewConnection(1)
+          expect(subject.instance_eval("@peak_connection_count").value).to eq(2)
+          subject.onNewConnection(2)
+          expect(subject.instance_eval("@peak_connection_count").value).to eq(3)
+          subject.onConnectionClose(2)
+          expect(subject.instance_eval("@peak_connection_count").value).to eq(3)
+          subject.onNewConnection(3)
+          expect(subject.instance_eval("@peak_connection_count").value).to eq(3)
+          subject.onNewConnection(4)
+          expect(subject.instance_eval("@peak_connection_count").value).to eq(4)
+        end
+      end
+
     end
   end
 
