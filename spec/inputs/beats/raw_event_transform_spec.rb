@@ -1,8 +1,8 @@
 # encoding: utf-8
+require "spec_helper"
 require "logstash/event"
 require "logstash/inputs/beats"
 require_relative "../../support/shared_examples"
-require "spec_helper"
 
 describe LogStash::Inputs::Beats::RawEventTransform do
   let(:config) do

@@ -5,6 +5,7 @@ require "logstash/timestamp"
 require "logstash/codecs/identity_map_codec"
 require "logstash/codecs/multiline"
 require "logstash/util"
+require "logstash/errors"
 require "logstash-input-beats_jars"
 require_relative "beats/patch"
 
@@ -49,6 +50,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   require "logstash/inputs/beats/decoded_event_transform"
   require "logstash/inputs/beats/raw_event_transform"
   require "logstash/inputs/beats/message_listener"
+  require "logstash/inputs/beats/stats_helper"
   require "logstash/inputs/beats/tls"
 
   config_name "beats"
@@ -164,6 +166,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   def create_server
     server = org.logstash.beats.Server.new(@host, @port, @client_inactivity_timeout)
     if @ssl
+      check_no_exec_mount!
 
       begin
       ssl_builder = org.logstash.netty.SslSimpleBuilder.new(@ssl_certificate, @ssl_key, @ssl_key_passphrase.nil? ? nil : @ssl_key_passphrase.value)
@@ -224,5 +227,21 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   def convert_protocols
     TLS.get_supported(@tls_min_version..@tls_max_version).map(&:name)
+  end
+
+  def check_no_exec_mount!
+    if !LogStash::Environment.windows?
+      path = StatsHelper.netty_temporary_dir
+      if StatsHelper.noexec?(path)
+        message =<<-EOS
+The beats input is using the temporary directory `#{path}` for extracting his native SSL libraries, the mount point has the `noexec` option on,
+this prevent the netty input to use the native library and make some ciphers not available.
+
+You can change the temporary directory using the $LOGSTASH_HOME/config/jvm.options and add this line `-Dio.netty.native.workdir=/var/logstash/tmp`,
+make sure that the logstash process can write and read from that directory.
+        EOS
+        raise LogStash::ConfigurationError, message
+      end
+    end
   end
 end

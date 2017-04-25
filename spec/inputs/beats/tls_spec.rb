@@ -1,4 +1,5 @@
 # encoding: utf-8
+require "spec_helper"
 require "logstash/inputs/beats/tls"
 
 describe LogStash::Inputs::Beats::TLS do
