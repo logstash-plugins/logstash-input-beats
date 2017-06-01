@@ -147,6 +147,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       raise LogStash::ConfigurationError, "Using `verify_mode` set to PEER or FORCE_PEER, requires the configuration of `certificate_authorities`"
     end
 
+    if @codec.kind_of? LogStash::Codecs::Multiline
+      @logger.warn("WARNING! - Multiline codec with beats input has been deprecated. Support for this configuration will be removed in a future version. Please refer to the beats documentation for how to best manage multiline data. See https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html")
+    end
+
     @logger.info("Beats inputs: Starting input listener", :address => "#{@host}:#{@port}")
 
     # wrap the configured codec to support identity stream
