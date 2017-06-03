@@ -1,5 +1,8 @@
-## 4.0.0
+## 4.0.1
  - Breaking change: Logstash will no longer start when multiline codec is used with the Beats input plugin
+
+## 4.0.0
+ - Verion yanked from RubyGems for packaging issues
 
 ## 3.1.16
  - Docs: Add note indicating that the multiline codec should not be used with the Beats input plugin
