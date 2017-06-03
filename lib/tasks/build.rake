@@ -3,7 +3,7 @@ require "jars/installer"
 require "fileutils"
 
 task :vendor do
-  system("./gradlew vendor")
+  exit(1) unless system './gradlew vendor'
   version = File.read("VERSION").strip
 end
 
