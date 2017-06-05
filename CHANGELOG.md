@@ -1,4 +1,4 @@
-## 3.1.16
+## 3.1.17
  - Docs: Add note indicating that the multiline codec should not be used with the Beats input plugin
  - Deprecate warning for multiline codec with the Beats input plugin
 
