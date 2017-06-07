@@ -2,7 +2,6 @@
 require "logstash/inputs/base"
 require "logstash/namespace"
 require "logstash/timestamp"
-require "logstash/codecs/identity_map_codec"
 require "logstash/codecs/multiline"
 require "logstash/util"
 require "logstash-input-beats_jars"
@@ -147,16 +146,12 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       raise LogStash::ConfigurationError, "Using `verify_mode` set to PEER or FORCE_PEER, requires the configuration of `certificate_authorities`"
     end
 
-    @logger.info("Beats inputs: Starting input listener", :address => "#{@host}:#{@port}")
-
-    # wrap the configured codec to support identity stream
-    # from the producers if running with the multiline codec.
-    #
-    # If they dont need an identity map, codec are stateless and can be reused
-    # accross multiples connections.
-    if need_identity_map?
-      @codec = LogStash::Codecs::IdentityMapCodec.new(@codec)
+    # Logstash 6.x breaking change (introduced with 4.0.0 of this gem)
+    if @codec.kind_of? LogStash::Codecs::Multiline
+      raise LogStash::ConfigurationError, "Multiline codec with beats input is not supported. Please refer to the beats documentation for how to best manage multiline data. See https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html"
     end
+
+    @logger.info("Beats inputs: Starting input listener", :address => "#{@host}:#{@port}")
 
     @server = create_server
   end # def register
@@ -204,10 +199,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   def stop
     @server.stop unless @server.nil?
-  end
-
-  def need_identity_map?
-    @codec.kind_of?(LogStash::Codecs::Multiline)
   end
 
   def client_authentification?

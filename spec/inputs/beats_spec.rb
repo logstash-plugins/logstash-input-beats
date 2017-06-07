@@ -29,30 +29,6 @@ describe LogStash::Inputs::Beats do
       end
     end
 
-    context "identity map" do
-      subject(:plugin) { LogStash::Inputs::Beats.new(config) }
-      before { plugin.register }
-
-      context "when using the multiline codec" do
-        let(:codec) { LogStash::Codecs::Multiline.new("pattern" => '^2015',
-                                                      "what" => "previous",
-                                                      "negate" => true) }
-        let(:config) { super.merge({ "codec" => codec }) }
-
-        it "wraps the codec with the identity_map" do
-          expect(plugin.codec).to be_kind_of(LogStash::Codecs::IdentityMapCodec)
-        end
-      end
-
-      context "when using non buffered codecs" do
-        let(:config) { super.merge({ "codec" => "json" }) }
-
-        it "doesnt wrap the codec with the identity map" do
-          expect(plugin.codec).to be_kind_of(LogStash::Codecs::JSON)
-        end
-      end
-    end
-
     it "raise no exception" do
       plugin = LogStash::Inputs::Beats.new(config)
       expect { plugin.register }.not_to raise_error
@@ -144,6 +120,18 @@ describe LogStash::Inputs::Beats do
           plugin = LogStash::Inputs::Beats.new(config)
           expect {plugin.register}.not_to raise_error
         end
+      end
+    end
+
+    context "with multiline codec" do
+      let(:codec) { LogStash::Codecs::Multiline.new("pattern" => '^2015',
+                                                    "what" => "previous",
+                                                    "negate" => true) }
+      let(:config) { super.merge({ "codec" => codec }) }
+
+      it "raise a ConfigurationError when multiline codec is set" do
+        plugin = LogStash::Inputs::Beats.new(config)
+        expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "Multiline codec with beats input is not supported. Please refer to the beats documentation for how to best manage multiline data. See https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html")
       end
     end
   end
