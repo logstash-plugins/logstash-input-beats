@@ -1,3 +1,6 @@
+## 3.1.18
+ - Relax version of concurrent-ruby to `~> 1.0`
+
 ## 3.1.17
  - Docs: Add note indicating that the multiline codec should not be used with the Beats input plugin
  - Deprecate warning for multiline codec with the Beats input plugin
