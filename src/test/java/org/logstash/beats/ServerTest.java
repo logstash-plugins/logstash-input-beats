@@ -159,7 +159,7 @@ public class ServerTest {
             long ended = System.currentTimeMillis();
 
             long diff = ended - started;
-            assertThat(diff/1000.0, is(closeTo(inactivityTime, .1)));
+            assertThat(diff/1000.0, is(closeTo(inactivityTime, .5)));
             assertThat(exceptionClose.get(), is(false));
         } finally {
             server.stop();
