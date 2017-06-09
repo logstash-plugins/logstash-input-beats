@@ -6,7 +6,10 @@ require "logstash/inputs/beats/message_listener"
 require "logstash/instrument/namespaced_null_metric"
 require "thread"
 
+java_import java.util.HashMap
+
 class MockMessage
+
   def initialize(identity_stream, data = {})
     @identity_stream = identity_stream
     @data = data
@@ -18,6 +21,22 @@ class MockMessage
 
   def getIdentityStream
     @identity_stream
+  end
+end
+
+# General purpose single method mock class. Will keep generating mocks until requested method name (no args) is found.
+class OngoingMethodMock
+  def initialize(method_name, return_value)
+    @method_name = method_name
+    @return_value = return_value
+  end
+
+  def method_missing(method)
+    if(method.to_s.eql? @method_name)
+      return @return_value
+    else
+      return OngoingMethodMock.new(@method_name, @return_value)
+    end
   end
 end
 
@@ -98,7 +117,14 @@ describe LogStash::Inputs::Beats::MessageListener do
     end
 
     context "when the message is from any libbeat" do
-      let(:message) { MockMessage.new("abc",  { "metric" => 1, "name" => "super-stats"} )}
+      #Requires data modeled as Java, not Ruby since the actual code pulls from Java backed (Netty) object
+      data = java.util.HashMap.new
+      data.put("@metadata", java.util.HashMap.new)
+      data.put("metric",  1)
+      data.put("name", "super-stats")
+
+      let(:message) { MockMessage.new("abc",  data)}
+      let(:ctx) {OngoingMethodMock.new("getHostAddress", "10.0.0.1")}
 
       it "extract the event" do
         subject.onNewMessage(ctx, message)
@@ -106,8 +132,10 @@ describe LogStash::Inputs::Beats::MessageListener do
         expect(event.get("message")).to be_nil
         expect(event.get("metric")).to eq(1)
         expect(event.get("name")).to eq("super-stats")
+        expect(event.get("[@metadata][ip_address]")).to eq("10.0.0.1")
       end
     end
+
   end
 
   context "onException" do
