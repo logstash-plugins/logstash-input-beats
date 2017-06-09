@@ -1,3 +1,6 @@
+## 4.0.3
+ - Include remote ip_address in metadata.
+
 ## 4.0.2
  - Relax version of concurrent-ruby to `~> 1.0`
 
