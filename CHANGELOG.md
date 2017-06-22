@@ -1,5 +1,5 @@
 ## 3.1.19
- - Fix ability to set SSL protocols
+ - Fix ability to set SSL protocols #228
 
 ## 3.1.18
  - Relax version of concurrent-ruby to `~> 1.0`
