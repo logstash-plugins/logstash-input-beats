@@ -2,10 +2,11 @@
 OS_PLATFORM = RbConfig::CONFIG["host_os"]
 VENDOR_PATH = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "vendor"))
 
+#TODO: Figure out better means to keep this version in sync
 if OS_PLATFORM == "linux"
-  FILEBEAT_URL = "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-5.0.0-linux-x86_64.tar.gz"
+  FILEBEAT_URL = "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-6.0.0-alpha2-linux-x86_64.tar.gz"
 elsif OS_PLATFORM == "darwin"
-  FILEBEAT_URL = "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-5.0.0-darwin-x86_64.tar.gz"
+  FILEBEAT_URL = "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-6.0.0-alpha2-darwin-x86_64.tar.gz"
 end
 
 LSF_URL = "https://download.elastic.co/logstash-forwarder/binaries/logstash-forwarder_#{OS_PLATFORM}_amd64"
