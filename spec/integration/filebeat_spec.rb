@@ -191,6 +191,9 @@ describe "Filebeat", :integration => true do
       context "CA root" do
         include_context "Root CA"
 
+        let_tmp_file(:certificate_key_file) { convert_to_pkcs8(certificate_data.last) }
+        let_tmp_file(:certificate_file) { certificate_data.first }
+
         context "directly signed client certificate" do
           let(:certificate_authorities) { [root_ca_certificate_file] }
           let(:certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", root_ca_certificate, root_ca_key) }
@@ -225,7 +228,7 @@ describe "Filebeat", :integration => true do
         end
 
         let(:input_config) do
-          super.merge({ 
+          super.merge({
             "ssl" => true,
             "ssl_certificate_authorities" => certificate_authorities,
             "ssl_certificate" => server_certificate_file,
@@ -265,7 +268,7 @@ describe "Filebeat", :integration => true do
             include_context "Intermediate CA"
 
             let(:certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", intermediate_ca_certificate, intermediate_ca_key) }
-            let(:server_certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", intermediate_ca_certificate, intermediate_ca_key) } 
+            let(:server_certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", intermediate_ca_certificate, intermediate_ca_key) }
             let(:certificate_authorities) { [intermediate_ca_certificate_file] }
 
             include_examples "send events"
@@ -301,7 +304,7 @@ describe "Filebeat", :integration => true do
 
               let(:server_certificate_data) { Flores::PKI.create_client_certicate("CN=localhost", root_ca_certificate, root_ca_key) }
 
-              context "client from primary CA" do 
+              context "client from primary CA" do
                 include_examples "send events"
               end
 
