@@ -4,7 +4,7 @@
  - Fix ability to set SSL protocols 
 
 ## 4.0.2
-  - Fix ability to set SSL protocols 
+  - Relax version of concurrent-ruby to `~> 1.0`
 
 ## 4.0.1
  - Breaking change: Logstash will no longer start when multiline codec is used with the Beats input plugin
