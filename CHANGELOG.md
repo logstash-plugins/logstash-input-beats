@@ -1,22 +1,22 @@
 ## 4.0.3
- - Include remote ip_address in metadata.
- - Require Java 8
- - Fix ability to set SSL protocols 
+ - Include remote ip_address in metadata. #180
+ - Require Java 8 #221
+ - Fix ability to set SSL protocols  #228
 
 ## 4.0.2
-  - Relax version of concurrent-ruby to `~> 1.0`
+  - Relax version of concurrent-ruby to `~> 1.0` #216
 
 ## 4.0.1
- - Breaking change: Logstash will no longer start when multiline codec is used with the Beats input plugin
+ - Breaking change: Logstash will no longer start when multiline codec is used with the Beats input plugin #201
 
 ## 4.0.0
  - Version yanked from RubyGems for packaging issues
 
 ## 3.1.19 
-   - Fix ability to set SSL protocols 
+   - Fix ability to set SSL protocols  #228
    
 ## 3.1.18
-  - Relax version of concurrent-ruby to ~> 1.0
+  - Relax version of concurrent-ruby to ~> 1.0 #216
   
 ## 3.1.17 
  - Docs: Add note indicating that the multiline codec should not be used with the Beats input plugin
