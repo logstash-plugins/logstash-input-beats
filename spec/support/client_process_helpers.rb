@@ -27,6 +27,10 @@ module ClientProcessHelpers
     @execution_output = @client_out.read
   end
 
+  def is_alive
+    return @process.alive?
+  end
+
   def stop_client
     begin
       @process.poll_for_exit(5)
