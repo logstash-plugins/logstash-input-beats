@@ -7,14 +7,14 @@ START - GENERATED VARIABLES, DO NOT EDIT!
 :version: %VERSION%
 :release_date: %RELEASE_DATE%
 :changelog_url: %CHANGELOG_URL%
-:include_path: ../../../logstash/docs/include
+:include_path: ../../../../logstash/docs/include
 ///////////////////////////////////////////
 END - GENERATED VARIABLES, DO NOT EDIT!
 ///////////////////////////////////////////
 
 [id="plugins-{type}-{plugin}"]
 
-=== Beats
+=== Beats input plugin
 
 include::{include_path}/plugin_header.asciidoc[]
 
@@ -50,16 +50,16 @@ a setting for the <<plugins-inputs-beats-type,`type`>> config option in
 Logstash, it is ignored.
 
 IMPORTANT: If you are shipping events that span multiple lines, you need to
-use the configuration options available in Filebeat to handle multiline events
+use the https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html[configuration options available in Filebeat] to handle multiline events
 before sending the event data to Logstash. You cannot use the
-<<plugins-codecs-multiline>> codec to handle multiline events. Doing so may
-result in the mixing of streams and corrupted event data. 
+<<plugins-codecs-multiline>> codec to handle multiline events. Doing so will
+result in the failure to start Logstash.
 
 
 [id="plugins-{type}s-{plugin}-options"]
 ==== Beats Input Configuration Options
 
-This plugin supports the following configuration options plus the <<plugins-{type}s-common-options>> described later.
+This plugin supports the following configuration options plus the <<plugins-{type}s-{plugin}-common-options>> described later.
 
 [cols="<,<,<",options="header",]
 |=======================================================================
@@ -80,7 +80,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-tls_min_version>> |<<number,number>>|No
 |=======================================================================
 
-Also see <<plugins-{type}s-common-options>> for a list of options supported by all
+Also see <<plugins-{type}s-{plugin}-common-options>> for a list of options supported by all
 input plugins.
 
 &nbsp;
@@ -237,4 +237,5 @@ The minimum TLS version allowed for the encrypted connections. The value must be
 
 
 
+[id="plugins-{type}s-{plugin}-common-options"]
 include::{include_path}/{type}.asciidoc[]
