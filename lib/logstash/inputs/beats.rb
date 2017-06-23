@@ -39,8 +39,7 @@ require_relative "beats/patch"
 # IMPORTANT: If you are shipping events that span multiple lines, you need to
 # use the configuration options available in Filebeat to handle multiline events
 # before sending the event data to Logstash. You cannot use the
-# <<plugins-codecs-multiline>> codec to handle multiline events. Doing so may
-# result in the mixing of streams and corrupted event data. 
+# <<plugins-codecs-multiline>> codec to handle multiline events.
 #
 class LogStash::Inputs::Beats < LogStash::Inputs::Base
   require "logstash/inputs/beats/codec_callback_listener"

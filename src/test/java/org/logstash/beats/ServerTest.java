@@ -102,6 +102,7 @@ public class ServerTest {
             server.stop();
         }
     }
+
     @Test
     public void testServerShouldTerminateConnectionIdleForTooLong() throws InterruptedException {
         int inactivityTime = 3; // in seconds
@@ -147,7 +148,7 @@ public class ServerTest {
         sleep(1000); // give some time to travis..
 
         try {
-            Long started = System.currentTimeMillis() / 1000L;
+            long started = System.currentTimeMillis();
 
 
             for (int i = 0; i < concurrentConnections; i++) {
@@ -155,10 +156,10 @@ public class ServerTest {
             }
             assertThat(latch.await(10, TimeUnit.SECONDS), is(true));
 
-            Long ended = System.currentTimeMillis() / 1000L;
+            long ended = System.currentTimeMillis();
 
-            double diff = ended - started;
-            assertThat(diff, is(closeTo(inactivityTime, 0.1)));
+            long diff = ended - started;
+            assertThat(diff/1000.0, is(closeTo(inactivityTime, .5)));
             assertThat(exceptionClose.get(), is(false));
         } finally {
             server.stop();

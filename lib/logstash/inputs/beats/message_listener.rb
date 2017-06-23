@@ -29,6 +29,12 @@ module LogStash module Inputs class Beats
     def onNewMessage(ctx, message)
       hash = message.getData()
 
+      begin
+        hash.get("@metadata").put("ip_address", ctx.channel().remoteAddress().getAddress().getHostAddress())
+      rescue #should never happen, but don't allow an error here to stop beats input
+        input.logger.warn("Could not retrieve remote IP address for beats input.")
+      end
+
       target_field = extract_target_field(hash)
 
       if target_field.nil?

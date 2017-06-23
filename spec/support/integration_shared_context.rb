@@ -3,7 +3,7 @@ require "flores/random"
 
 shared_examples "send events" do
   it "successfully send the events" do
-    try(50) { expect(queue.size).to eq(number_of_events), "Expected: #{number_of_events} got: #{queue.size}, execution output:\n #{@execution_output}" }
+    try(25) { expect(queue.size).to eq(number_of_events), "Expected: #{number_of_events} got: #{queue.size}, execution output:\n #{@execution_output}" }
     expect(queue.collect { |e| e.get("message") }).to eq(events)
   end
 end

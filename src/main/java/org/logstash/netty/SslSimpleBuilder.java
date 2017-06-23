@@ -66,7 +66,7 @@ public class SslSimpleBuilder {
     }
 
     public SslSimpleBuilder setProtocols(String[] protocols) {
-        protocols = protocols;
+        this.protocols = protocols;
         return this;
     }
 
@@ -180,5 +180,13 @@ public class SslSimpleBuilder {
 
     private FileInputStream createFileInputStream(String filepath) throws FileNotFoundException {
         return new FileInputStream(filepath);
+    }
+
+    /**
+     * Get the supported protocols
+     * @return a defensive copy of the supported protocols
+     */
+    String[] getProtocols() {
+        return protocols.clone();
     }
 }
