@@ -32,10 +32,12 @@ module ClientProcessHelpers
   end
 
   def stop_client
-    begin
-      @process.poll_for_exit(5)
-    rescue ChildProcess::TimeoutError
-      Process.kill("KILL", @process.pid)
+    unless @process.nil?
+      begin
+        @process.poll_for_exit(5)
+      rescue ChildProcess::TimeoutError
+        Process.kill("KILL", @process.pid)
+      end
     end
   end
 end
