@@ -11,6 +11,13 @@ OPEN_SSL_TOPK8 = "openssl pkcs8 -nocrypt -topk8 -inform PEM -outform PEM"
 #
 def convert_to_pkcs8(key)
   out, e, s = Open3.capture3(OPEN_SSL_TOPK8, :stdin_data => key.to_s)
-  raise e if e != ""
+  # attempt to address random failures by trying again
+  unless s.success?
+    sleep 1
+    out, e, s = Open3.capture3(OPEN_SSL_TOPK8, :stdin_data => key.to_s)
+    raise e if e != ""
+    out
+  end
+
   out
 end
