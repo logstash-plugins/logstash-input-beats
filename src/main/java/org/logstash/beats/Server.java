@@ -11,7 +11,8 @@ import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.Future;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.netty.SslSimpleBuilder;
 
 import java.io.IOException;
@@ -22,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 
 public class Server {
-    private final static Logger logger = Logger.getLogger(Server.class);
+    private final static Logger logger = LogManager.getLogger(Server.class);
 
     private static final int DEFAULT_CLIENT_TIMEOUT_SECONDS = 15;
 

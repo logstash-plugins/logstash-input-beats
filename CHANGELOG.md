@@ -1,5 +1,6 @@
 ## 4.0.5
  - Additional default cipher PR#242
+ - Fix logging from Java
 
 ## 4.0.4
  - Documentation fixes
