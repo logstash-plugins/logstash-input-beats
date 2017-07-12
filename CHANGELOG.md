@@ -1,3 +1,12 @@
+## 3.1.22
+ - Additional default cipher PR#242
+
+## 3.1.21
+ - Remove duplicate jars
+
+## 3.1.20
+ - Document changes
+
 ## 3.1.19
  - Fix ability to set SSL protocols #228
 
