@@ -1,3 +1,9 @@
+## 4.0.5
+ - Additional default cipher PR#242
+
+## 4.0.4
+ - Documentation fixes
+
 ## 4.0.3
  - Include remote ip_address in metadata. #180
  - Require Java 8 #221
