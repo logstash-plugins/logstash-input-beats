@@ -1,3 +1,6 @@
+## 3.1.23
+ - Fix logging from Java #236
+
 ## 3.1.22
  - Additional default cipher PR#242
 
