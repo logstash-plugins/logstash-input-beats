@@ -7,7 +7,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 
 import java.nio.charset.Charset;
@@ -21,7 +22,7 @@ import java.util.zip.InflaterOutputStream;
 public class BeatsParser extends ByteToMessageDecoder {
     private static final int CHUNK_SIZE = 1024;
     public final static ObjectMapper MAPPER = new ObjectMapper().registerModule(new AfterburnerModule());
-    private final static Logger logger = Logger.getLogger(BeatsParser.class);
+    private final static Logger logger = LogManager.getLogger(BeatsParser.class);
 
     private Batch batch = new Batch();
 

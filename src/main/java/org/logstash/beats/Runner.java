@@ -1,12 +1,13 @@
 package org.logstash.beats;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.netty.SslSimpleBuilder;
 
 
 public class Runner {
     private static final int DEFAULT_PORT = 5044;
-    private final static Logger logger = Logger.getLogger(Runner.class);
+    private final static Logger logger = LogManager.getLogger(Runner.class);
 
 
 

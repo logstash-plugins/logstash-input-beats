@@ -5,14 +5,15 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
-    private final static Logger logger = Logger.getLogger(BeatsHandler.class);
+    private final static Logger logger = LogManager.getLogger(BeatsHandler.class);
     private final AtomicBoolean processing = new AtomicBoolean(false);
     private final IMessageListener messageListener;
     private ChannelHandlerContext context;
