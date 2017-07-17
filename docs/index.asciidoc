@@ -33,7 +33,11 @@ input {
     port => 5044
   }
 }
-
+filter {
+  mutate {
+    add_field => { "remote_ip" => "%{[@metadata][ip_address]}" }
+  }
+}
 output {
   elasticsearch {
     hosts => "localhost:9200"
