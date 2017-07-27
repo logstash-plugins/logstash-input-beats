@@ -100,10 +100,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   # The number of seconds before we raise a timeout. 
   # This option is useful to control how much time to wait if something is blocking the pipeline.
-  config :congestion_threshold, :validate => :number, :default => 5, :deprecated => "This option is now deprecated since congestion control is done automatically"
+  config :congestion_threshold, :validate => :number, :obsolete => "This option is obsolete since congestion control is done automatically"
 
   # This is the default field to which the specified codec will be applied.
-  config :target_field_for_codec, :validate => :string, :default => "message", :deprecated => "This option is now deprecated, the plugin is now compatible with Filebeat and Logstash-Forwarder"
+  config :target_field_for_codec, :validate => :string, :obsolete => "This option is obsolete"
 
   # The minimum TLS version allowed for the encrypted connections. The value must be one of the following:
   # 1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2

@@ -101,16 +101,6 @@ The list of ciphers suite to use, listed by priorities.
 
 Close Idle clients after X seconds of inactivity.
 
-[id="plugins-{type}s-{plugin}-congestion_threshold"]
-===== `congestion_threshold`  (DEPRECATED)
-
-  * DEPRECATED WARNING: This configuration item is deprecated and may not be available in future versions.
-  * Value type is <<number,number>>
-  * Default value is `5`
-
-The number of seconds before we raise a timeout. 
-This option is useful to control how much time to wait if something is blocking the pipeline.
-
 [id="plugins-{type}s-{plugin}-host"]
 ===== `host` 
 
@@ -207,15 +197,6 @@ If the client provides a certificate, it will be validated.
 If the client doesn't provide a certificate, the connection will be closed.
 
 This option needs to be used with `ssl_certificate_authorities` and a defined list of CAs.
-
-[id="plugins-{type}s-{plugin}-target_field_for_codec"]
-===== `target_field_for_codec`  (DEPRECATED)
-
-  * DEPRECATED WARNING: This configuration item is deprecated and may not be available in future versions.
-  * Value type is <<string,string>>
-  * Default value is `"message"`
-
-This is the default field to which the specified codec will be applied.
 
 [id="plugins-{type}s-{plugin}-tls_max_version"]
 ===== `tls_max_version` 
