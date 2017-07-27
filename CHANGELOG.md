@@ -1,3 +1,6 @@
+## 5.0.0
+ - Mark deprecated congestion_threshold and target_field_for_codec as obsolete
+
 ## 4.0.5
  - Additional default cipher PR#242
  - Fix logging from Java
