@@ -1,3 +1,6 @@
+## 3.1.24
+ - Documentation changes
+
 ## 3.1.23
  - Fix logging from Java #236
 
