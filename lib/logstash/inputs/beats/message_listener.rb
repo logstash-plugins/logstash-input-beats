@@ -64,9 +64,9 @@ module LogStash module Inputs class Beats
       # This is mostly due to a bad certificate or keys, running Logstash in debug mode will show more information
       if cause.is_a?(Java::JavaLang::IllegalArgumentException)
         if input.logger.debug?
-          input.logger.error("Looks like you either have an invalid key or your private key was not in PKCS8 format.")
+          input.logger.error("Looks like you either have a bad certificate, an invalid key or your private key was not in PKCS8 format.", :exception => cause)
         else
-          input.logger.error("Looks like you either have an invalid key or your private key was not in PKCS8 format.", :exception => cause)
+          input.logger.error("Looks like you either have a bad certificate, an invalid key or your private key was not in PKCS8 format.")
         end
       else
         input.logger.warn("Error when creating a connection", :exception => cause.to_s)
