@@ -1,3 +1,16 @@
+## 5.0.1
+  - Fix some documentation issues
+
+## 5.0.0
+ - Mark deprecated congestion_threshold and target_field_for_codec as obsolete
+
+## 4.0.5
+ - Additional default cipher PR#242
+ - Fix logging from Java
+
+## 4.0.4
+ - Documentation fixes
+
 ## 4.0.3
  - Include remote ip_address in metadata. #180
  - Require Java 8 #221

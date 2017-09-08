@@ -5,7 +5,8 @@ import io.netty.handler.ssl.OpenSsl;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.beats.Server;
 
 import javax.net.ssl.SSLEngine;
@@ -29,7 +30,7 @@ public class SslSimpleBuilder {
         VERIFY_PEER,
         FORCE_PEER,
     }
-    private final static Logger logger = Logger.getLogger(SslSimpleBuilder.class);
+    private final static Logger logger = LogManager.getLogger(SslSimpleBuilder.class);
 
 
     private File sslKeyFile;
@@ -50,6 +51,7 @@ public class SslSimpleBuilder {
             "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
             "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
             "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
             "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
     };
 
