@@ -75,7 +75,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
 
             if(e.state() == IdleState.WRITER_IDLE) {
                 sendKeepAlive();
-            } else if(e.state() == IdleState.READER_IDLE) {
+            } else if(e.state() == IdleState.ALL_IDLE) {
                 clientTimeout();
             }
         }
