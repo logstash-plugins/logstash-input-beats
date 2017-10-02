@@ -117,7 +117,9 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
      * we will use similar logic than Netty's LoggingHandler
      */
     private String format(String message) {
-        String contextStr = context.toString();
-        return "[" + contextStr + "] " + message;
+        InetSocketAddress local = (InetSocketAddress) context.channel().localAddress();
+        InetSocketAddress remote = (InetSocketAddress) context.channel().remoteAddress();
+
+        return "[local: " + local.getAddress().getHostAddress() + ":" + local.getPort() +  ", remote: " + remote.getAddress().getHostAddress() + ":" + remote.getPort() + "] " + message;
     }
 }
