@@ -1,3 +1,6 @@
+## 5.0.2
+  - Addition context when logging from the BeatsHandler
+
 ## 5.0.1
   - Fix some documentation issues
 
