@@ -5,12 +5,10 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
-import io.netty.util.concurrent.Future;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.netty.SslSimpleBuilder;
@@ -18,7 +16,6 @@ import org.logstash.netty.SslSimpleBuilder;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
-import java.util.concurrent.TimeUnit;
 
 
 
@@ -95,7 +92,6 @@ public class Server {
     }
 
     private class BeatsInitializer extends ChannelInitializer<SocketChannel> {
-        private final String LOGGER_HANDLER = "logger";
         private final String SSL_HANDLER = "ssl-handler";
         private final String KEEP_ALIVE_HANDLER = "keep-alive-handler";
         private final String BEATS_PARSER = "beats-parser";
@@ -108,8 +104,6 @@ public class Server {
         private final EventExecutorGroup idleExecutorGroup;
         private final IMessageListener message;
         private int clientInactivityTimeoutSeconds;
-        private final LoggingHandler loggingHandler = new LoggingHandler();
-
 
         private boolean enableSSL = false;
 
@@ -122,8 +116,6 @@ public class Server {
 
         public void initChannel(SocketChannel socket) throws IOException, NoSuchAlgorithmException, CertificateException {
             ChannelPipeline pipeline = socket.pipeline();
-
-            pipeline.addLast(LOGGER_HANDLER, loggingHandler);
 
             if(enableSSL) {
                 SslHandler sslHandler = sslBuilder.build(socket.alloc());

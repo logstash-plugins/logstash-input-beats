@@ -1,5 +1,6 @@
 ## 5.0.2
-  - Addition context when logging from the BeatsHandler
+  - Addition context when logging from the BeatsHandler #260
+  - Remove the `LoggingHandler` from the handler stack to reduce noise in the log.
 
 ## 5.0.1
   - Fix some documentation issues
