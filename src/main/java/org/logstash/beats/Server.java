@@ -104,7 +104,6 @@ public class Server {
 
         private final int DEFAULT_IDLESTATEHANDLER_THREAD = 4;
         private final int IDLESTATE_WRITER_IDLE_TIME_SECONDS = 5;
-        private final int IDLESTATE_ALL_IDLE_TIME_SECONDS = 0;
 
         private final EventExecutorGroup idleExecutorGroup;
         private final IMessageListener message;
@@ -133,7 +132,7 @@ public class Server {
 
             // We have set a specific executor for the idle check, because the `beatsHandler` can be
             // blocked on the queue, this the idleStateHandler manage the `KeepAlive` signal.
-            pipeline.addLast(idleExecutorGroup, KEEP_ALIVE_HANDLER, new IdleStateHandler(clientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS , IDLESTATE_ALL_IDLE_TIME_SECONDS));
+            pipeline.addLast(idleExecutorGroup, KEEP_ALIVE_HANDLER, new IdleStateHandler(0, IDLESTATE_WRITER_IDLE_TIME_SECONDS , clientInactivityTimeoutSeconds));
 
             pipeline.addLast(BEATS_PARSER, new BeatsParser());
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
