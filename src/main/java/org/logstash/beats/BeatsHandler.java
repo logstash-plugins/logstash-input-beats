@@ -7,9 +7,11 @@ import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
@@ -27,6 +29,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
         context = ctx;
         messageListener.onNewConnection(ctx);
+
     }
 
     @Override
@@ -36,13 +39,15 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, Batch batch) throws Exception {
-        logger.debug("Received a new payload");
+        if(logger.isDebugEnabled()) {
+            logger.debug(format("Received a new payload"));
+        }
 
         processing.compareAndSet(false, true);
 
         for(Message message : batch.getMessages()) {
             if(logger.isDebugEnabled()) {
-                logger.debug("Sending a new message for the listener, sequence: " + message.getSequence());
+                logger.debug(format("Sending a new message for the listener, sequence: " + message.getSequence()));
             }
             messageListener.onNewMessage(ctx, message);
 
@@ -57,13 +62,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        InetSocketAddress remoteAddress = (InetSocketAddress) ctx.channel().remoteAddress();
-
-        if (remoteAddress != null) {
-            logger.info("Exception: " + cause.getMessage() + ", from: " + remoteAddress.toString());
-        } else {
-            logger.info("Exception: " + cause.getMessage());
-        }
+        logger.info(format("Exception: " + cause.getMessage()));
         messageListener.onException(ctx, cause);
         ctx.close();
     }
@@ -95,7 +94,9 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
 
     private void clientTimeout() {
         if(!processing.get()) {
-            logger.debug("Client Timeout");
+            if(logger.isDebugEnabled()) {
+                logger.debug(format("Client Timeout"));
+            }
             this.context.close();
         }
     }
@@ -104,7 +105,19 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         // If we are actually blocked on processing
         // we can send a keep alive.
         if(processing.get()) {
+            if(logger.isDebugEnabled()) {
+                logger.debug(format("Still processing event current batch, sending keep alive"));
+            }
             writeAck(context, Protocol.VERSION_2, 0);
         }
+    }
+
+    /*
+     * There is no easy way in Netty to support MDC directly,
+     * we will use similar logic than Netty's LoggingHandler
+     */
+    private String format(String message) {
+        String contextStr = context.toString();
+        return "[" + contextStr + "] " + message;
     }
 }
