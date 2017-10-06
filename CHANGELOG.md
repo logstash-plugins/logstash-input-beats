@@ -1,5 +1,6 @@
 ## 5.0.2
-  - Addition context when logging from the BeatsHandler #260
+  - Change IdleState strategy from `READER_IDLE` to `ALL_IDLE` #262
+  - Additional context when logging from the BeatsHandler #261
   - Remove the `LoggingHandler` from the handler stack to reduce noise in the log.
 
 ## 5.0.1
