@@ -1,3 +1,6 @@
+## 5.0.3
+  - Update gemspec summary
+
 ## 5.0.2
   - Change IdleState strategy from `READER_IDLE` to `ALL_IDLE` #262
   - Additional context when logging from the BeatsHandler #261
