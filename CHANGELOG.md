@@ -1,3 +1,6 @@
+## 5.0.7
+  - Docs: Deprecate `document_type` option
+
 ## 5.0.6
   - Re-order Netty pipeline to avoid NullPointerExceptions in KeepAliveHandler when Logstash is under load
   - Improve exception logging
