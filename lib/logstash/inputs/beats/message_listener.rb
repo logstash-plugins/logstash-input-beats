@@ -27,12 +27,17 @@ module LogStash module Inputs class Beats
     end
 
     def onNewMessage(ctx, message)
-      hash = message.getData()
+      hash = message.getData
 
       begin
-        hash.get("@metadata").put("ip_address", ctx.channel().remoteAddress().getAddress().getHostAddress())
-      rescue #should never happen, but don't allow an error here to stop beats input
-        input.logger.warn("Could not retrieve remote IP address for beats input.")
+        remote_address = ctx.channel.remoteAddress
+        if remote_address.nil?
+          input.logger.debug("Unable to retrieve remote IP address for beats input - cannot obtain remote address from channel")
+        else
+          hash["@metadata"].put("ip_address", remote_address.getAddress.getHostAddress)
+        end
+      rescue => e #should never happen, but don't allow an error here to stop beats input
+        input.logger.debug("Could not retrieve remote IP address for beats input.", :message => e)
       end
 
       target_field = extract_target_field(hash)

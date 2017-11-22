@@ -96,6 +96,10 @@ describe LogStash::Inputs::Beats::MessageListener do
   end
 
   context "onNewMessage" do
+    let(:ip_address) { "10.0.0.1" }
+    let(:remote_address) { OngoingMethodMock.new("getHostAddress", ip_address) }
+    let(:ctx) {OngoingMethodMock.new("remoteAddress", remote_address)}
+
     context "when the message is from filebeat" do
       let(:message) { MockMessage.new("abc", { "message" => "hello world" } )}
 
@@ -118,13 +122,15 @@ describe LogStash::Inputs::Beats::MessageListener do
 
     context "when the message is from any libbeat" do
       #Requires data modeled as Java, not Ruby since the actual code pulls from Java backed (Netty) object
-      data = java.util.HashMap.new
-      data.put("@metadata", java.util.HashMap.new)
-      data.put("metric",  1)
-      data.put("name", "super-stats")
+      let(:data) do
+        d = HashMap.new
+        d.put('@metadata', HashMap.new)
+        d.put('metric',  1)
+        d.put('name', "super-stats")
+        d
+      end
 
       let(:message) { MockMessage.new("abc",  data)}
-      let(:ctx) {OngoingMethodMock.new("getHostAddress", "10.0.0.1")}
 
       it "extract the event" do
         subject.onNewMessage(ctx, message)
@@ -132,10 +138,22 @@ describe LogStash::Inputs::Beats::MessageListener do
         expect(event.get("message")).to be_nil
         expect(event.get("metric")).to eq(1)
         expect(event.get("name")).to eq("super-stats")
-        expect(event.get("[@metadata][ip_address]")).to eq("10.0.0.1")
+        expect(event.get("[@metadata][ip_address]")).to eq(ip_address)
+      end
+
+      context 'when the remote address is nil' do
+        let(:ctx) { OngoingMethodMock.new("remoteAddress", nil)}
+
+        it 'extracts the event' do
+          subject.onNewMessage(ctx, message)
+          event = queue.pop
+          expect(event.get("message")).to be_nil
+          expect(event.get("metric")).to eq(1)
+          expect(event.get("name")).to eq("super-stats")
+          expect(event.get("[@metadata][ip_address]")).to eq(nil)
+        end
       end
     end
-
   end
 
   context "onException" do
