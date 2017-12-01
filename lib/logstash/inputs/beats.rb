@@ -119,6 +119,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # Close Idle clients after X seconds of inactivity.
   config :client_inactivity_timeout, :validate => :number, :default => 60
 
+  # Beats handler executor thread
+  config :executor_threads, :validate => :number, :default => LogStash::Config::CpuCoreStrategy.maximum * 4
+
   def register
     # For Logstash 2.4 we need to make sure that the logger is correctly set for the
     # java classes before actually loading them.
@@ -156,7 +159,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end # def register
 
   def create_server
-    server = org.logstash.beats.Server.new(@host, @port, @client_inactivity_timeout)
+    server = org.logstash.beats.Server.new(@host, @port, @client_inactivity_timeout, @executor_threads)
     if @ssl
 
       begin
