@@ -10,7 +10,7 @@ module LogStash module Inputs class Beats
     FILEBEAT_LOG_LINE_FIELD = "message".freeze
     LSF_LOG_LINE_FIELD = "line".freeze
 
-    ConnectionState = Struct.new(:ctx, :codec)
+    ConnectionState = Struct.new(:ctx, :codec, :ip_address)
 
     attr_reader :logger, :input, :connections_list
 
@@ -28,18 +28,8 @@ module LogStash module Inputs class Beats
 
     def onNewMessage(ctx, message)
       hash = message.getData
-
-      begin
-        remote_address = ctx.channel.remoteAddress
-        if remote_address.nil?
-          input.logger.debug("Unable to retrieve remote IP address for beats input - cannot obtain remote address from channel")
-        else
-          hash["@metadata"].put("ip_address", remote_address.getAddress.getHostAddress)
-        end
-      rescue => e #should never happen, but don't allow an error here to stop beats input
-        input.logger.debug("Could not retrieve remote IP address for beats input.", :message => e)
-      end
-
+      ip_address = ip_address(ctx)
+      hash['@metadata']['ip_address'] = ip_address unless ip_address.nil?
       target_field = extract_target_field(hash)
 
       if target_field.nil?
@@ -88,8 +78,29 @@ module LogStash module Inputs class Beats
       connections_list[ctx].codec
     end
 
+    def ip_address(ctx)
+      return if connections_list[ctx].nil?
+      connections_list[ctx].ip_address
+    end
+
     def register_connection(ctx)
-      connections_list[ctx] = ConnectionState.new(ctx, input.codec.dup)
+      connections_list[ctx] = ConnectionState.new(ctx, input.codec.dup, ip_address_from_ctx(ctx))
+    end
+
+    def ip_address_from_ctx(ctx)
+      begin
+        remote_address = ctx.channel.remoteAddress
+        # Netty allows remoteAddress to be nil, which can cause a lot of log entries - see
+        # https://github.com/logstash-plugins/logstash-input-beats/issues/269
+        if remote_address.nil?
+          input.logger.debug("Cannot retrieve remote IP address for beats input - remoteAddress is nil")
+          return nil
+        end
+        remote_address.getAddress.getHostAddress
+      rescue => e # This should not happen, but should not block the beats input
+        input.logger.warn("Could not retrieve remote IP address for beats input.", :error => e)
+        nil
+      end
     end
 
     def unregister_connection(ctx)

@@ -56,7 +56,11 @@ describe LogStash::Inputs::Beats::MessageListener do
   let(:queue)  { Queue.new }
   let(:codec) { DummyCodec.new }
   let(:input) { LogStash::Inputs::Beats.new({ "port" => 5555, "codec" => codec }) }
-  let(:ctx) { double("ChannelHandlerContext") }
+
+  let(:ip_address) { "10.0.0.1" }
+  let(:remote_address) { OngoingMethodMock.new("getHostAddress", ip_address) }
+  let(:ctx) {OngoingMethodMock.new("remoteAddress", remote_address)}
+
   let(:message) { MockMessage.new("abc", { "message" => "hello world"}) }
 
   subject { described_class.new(queue, input) }
@@ -66,28 +70,54 @@ describe LogStash::Inputs::Beats::MessageListener do
   end
 
   context "onNewConnection" do
-    it "register the connection to the connection list" do
-      expect { subject.onNewConnection(double("ChannelHandlerContext")) }.to change { subject.connections_list.count }.by(1)
+    let(:second_ip_address) { "10.0.0.2" }
+    let(:second_ctx) {OngoingMethodMock.new("getHostAddress", second_ip_address)}
+
+    shared_examples 'a valid new connection' do
+      it "register the connection to the connection list" do
+        expect { subject.onNewConnection(second_ctx) }.to change { subject.connections_list.count }.by(1)
+      end
+    end
+
+    it_behaves_like 'a valid new connection'
+
+    context 'with a nil remote address' do
+      let(:second_ip_address) { nil}
+
+      it_behaves_like 'a valid new connection'
+    end
+
+    context 'when the channel throws retrieving remote address' do
+      before do
+        allow(second_ctx).to receive(:channel).and_raise('nope')
+      end
+
+      it_behaves_like 'a valid new connection'
     end
 
     describe "metrics" do
       it "new connection should increment connection count" do
         expect(subject).to receive(:increment_connection_count).once
-        subject.onNewConnection(double("ChannelHandlerContext"))
+        subject.onNewConnection(second_ctx)
       end
 
       describe "peak connections" do
+        let (:ctxes) { [1, 2, 3, 4].inject([]) do |result, element|
+          result << OngoingMethodMock.new("getHostAddress", "10.0.0.#{element}")
+          result
+        end
+        }
         it "closing and open connections should keep highest count" do
           expect(subject.instance_eval("@peak_connection_count").value).to eq(1)
-          subject.onNewConnection(1)
+          subject.onNewConnection(ctxes[0])
           expect(subject.instance_eval("@peak_connection_count").value).to eq(2)
-          subject.onNewConnection(2)
+          subject.onNewConnection(ctxes[1])
           expect(subject.instance_eval("@peak_connection_count").value).to eq(3)
-          subject.onConnectionClose(2)
+          subject.onConnectionClose(ctxes[1])
           expect(subject.instance_eval("@peak_connection_count").value).to eq(3)
-          subject.onNewConnection(3)
+          subject.onNewConnection(ctxes[2])
           expect(subject.instance_eval("@peak_connection_count").value).to eq(3)
-          subject.onNewConnection(4)
+          subject.onNewConnection(ctxes[3])
           expect(subject.instance_eval("@peak_connection_count").value).to eq(4)
         end
       end
@@ -96,12 +126,8 @@ describe LogStash::Inputs::Beats::MessageListener do
   end
 
   context "onNewMessage" do
-    let(:ip_address) { "10.0.0.1" }
-    let(:remote_address) { OngoingMethodMock.new("getHostAddress", ip_address) }
-    let(:ctx) {OngoingMethodMock.new("remoteAddress", remote_address)}
-
     context "when the message is from filebeat" do
-      let(:message) { MockMessage.new("abc", { "message" => "hello world" } )}
+      let(:message) { MockMessage.new("abc", { "message" => "hello world", "@metadata" => {} } )}
 
       it "extract the event" do
         subject.onNewMessage(ctx, message)
@@ -111,7 +137,7 @@ describe LogStash::Inputs::Beats::MessageListener do
     end
 
     context "when the message is from LSF" do
-      let(:message) { MockMessage.new("abc", { "line" => "hello world" } )}
+      let(:message) { MockMessage.new("abc", { "line" => "hello world", '@metadata' => {} } )}
 
       it "extract the event" do
         subject.onNewMessage(ctx, message)
@@ -153,6 +179,25 @@ describe LogStash::Inputs::Beats::MessageListener do
           expect(event.get("[@metadata][ip_address]")).to eq(nil)
         end
       end
+
+      context 'when getting the remote address raises' do
+        let(:raising_ctx) { double("context")}
+
+        before  do
+          allow(raising_ctx).to receive(:channel).and_raise("nope")
+          subject.onNewConnection(raising_ctx)
+        end
+
+        it 'extracts the event' do
+          subject.onNewMessage(raising_ctx, message)
+          event = queue.pop
+          expect(event.get("message")).to be_nil
+          expect(event.get("metric")).to eq(1)
+          expect(event.get("name")).to eq("super-stats")
+          expect(event.get("[@metadata][ip_address]")).to eq(nil)
+        end
+      end
+
     end
   end
 
