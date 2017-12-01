@@ -93,6 +93,7 @@ public class Server {
         private final String BEATS_HANDLER = "beats-handler";
         private final String BEATS_ACKER = "beats-acker";
 
+
         private final int DEFAULT_IDLESTATEHANDLER_THREAD = 4;
         private final int IDLESTATE_WRITER_IDLE_TIME_SECONDS = 5;
 
@@ -116,7 +117,6 @@ public class Server {
                 SslHandler sslHandler = sslBuilder.build(socket.alloc());
                 pipeline.addLast(SSL_HANDLER, sslHandler);
             }
-
             // We have set a specific executor for the idle check, because the `beatsHandler` can be
             // blocked on the queue, this the idleStateHandler manage the `KeepAlive` signal.
             pipeline.addLast(idleExecutorGroup, KEEP_ALIVE_HANDLER, new IdleStateHandler(0, IDLESTATE_WRITER_IDLE_TIME_SECONDS , clientInactivityTimeoutSeconds));

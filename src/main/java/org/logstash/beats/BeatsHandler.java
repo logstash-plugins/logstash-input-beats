@@ -13,6 +13,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import javax.net.ssl.SSLHandshakeException;
 
 public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     private final static Logger logger = LogManager.getLogger(BeatsHandler.class);
@@ -29,7 +30,6 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
         context = ctx;
         messageListener.onNewConnection(ctx);
-
     }
 
     @Override
@@ -60,11 +60,26 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
 
     }
 
+    /*
+     * Do not propagate the ssl handshake exception down to the ruby layer
+     * handle it locally and close the connection if the channel is still active.
+     * Calling `onException` will flush the content of the codec's buffer, this call may block the thread
+     * in the event loop until completion, this should only affect LS 5 because it still supporting
+     * the multiline codec, v6 drop support for buffering codec in the input.
+     *
+     * For v5, I cannot simply drop the content of the buffer because this will create data loss, because multiline
+     * content can overlap Filebeat transmission windows, we were recommending multiline at the source in v5 and in v6
+     * we enforce it.
+     */
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        logger.info(format("Exception: " + cause.getMessage()));
-        messageListener.onException(ctx, cause);
         ctx.close();
+
+        if (!(cause instanceof SSLHandshakeException)) {
+            messageListener.onException(ctx, cause);
+        }
+
+        logger.info(format("Exception: " + cause.getMessage()));
     }
 
     @Override
