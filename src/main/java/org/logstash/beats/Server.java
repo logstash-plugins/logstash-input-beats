@@ -28,23 +28,23 @@ public class Server {
     private static final int DEFAULT_CLIENT_TIMEOUT_SECONDS = 15;
 
     private final int port;
-    private final NioEventLoopGroup bossGroup;
     private final NioEventLoopGroup workGroup;
     private final String host;
+    private final int beatsHeandlerThreadCount;
     private IMessageListener messageListener = new MessageListener();
     private SslSimpleBuilder sslBuilder;
 
     private final int clientInactivityTimeoutSeconds;
 
     public Server(String host, int p) {
-        this(host, p, DEFAULT_CLIENT_TIMEOUT_SECONDS);
+        this(host, p, DEFAULT_CLIENT_TIMEOUT_SECONDS, Runtime.getRuntime().availableProcessors() * 4);
     }
 
-    public Server(String host, int p, int timeout) {
+    public Server(String host, int p, int timeout, int threadCount) {
         this.host = host;
         port = p;
         clientInactivityTimeoutSeconds = timeout;
-        bossGroup = new NioEventLoopGroup();
+        beatsHeandlerThreadCount = threadCount;
         workGroup = new NioEventLoopGroup();
     }
 
@@ -58,10 +58,10 @@ public class Server {
         try {
             logger.info("Starting server on port: " +  this.port);
 
-            beatsInitializer = new BeatsInitializer(isSslEnable(), messageListener, clientInactivityTimeoutSeconds);
+            beatsInitializer = new BeatsInitializer(isSslEnable(), messageListener, clientInactivityTimeoutSeconds, beatsHeandlerThreadCount);
 
             ServerBootstrap server = new ServerBootstrap();
-            server.group(bossGroup, workGroup)
+            server.group(workGroup)
                     .channel(NioServerSocketChannel.class)
                     .childOption(ChannelOption.SO_LINGER, 0) // Since the protocol doesn't support yet a remote close from the server and we don't want to have 'unclosed' socket lying around we have to use `SO_LINGER` to force the close of the socket.
                     .childHandler(beatsInitializer);
@@ -69,7 +69,6 @@ public class Server {
             Channel channel = server.bind(host, port).sync().channel();
             channel.closeFuture().sync();
         } finally {
-            bossGroup.shutdownGracefully().sync();
             workGroup.shutdownGracefully().sync();
             beatsInitializer.shutdownEventExecutor();
         }
@@ -79,10 +78,7 @@ public class Server {
 
     public void stop() throws InterruptedException {
         logger.debug("Server shutting down");
-
-        bossGroup.shutdownGracefully().sync();
         workGroup.shutdownGracefully().sync();
-
         logger.debug("Server stopped");
     }
 
@@ -97,16 +93,18 @@ public class Server {
     private class BeatsInitializer extends ChannelInitializer<SocketChannel> {
         private final String LOGGER_HANDLER = "logger";
         private final String SSL_HANDLER = "ssl-handler";
+        private final String IDLESTATE_HANDLER = "idlestate-handler";
         private final String KEEP_ALIVE_HANDLER = "keep-alive-handler";
         private final String BEATS_PARSER = "beats-parser";
         private final String BEATS_HANDLER = "beats-handler";
         private final String BEATS_ACKER = "beats-acker";
 
+
         private final int DEFAULT_IDLESTATEHANDLER_THREAD = 4;
         private final int IDLESTATE_WRITER_IDLE_TIME_SECONDS = 5;
-        private final int IDLESTATE_ALL_IDLE_TIME_SECONDS = 0;
 
         private final EventExecutorGroup idleExecutorGroup;
+        private final EventExecutorGroup beatsHandlerExecutorGroup;
         private final IMessageListener message;
         private int clientInactivityTimeoutSeconds;
         private final LoggingHandler loggingHandler = new LoggingHandler();
@@ -114,11 +112,13 @@ public class Server {
 
         private boolean enableSSL = false;
 
-        public BeatsInitializer(Boolean secure, IMessageListener messageListener, int clientInactivityTimeoutSeconds) {
+        public BeatsInitializer(Boolean secure, IMessageListener messageListener, int clientInactivityTimeoutSeconds, int beatsHandlerThread) {
             enableSSL = secure;
             this.message = messageListener;
             this.clientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
+            beatsHandlerExecutorGroup = new DefaultEventExecutorGroup(beatsHandlerThread);
+
         }
 
         public void initChannel(SocketChannel socket) throws IOException, NoSuchAlgorithmException, CertificateException {
@@ -130,15 +130,11 @@ public class Server {
                 SslHandler sslHandler = sslBuilder.build(socket.alloc());
                 pipeline.addLast(SSL_HANDLER, sslHandler);
             }
-
-            // We have set a specific executor for the idle check, because the `beatsHandler` can be
-            // blocked on the queue, this the idleStateHandler manage the `KeepAlive` signal.
-            pipeline.addLast(idleExecutorGroup, KEEP_ALIVE_HANDLER, new IdleStateHandler(clientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS , IDLESTATE_ALL_IDLE_TIME_SECONDS));
-
-            pipeline.addLast(BEATS_PARSER, new BeatsParser());
+            pipeline.addLast(idleExecutorGroup, IDLESTATE_HANDLER, new IdleStateHandler(clientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS , clientInactivityTimeoutSeconds));
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
-            pipeline.addLast(BEATS_HANDLER, new BeatsHandler(this.message));
-
+            pipeline.addLast(KEEP_ALIVE_HANDLER, new KeepAliveHandler());
+            pipeline.addLast(BEATS_PARSER, new BeatsParser());
+            pipeline.addLast(beatsHandlerExecutorGroup, BEATS_HANDLER, new BeatsHandler(this.message));
         }
 
         @Override
