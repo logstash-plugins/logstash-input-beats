@@ -120,6 +120,20 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         InetSocketAddress local = (InetSocketAddress) context.channel().localAddress();
         InetSocketAddress remote = (InetSocketAddress) context.channel().remoteAddress();
 
-        return "[local: " + local.getAddress().getHostAddress() + ":" + local.getPort() +  ", remote: " + remote.getAddress().getHostAddress() + ":" + remote.getPort() + "] " + message;
+        String localhost;
+        if(local != null) {
+            localhost = local.getAddress().getHostAddress() + ":" + local.getPort();
+        } else{
+            localhost = "undefined";
+        }
+
+        String remotehost;
+        if(remote != null) {
+            remotehost = remote.getAddress().getHostAddress() + ":" + remote.getPort();
+        } else{
+            remotehost = "undefined";
+        };
+
+        return "[local: " + localhost + ", remote: " + remotehost + "] " + message;
     }
 }

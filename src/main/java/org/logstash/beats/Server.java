@@ -25,7 +25,6 @@ public class Server {
     private static final int DEFAULT_CLIENT_TIMEOUT_SECONDS = 15;
 
     private final int port;
-    private final NioEventLoopGroup bossGroup;
     private final NioEventLoopGroup workGroup;
     private final String host;
     private IMessageListener messageListener = new MessageListener();
@@ -41,7 +40,6 @@ public class Server {
         this.host = host;
         port = p;
         clientInactivityTimeoutSeconds = timeout;
-        bossGroup = new NioEventLoopGroup();
         workGroup = new NioEventLoopGroup();
     }
 
@@ -58,15 +56,15 @@ public class Server {
             beatsInitializer = new BeatsInitializer(isSslEnable(), messageListener, clientInactivityTimeoutSeconds);
 
             ServerBootstrap server = new ServerBootstrap();
-            server.group(bossGroup, workGroup)
+            server.group(workGroup)
                     .channel(NioServerSocketChannel.class)
+                    .option(ChannelOption.SO_BACKLOG, 50)
                     .childOption(ChannelOption.SO_LINGER, 0) // Since the protocol doesn't support yet a remote close from the server and we don't want to have 'unclosed' socket lying around we have to use `SO_LINGER` to force the close of the socket.
                     .childHandler(beatsInitializer);
 
             Channel channel = server.bind(host, port).sync().channel();
             channel.closeFuture().sync();
         } finally {
-            bossGroup.shutdownGracefully().sync();
             workGroup.shutdownGracefully().sync();
             beatsInitializer.shutdownEventExecutor();
         }
@@ -76,10 +74,7 @@ public class Server {
 
     public void stop() throws InterruptedException {
         logger.debug("Server shutting down");
-
-        bossGroup.shutdownGracefully().sync();
         workGroup.shutdownGracefully().sync();
-
         logger.debug("Server stopped");
     }
 

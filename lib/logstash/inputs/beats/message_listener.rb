@@ -74,6 +74,7 @@ module LogStash module Inputs class Beats
     end
 
     def onException(ctx, cause)
+      input.logger.error("exection", {:error => cause})
       unregister_connection(ctx) unless connections_list[ctx].nil?
     end
 
@@ -88,11 +89,14 @@ module LogStash module Inputs class Beats
     end
 
     def unregister_connection(ctx)
+        input.logger.error("unregister_connection")
       flush_buffer(ctx)
       connections_list.delete(ctx)
     end
 
     def flush_buffer(ctx)
+      input.logger.error("we are flushing the buffer")
+
       return if codec(ctx).nil?
 
       transformer = EventTransformCommon.new(@input)
