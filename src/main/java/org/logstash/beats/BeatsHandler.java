@@ -5,6 +5,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.util.AttributeKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -12,14 +13,16 @@ import org.apache.logging.log4j.ThreadContext;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.net.ssl.SSLHandshakeException;
 
 public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     private final static Logger logger = LogManager.getLogger(BeatsHandler.class);
-    private final AtomicBoolean processing = new AtomicBoolean(false);
+    public static AttributeKey<Boolean> PROCESSING_BATCH = AttributeKey.valueOf("processing-batch");
     private final IMessageListener messageListener;
     private ChannelHandlerContext context;
+
 
 
     public BeatsHandler(IMessageListener listener) {
@@ -30,21 +33,24 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
         context = ctx;
         messageListener.onNewConnection(ctx);
+        // Give some breathing room on new clients to receive the keep alive.
+        ctx.channel().attr(PROCESSING_BATCH).set(false);
     }
 
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+        ctx.channel().attr(PROCESSING_BATCH).set(false);
         messageListener.onConnectionClose(ctx);
     }
+
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, Batch batch) throws Exception {
         if(logger.isDebugEnabled()) {
-            logger.debug(format("Received a new payload"));
+            logger.debug(format("XXXXXXXReceived a new payload"));
         }
 
-        processing.compareAndSet(false, true);
-
+        ctx.channel().attr(PROCESSING_BATCH).set(true);
         for(Message message : batch.getMessages()) {
             if(logger.isDebugEnabled()) {
                 logger.debug(format("Sending a new message for the listener, sequence: " + message.getSequence()));
@@ -56,8 +62,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
             }
         }
         ctx.flush();
-        processing.compareAndSet(true, false);
-
+        ctx.channel().attr(PROCESSING_BATCH).set(false);
     }
 
     /*
@@ -82,19 +87,6 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         logger.info(format("Exception: " + cause.getMessage()));
     }
 
-    @Override
-    public void userEventTriggered(ChannelHandlerContext ctx, Object event) {
-        if(event instanceof IdleStateEvent) {
-            IdleStateEvent e = (IdleStateEvent) event;
-
-            if(e.state() == IdleState.WRITER_IDLE) {
-                sendKeepAlive();
-            } else if(e.state() == IdleState.ALL_IDLE) {
-                clientTimeout();
-            }
-        }
-    }
-
     private boolean needAck(Message message) {
         return message.getSequence() == message.getBatch().getBatchSize();
     }
@@ -105,26 +97,6 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
 
     private void writeAck(ChannelHandlerContext ctx, byte protocol, int sequence) {
         ctx.write(new Ack(protocol, sequence));
-    }
-
-    private void clientTimeout() {
-        if(!processing.get()) {
-            if(logger.isDebugEnabled()) {
-                logger.debug(format("Client Timeout"));
-            }
-            this.context.close();
-        }
-    }
-
-    private void sendKeepAlive() {
-        // If we are actually blocked on processing
-        // we can send a keep alive.
-        if(processing.get()) {
-            if(logger.isDebugEnabled()) {
-                logger.debug(format("Still processing event current batch, sending keep alive"));
-            }
-            writeAck(context, Protocol.VERSION_2, 0);
-        }
     }
 
     /*

@@ -88,6 +88,7 @@ public class Server {
 
     private class BeatsInitializer extends ChannelInitializer<SocketChannel> {
         private final String SSL_HANDLER = "ssl-handler";
+        private final String IDLESTATE_HANDLER = "idlestate-handler";
         private final String KEEP_ALIVE_HANDLER = "keep-alive-handler";
         private final String BEATS_PARSER = "beats-parser";
         private final String BEATS_HANDLER = "beats-handler";
@@ -95,6 +96,7 @@ public class Server {
 
 
         private final int DEFAULT_IDLESTATEHANDLER_THREAD = 4;
+        private final int DEFAULT_BEATS_HANDLER_THREAD = Runtime.getRuntime().availableProcessors();
         private final int IDLESTATE_WRITER_IDLE_TIME_SECONDS = 5;
 
         private final EventExecutorGroup idleExecutorGroup;
@@ -117,14 +119,11 @@ public class Server {
                 SslHandler sslHandler = sslBuilder.build(socket.alloc());
                 pipeline.addLast(SSL_HANDLER, sslHandler);
             }
-            // We have set a specific executor for the idle check, because the `beatsHandler` can be
-            // blocked on the queue, this the idleStateHandler manage the `KeepAlive` signal.
-            pipeline.addLast(idleExecutorGroup, KEEP_ALIVE_HANDLER, new IdleStateHandler(0, IDLESTATE_WRITER_IDLE_TIME_SECONDS , clientInactivityTimeoutSeconds));
-
-            pipeline.addLast(BEATS_PARSER, new BeatsParser());
+            pipeline.addLast(idleExecutorGroup, IDLESTATE_HANDLER, new IdleStateHandler(clientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS , clientInactivityTimeoutSeconds));
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
-            pipeline.addLast(BEATS_HANDLER, new BeatsHandler(this.message));
-
+            pipeline.addLast(KEEP_ALIVE_HANDLER, new KeepAliveHandler());
+            pipeline.addLast(BEATS_PARSER, new BeatsParser());
+            pipeline.addLast(new DefaultEventExecutorGroup(DEFAULT_BEATS_HANDLER_THREAD), BEATS_HANDLER, new BeatsHandler(this.message));
         }
 
         @Override
