@@ -96,7 +96,7 @@ public class Server {
 
 
         private final int DEFAULT_IDLESTATEHANDLER_THREAD = 4;
-        private final int DEFAULT_BEATS_HANDLER_THREAD = Runtime.getRuntime().availableProcessors();
+        private final int DEFAULT_BEATS_HANDLER_THREAD = Runtime.getRuntime().availableProcessors() * 4;
         private final int IDLESTATE_WRITER_IDLE_TIME_SECONDS = 5;
 
         private final EventExecutorGroup idleExecutorGroup;
