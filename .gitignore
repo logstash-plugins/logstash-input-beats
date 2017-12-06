@@ -28,3 +28,4 @@ build/
 *.ipr
 *.iws
 log4j2.xml_bk
+Gemfile.lock
