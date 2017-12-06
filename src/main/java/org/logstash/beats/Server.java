@@ -135,7 +135,11 @@ public class Server {
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
             logger.warn("Channel initializer");
-            this.message.onChannelInitializeException(ctx, cause);
+            try {
+                this.message.onChannelInitializeException(ctx, cause);
+            } finally {
+                super.exceptionCaught(ctx, cause);
+            }
         }
 
         public void shutdownEventExecutor() {
