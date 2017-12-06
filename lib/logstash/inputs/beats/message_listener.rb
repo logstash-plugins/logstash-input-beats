@@ -84,7 +84,7 @@ module LogStash module Inputs class Beats
     end
 
     def register_connection(ctx)
-      connections_list[ctx] = ConnectionState.new(ctx, input.codec.dup)
+      connections_list[ctx] = ConnectionState.new(ctx, input.codec.clone)
     end
 
     def unregister_connection(ctx)

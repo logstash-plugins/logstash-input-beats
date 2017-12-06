@@ -1,17 +1,13 @@
 package org.logstash.beats;
 
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.ThreadContext;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
@@ -61,10 +57,15 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         logger.info(format("Exception: " + cause.getMessage()));
-        messageListener.onException(ctx, cause);
-        ctx.close();
+        try {
+            messageListener.onException(ctx, cause);
+        } finally {
+            super.exceptionCaught(ctx, cause);
+            ctx.flush();
+            ctx.close();
+        }
     }
 
     @Override
