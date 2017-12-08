@@ -31,6 +31,7 @@ public class Server {
     private final int beatsHeandlerThreadCount;
     private IMessageListener messageListener = new MessageListener();
     private SslSimpleBuilder sslBuilder;
+    private BeatsInitializer beatsInitializer;
 
     private final int clientInactivityTimeoutSeconds;
 
@@ -51,8 +52,6 @@ public class Server {
     }
 
     public Server listen() throws InterruptedException {
-        BeatsInitializer beatsInitializer = null;
-
         try {
             logger.info("Starting server on port: " +  this.port);
 
@@ -67,8 +66,7 @@ public class Server {
             Channel channel = server.bind(host, port).sync().channel();
             channel.closeFuture().sync();
         } finally {
-            workGroup.shutdownGracefully().sync();
-            beatsInitializer.shutdownEventExecutor();
+            shutdown();
         }
 
         return this;
@@ -76,8 +74,17 @@ public class Server {
 
     public void stop() throws InterruptedException {
         logger.debug("Server shutting down");
-        workGroup.shutdownGracefully().sync();
+        shutdown();
         logger.debug("Server stopped");
+    }
+
+    private void shutdown(){
+        try {
+            workGroup.shutdownGracefully().sync();
+            beatsInitializer.shutdownEventExecutor();
+        } catch (InterruptedException e){
+            throw new IllegalStateException(e);
+        }
     }
 
     public void setMessageListener(IMessageListener listener) {
@@ -117,7 +124,6 @@ public class Server {
             this.clientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
             beatsHandlerExecutorGroup = new DefaultEventExecutorGroup(beatsHandlerThread);
-
         }
 
         public void initChannel(SocketChannel socket) throws IOException, NoSuchAlgorithmException, CertificateException {
@@ -145,8 +151,9 @@ public class Server {
         public void shutdownEventExecutor() {
             try {
                 idleExecutorGroup.shutdownGracefully().sync();
+                beatsHandlerExecutorGroup.shutdownGracefully().sync();
             } catch (InterruptedException e) {
-                // we are shutting down we don't care about any errors here.
+                throw new IllegalStateException(e);
             }
         }
     }
