@@ -1,3 +1,6 @@
+## 5.0.4
+  - Fix an issue with `close_wait` connection and making sure the keep alive are send back to the client all the time. #272
+
 ## 5.0.3
   - Update gemspec summary
 
