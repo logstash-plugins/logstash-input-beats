@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.Thread.currentThread;
 import static java.lang.Thread.sleep;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -32,6 +33,7 @@ public class ServerTest {
     private int randomPort;
     private EventLoopGroup group;
     private final String host = "0.0.0.0";
+    private final int threadCount = 10;
 
     @Before
     public void setUp() {
@@ -48,7 +50,7 @@ public class ServerTest {
 
         final CountDownLatch latch = new CountDownLatch(concurrentConnections);
 
-        final Server server = new Server(host, randomPort, inactivityTime);
+        final Server server = new Server(host, randomPort, inactivityTime, threadCount);
         final AtomicBoolean otherCause = new AtomicBoolean(false);
         server.setMessageListener(new MessageListener() {
             public void onNewConnection(ChannelHandlerContext ctx) {
@@ -112,7 +114,7 @@ public class ServerTest {
 
         final CountDownLatch latch = new CountDownLatch(concurrentConnections);
         final AtomicBoolean exceptionClose = new AtomicBoolean(false);
-        final Server server = new Server(host, randomPort, inactivityTime);
+        final Server server = new Server(host, randomPort, inactivityTime, threadCount);
         server.setMessageListener(new MessageListener() {
             @Override
             public void onNewConnection(ChannelHandlerContext ctx) {
@@ -168,7 +170,7 @@ public class ServerTest {
 
     @Test
     public void testServerShouldAcceptConcurrentConnection() throws InterruptedException {
-        final Server server = new Server(host, randomPort, 30);
+        final Server server = new Server(host, randomPort, 30, threadCount);
         SpyListener listener = new SpyListener();
         server.setMessageListener(listener);
         Runnable serverTask = new Runnable() {
