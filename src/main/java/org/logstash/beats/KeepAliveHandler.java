@@ -41,16 +41,19 @@ public class KeepAliveHandler extends ChannelDuplexHandler {
                 logger.debug("reader and writer are idle, closing remote connection");
                 ctx.flush();
                 ChannelFuture f = ctx.close();
-                f.addListener(new GenericFutureListener<Future<? super Void>>() {
-                    @Override
-                    public void operationComplete(final Future<? super Void> future) throws Exception {
-                        if (future.isSuccess()) {
-                            logger.warn("success");
-                        } else {
-                            logger.warn("could not close the ctx");
+
+                if (logger.isTraceEnabled()) {
+                    f.addListener(new GenericFutureListener<Future<? super Void>>() {
+                        @Override
+                        public void operationComplete(final Future<? super Void> future) throws Exception {
+                            if (future.isSuccess()) {
+                                logger.trace("closed ctx successfully");
+                            } else {
+                                logger.trace("could not close ctx");
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
         }
     }

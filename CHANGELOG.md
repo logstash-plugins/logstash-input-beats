@@ -1,3 +1,6 @@
+## 3.1.25
+ - Fix an issue with close_wait connection and making sure the keep alive are send back to the client all the time. #272
+
 ## 3.1.24
  - Documentation changes
 
