@@ -6,6 +6,8 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -23,11 +25,14 @@ public class KeepAliveHandler extends ChannelDuplexHandler {
                     ChannelFuture f = ctx.writeAndFlush(new Ack(Protocol.VERSION_2, 0));
                     if (logger.isTraceEnabled()) {
                         logger.trace("sending keep alive ack to libbeat");
-                        f.addListener((ChannelFutureListener) future -> {
-                            if (future.isSuccess()) {
-                                logger.trace("acking was successful");
-                            } else {
-                                logger.trace("acking failed");
+                        f.addListener(new ChannelFutureListener() {
+                            @Override
+                            public void operationComplete(final ChannelFuture future) throws Exception {
+                                if (future.isSuccess()) {
+                                    logger.trace("acking was successful");
+                                } else {
+                                    logger.trace("acking failed");
+                                }
                             }
                         });
                     }
@@ -36,12 +41,15 @@ public class KeepAliveHandler extends ChannelDuplexHandler {
                 logger.debug("reader and writer are idle, closing remote connection");
                 ctx.flush();
                 ChannelFuture f = ctx.close();
-                f.addListener((future) ->{
-                   if (future.isSuccess()){
-                       logger.warn("success");
-                   } else {
-                        logger.warn("could not close the ctx");
-                   }
+                f.addListener(new GenericFutureListener<Future<? super Void>>() {
+                    @Override
+                    public void operationComplete(final Future<? super Void> future) throws Exception {
+                        if (future.isSuccess()) {
+                            logger.warn("success");
+                        } else {
+                            logger.warn("could not close the ctx");
+                        }
+                    }
                 });
             }
         }
