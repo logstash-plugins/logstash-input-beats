@@ -71,13 +71,18 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
      */
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        ctx.close();
+        InetSocketAddress remoteAddress = (InetSocketAddress) ctx.channel().remoteAddress();
+
+        if (remoteAddress != null) {
+            logger.info("Exception: " + cause.getMessage() + ", from: " + remoteAddress.toString());
+        } else {
+            logger.info("Exception: " + cause.getMessage());
+        }
 
         if (!(cause instanceof SSLHandshakeException)) {
             messageListener.onException(ctx, cause);
         }
-
-        logger.info(format("Exception: " + cause.getMessage()));
+        ctx.close();
     }
 
     private boolean needAck(Message message) {
@@ -90,30 +95,5 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
 
     private void writeAck(ChannelHandlerContext ctx, byte protocol, int sequence) {
         ctx.write(new Ack(protocol, sequence));
-    }
-
-    /*
-     * There is no easy way in Netty to support MDC directly,
-     * we will use similar logic than Netty's LoggingHandler
-     */
-    private String format(String message) {
-        InetSocketAddress local = (InetSocketAddress) context.channel().localAddress();
-        InetSocketAddress remote = (InetSocketAddress) context.channel().remoteAddress();
-
-        String localhost;
-        if(local != null) {
-            localhost = local.getAddress().getHostAddress() + ":" + local.getPort();
-        } else{
-            localhost = "undefined";
-        }
-
-        String remotehost;
-        if(remote != null) {
-            remotehost = remote.getAddress().getHostAddress() + ":" + remote.getPort();
-        } else{
-            remotehost = "undefined";
-        };
-
-        return "[local: " + localhost + ", remote: " + remotehost + "] " + message;
     }
 }
