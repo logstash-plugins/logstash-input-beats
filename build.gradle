@@ -90,8 +90,3 @@ publishing {
     }
   }
 }
-
-task wrapper(type: Wrapper) {
-    description = 'Install Gradle wrapper'
-    gradleVersion = '2.14'
-}
