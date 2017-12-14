@@ -29,7 +29,8 @@ module LogStash module Inputs class Beats
     def onNewMessage(ctx, message)
       hash = message.getData
       ip_address = ip_address(ctx)
-      hash['@metadata']['ip_address'] = ip_address unless ip_address.nil?
+
+      hash['@metadata']['ip_address'] = ip_address unless ip_address.nil? || hash['@metadata'].nil?
       target_field = extract_target_field(hash)
 
       if target_field.nil?
