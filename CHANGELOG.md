@@ -1,3 +1,7 @@
+## 3.1.26
+  - Re-order Netty pipeline to avoid NullPointerExceptions in KeepAliveHandler when Logstash is under load
+  - Improve exception logging
+
 ## 3.1.25
  - Fix an issue with close_wait connection and making sure the keep alive are send back to the client all the time. #272
 

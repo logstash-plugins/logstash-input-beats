@@ -139,9 +139,9 @@ public class Server {
             }
             pipeline.addLast(idleExecutorGroup, IDLESTATE_HANDLER, new IdleStateHandler(clientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS , clientInactivityTimeoutSeconds));
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
-            pipeline.addLast(KEEP_ALIVE_HANDLER, new KeepAliveHandler());
             pipeline.addLast(BEATS_PARSER, new BeatsParser());
             pipeline.addLast(beatsHandlerExecutorGroup, BEATS_HANDLER, new BeatsHandler(this.message));
+            pipeline.addLast(KEEP_ALIVE_HANDLER, new KeepAliveHandler());
         }
 
         @Override
