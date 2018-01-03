@@ -82,7 +82,12 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
             messageListener.onException(ctx, cause);
         }
 
-        logger.info(format("Exception: " + cause.getMessage()));
+        String causeMessage = cause.getMessage() == null ? cause.getClass().toString() : cause.getMessage();
+
+        if (logger.isDebugEnabled()){
+            logger.debug(format("Handling exception: " + causeMessage), cause);
+        }
+        logger.info(format("Handling exception: " + causeMessage));
     }
 
     private boolean needAck(Message message) {
