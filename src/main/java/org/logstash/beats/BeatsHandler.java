@@ -73,10 +73,16 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         InetSocketAddress remoteAddress = (InetSocketAddress) ctx.channel().remoteAddress();
 
+        String causeMessage = cause.getMessage() == null ? cause.getClass().toString() : cause.getMessage();
+
         if (remoteAddress != null) {
-            logger.info("Exception: " + cause.getMessage() + ", from: " + remoteAddress.toString());
+            logger.info("Exception: " + causeMessage + ", from: " + remoteAddress.toString());
         } else {
-            logger.info("Exception: " + cause.getMessage());
+            logger.info("Exception: " + causeMessage);
+        }
+
+        if (logger.isDebugEnabled()){
+            logger.debug("Exception: " + causeMessage, cause);
         }
 
         if (!(cause instanceof SSLHandshakeException)) {
