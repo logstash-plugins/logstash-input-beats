@@ -1,3 +1,8 @@
+## 5.0.6
+  - Re-order Netty pipeline to avoid NullPointerExceptions in KeepAliveHandler when Logstash is under load
+  - Improve exception logging
+  - Upgrade to Netty 4.1.18 with tcnative 2.0.7
+
 ## 5.0.5
   - Better handle case when remoteAddress is nil to reduce amount of warning messages in logs #269
   
