@@ -53,7 +53,7 @@ configuration because Logstash sets the type to `doc` by default.
 IMPORTANT: If you are shipping events that span multiple lines, you need to
 use the https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html[configuration options available in Filebeat] to handle multiline events
 before sending the event data to Logstash. You cannot use the
-<<plugins-codecs-multiline>> codec to handle multiline events. Doing so will
+{logstash-ref}/plugins-codecs-multiline.html[Multiline codec plugin] to handle multiline events. Doing so will
 result in the failure to start Logstash.
 
 
