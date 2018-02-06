@@ -27,22 +27,29 @@ module LogStash module Inputs class Beats
     end
 
     def onNewMessage(ctx, message)
-      hash = message.getData
-      ip_address = ip_address(ctx)
+      begin
+        hash = message.getData
+        ip_address = ip_address(ctx)
 
-      hash['@metadata']['ip_address'] = ip_address unless ip_address.nil? || hash['@metadata'].nil?
-      target_field = extract_target_field(hash)
+        hash['@metadata']['ip_address'] = ip_address unless ip_address.nil? || hash['@metadata'].nil?
+        target_field = extract_target_field(hash)
 
-      if target_field.nil?
-        event = LogStash::Event.new(hash)
-        @nocodec_transformer.transform(event)
-        @queue << event
-      else
-        codec(ctx).accept(CodecCallbackListener.new(target_field,
-                                                    hash,
-                                                    message.getIdentityStream(),
-                                                    @codec_transformer,
-                                                    @queue))
+        if target_field.nil?
+          event = LogStash::Event.new(hash)
+          @nocodec_transformer.transform(event)
+          @queue << event
+        else
+          codec(ctx).accept(CodecCallbackListener.new(target_field,
+                                                      hash,
+                                                      message.getIdentityStream(),
+                                                      @codec_transformer,
+                                                      @queue))
+        end
+      rescue => e
+        logger.warn("Error handling message #{message}", e)
+        raise e
+      ensure
+        message.release
       end
     end
 
@@ -85,7 +92,7 @@ module LogStash module Inputs class Beats
     end
 
     def register_connection(ctx)
-      connections_list[ctx] = ConnectionState.new(ctx, input.codec.dup, ip_address_from_ctx(ctx))
+      connections_list[ctx] = ConnectionState.new(ctx, input.codec.clone, ip_address_from_ctx(ctx))
     end
 
     def ip_address_from_ctx(ctx)
