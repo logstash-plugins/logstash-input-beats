@@ -120,7 +120,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   config :client_inactivity_timeout, :validate => :number, :default => 60
 
   # Beats handler executor thread
-  config :executor_threads, :validate => :number, :default => LogStash::Config::CpuCoreStrategy.maximum * 4
+  config :executor_threads, :validate => :number, :default => LogStash::Config::CpuCoreStrategy.maximum
 
   def register
     # For Logstash 2.4 we need to make sure that the logger is correctly set for the

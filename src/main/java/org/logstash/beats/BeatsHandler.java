@@ -1,28 +1,19 @@
 package org.logstash.beats;
 
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.timeout.IdleState;
-import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.AttributeKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.ThreadContext;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import javax.net.ssl.SSLHandshakeException;
 
-public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
+public class BeatsHandler extends SimpleChannelInboundHandler<NewBatch> {
     private final static Logger logger = LogManager.getLogger(BeatsHandler.class);
     public static AttributeKey<Boolean> PROCESSING_BATCH = AttributeKey.valueOf("processing-batch");
     private final IMessageListener messageListener;
     private ChannelHandlerContext context;
-
 
 
     public BeatsHandler(IMessageListener listener) {
@@ -30,30 +21,38 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     }
 
     @Override
-    public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+    public void channelActive(final ChannelHandlerContext ctx) throws Exception {
+        if (logger.isTraceEnabled()){
+            logger.trace(format("Channel Active"));
+        }
+        ctx.channel().attr(BeatsHandler.PROCESSING_BATCH).set(false);
+
+        super.channelActive(ctx);
         context = ctx;
         messageListener.onNewConnection(ctx);
-        // Give some breathing room on new clients to receive the keep alive.
-        ctx.channel().attr(PROCESSING_BATCH).set(false);
     }
 
     @Override
-    public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
-        ctx.channel().attr(PROCESSING_BATCH).set(false);
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        super.channelInactive(ctx);
+        if (logger.isTraceEnabled()){
+            logger.trace(format("Channel Inactive"));
+        }
+        ctx.channel().attr(BeatsHandler.PROCESSING_BATCH).set(false);
         messageListener.onConnectionClose(ctx);
     }
 
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, Batch batch) throws Exception {
-        if(logger.isDebugEnabled()) {
-            logger.debug(format("Received a new payload"));
+        if(logger.isTraceEnabled()) {
+            logger.trace(format("Received a new payload"));
         }
 
-        ctx.channel().attr(PROCESSING_BATCH).set(true);
+        ctx.channel().attr(BeatsHandler.PROCESSING_BATCH).set(true);
         for(Message message : batch.getMessages()) {
-            if(logger.isDebugEnabled()) {
-                logger.debug(format("Sending a new message for the listener, sequence: " + message.getSequence()));
+            if(logger.isTraceEnabled()) {
+                logger.trace(format("Sending a new message for the listener, sequence: " + message.getSequence()));
             }
             messageListener.onNewMessage(ctx, message);
 
@@ -61,6 +60,33 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
                 ack(ctx, message);
             }
         }
+        ctx.flush();
+        ctx.channel().attr(PROCESSING_BATCH).set(false);
+    }
+
+    @Override
+    public void channelRead0(ChannelHandlerContext ctx, NewBatch batch) throws Exception {
+        if(logger.isDebugEnabled()) {
+            logger.debug(format("Received a new payload"));
+        }
+
+        ctx.channel().attr(PROCESSING_BATCH).set(true);
+        batch.getMessageStream().forEach(e -> {
+            messageListener.onNewMessage(ctx, e);
+            if (needAck(e)){
+                ack(ctx, e);
+            }
+        });
+//        for(Message message : batch.getMessages()) {
+//            if(logger.isDebugEnabled()) {
+//                logger.debug(format("Sending a new message for the listener, sequence: " + message.getSequence()));
+//            }
+//            messageListener.onNewMessage(ctx, message);
+//
+//            if(needAck(message)) {
+//                ack(ctx, message);
+//            }
+//        }
         ctx.flush();
         ctx.channel().attr(PROCESSING_BATCH).set(false);
     }
@@ -75,26 +101,33 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
      * overlap Filebeat transmission; we were recommending multiline at the source in v5 and in v6 we enforce it.
      */
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        ctx.close();
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        try {
+            if (!(cause instanceof SSLHandshakeException)) {
+                messageListener.onException(ctx, cause);
+            }
+            String causeMessage = cause.getMessage() == null ? cause.getClass().toString() : cause.getMessage();
 
-        if (!(cause instanceof SSLHandshakeException)) {
-            messageListener.onException(ctx, cause);
+            if (logger.isDebugEnabled()){
+                logger.debug(format("Handling exception: " + causeMessage), cause);
+            }
+            logger.info(format("Handling exception: " + causeMessage));
+        } finally{
+            super.exceptionCaught(ctx, cause);
+            ctx.flush();
+            ctx.close();
         }
-
-        String causeMessage = cause.getMessage() == null ? cause.getClass().toString() : cause.getMessage();
-
-        if (logger.isDebugEnabled()){
-            logger.debug(format("Handling exception: " + causeMessage), cause);
-        }
-        logger.info(format("Handling exception: " + causeMessage));
     }
 
     private boolean needAck(Message message) {
-        return message.getSequence() == message.getBatch().getBatchSize();
+        return message.getSequence() == message.getNewBatch().getBatchSize();
     }
 
     private void ack(ChannelHandlerContext ctx, Message message) {
+        logger.warn(format("Acking message number " + message.getSequence()));
+        if (logger.isTraceEnabled()){
+            logger.trace(format("Acking message number " + message.getSequence()));
+        }
         writeAck(ctx, message.getBatch().getProtocol(), message.getSequence());
     }
 
