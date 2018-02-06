@@ -24,7 +24,7 @@ public class BeatsParser extends ByteToMessageDecoder {
     public final static ObjectMapper MAPPER = new ObjectMapper().registerModule(new AfterburnerModule());
     private final static Logger logger = LogManager.getLogger(BeatsParser.class);
 
-    private Batch batch = new Batch();
+    private Batch batch;
 
     private enum States {
         READ_HEADER(1),
@@ -56,6 +56,9 @@ public class BeatsParser extends ByteToMessageDecoder {
 
         switch (currentState) {
             case READ_HEADER: {
+                if (batch == null){
+                    batch = new Batch();
+                }
                 logger.trace("Running: READ_HEADER");
 
                 byte currentVersion = in.readByte();
@@ -67,7 +70,6 @@ public class BeatsParser extends ByteToMessageDecoder {
                     logger.trace("Frame version 1 detected");
                     batch.setProtocol(Protocol.VERSION_1);
                 }
-
                 transition(States.READ_FRAME_TYPE);
                 break;
             }
@@ -100,7 +102,6 @@ public class BeatsParser extends ByteToMessageDecoder {
             }
             case READ_WINDOW_SIZE: {
                 logger.trace("Running: READ_WINDOW_SIZE");
-
                 batch.setBatchSize((int) in.readUnsignedInt());
 
                 // This is unlikely to happen but I have no way to known when a frame is
@@ -201,12 +202,7 @@ public class BeatsParser extends ByteToMessageDecoder {
             case READ_JSON: {
                 logger.trace("Running: READ_JSON");
 
-                byte[] bytes = new byte[requiredBytes];
-                in.readBytes(bytes);
-                Message message = new Message(sequence, (Map) MAPPER.readValue(bytes, Object.class));
-
-                batch.addMessage(message);
-
+                batch.addMessage(new Message(sequence, in.readBytes(requiredBytes)));
                 if(batch.size() == batch.getBatchSize()) {
                     if(logger.isTraceEnabled()) {
                         logger.trace("Sending batch size: " + this.batch.size() + ", windowSize: " + batch.getBatchSize() + " , seq: " + sequence);
@@ -241,7 +237,8 @@ public class BeatsParser extends ByteToMessageDecoder {
     private void batchComplete() {
         requiredBytes = 0;
         sequence = 0;
-        batch = new Batch();
+        batch = null;
+        logger.warn("batch compete");
     }
 
     public class InvalidFrameProtocolException extends Exception {
