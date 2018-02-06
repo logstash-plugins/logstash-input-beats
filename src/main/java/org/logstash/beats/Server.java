@@ -20,8 +20,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
 
-
-
 public class Server {
     private final static Logger logger = LogManager.getLogger(Server.class);
 
@@ -37,17 +35,14 @@ public class Server {
 
     private final int clientInactivityTimeoutSeconds;
 
-    public Server(String host, int p) {
-        this(host, p, DEFAULT_CLIENT_TIMEOUT_SECONDS, Runtime.getRuntime().availableProcessors() * 4);
-    }
-
     public Server(String host, int p, int timeout, int threadCount) {
+
         this.host = host;
         port = p;
         clientInactivityTimeoutSeconds = timeout;
         beatsHeandlerThreadCount = threadCount;
         workGroup = new NioEventLoopGroup();
-    }
+   }
 
     public void enableSSL(SslSimpleBuilder builder) {
         sslBuilder = builder;
@@ -55,7 +50,7 @@ public class Server {
 
     public Server listen() throws InterruptedException {
         try {
-            logger.info("Starting server on port: " +  this.port);
+            logger.info("Starting server on port: " + this.port);
 
             beatsInitializer = new BeatsInitializer(isSslEnable(), messageListener, clientInactivityTimeoutSeconds, beatsHeandlerThreadCount);
 
@@ -139,15 +134,18 @@ public class Server {
             }
             pipeline.addLast(idleExecutorGroup, IDLESTATE_HANDLER, new IdleStateHandler(clientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS , clientInactivityTimeoutSeconds));
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
-            pipeline.addLast(BEATS_PARSER, new BeatsParser());
-            pipeline.addLast(beatsHandlerExecutorGroup, BEATS_HANDLER, new BeatsHandler(this.message));
             pipeline.addLast(KEEP_ALIVE_HANDLER, new KeepAliveHandler());
+            pipeline.addLast(beatsHandlerExecutorGroup, new BeatsParser(), new BeatsHandler(this.message));
         }
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
             logger.warn("Exception caught in channel initializer", cause);
-            this.message.onChannelInitializeException(ctx, cause);
+            try {
+                this.message.onChannelInitializeException(ctx, cause);
+            } finally {
+                super.exceptionCaught(ctx, cause);
+            }
         }
 
         public void shutdownEventExecutor() {
