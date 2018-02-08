@@ -1,6 +1,8 @@
 package org.logstash.beats;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -11,6 +13,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
@@ -20,7 +23,10 @@ import static org.junit.Assert.assertNotNull;
 
 
 public class BeatsParserTest {
-    private Batch batch;
+    private V1Batch v1Batch;
+    private V2Batch byteBufBatch;
+    public final static ObjectMapper MAPPER = new ObjectMapper().registerModule(new AfterburnerModule());
+
     private final int numberOfMessage = 20;
 
     @Rule
@@ -28,63 +34,94 @@ public class BeatsParserTest {
 
 
     @Before
-    public void setup() {
-        this.batch = new Batch();
-        this.batch.setProtocol(Protocol.VERSION_2);
+    public void setup() throws Exception{
+        this.v1Batch = new V1Batch();
 
-        for(int i = 0; i < numberOfMessage; i++) {
+        for(int i = 1; i <= numberOfMessage; i++) {
             Map map = new HashMap<String, String>();
             map.put("line", "Another world");
             map.put("from", "Little big Adventure");
 
-            Message message = new Message(i + 1, map);
-            this.batch.addMessage(message);
+            Message message = new Message(i, map);
+            this.v1Batch.addMessage(message);
         }
+
+        this.byteBufBatch = new V2Batch();
+
+        for(int i = 1; i <= numberOfMessage; i++) {
+            Map map = new HashMap<String, String>();
+            map.put("line", "Another world");
+            map.put("from", "Little big Adventure");
+            ByteBuf bytebuf = Unpooled.wrappedBuffer(MAPPER.writeValueAsBytes(map));
+            this.byteBufBatch.addMessage(i, bytebuf, bytebuf.readableBytes());
+        }
+
     }
 
     @Test
     public void testEncodingDecodingJson() {
-        Batch decodedBatch = decodeBatch();
-        assertMessages(this.batch, decodedBatch);
+        Batch decodedBatch = decodeBatch(v1Batch);
+        assertMessages(v1Batch, decodedBatch);
     }
 
     @Test
     public void testCompressedEncodingDecodingJson() {
-        Batch decodedBatch = decodeCompressedBatch();
-        assertMessages(this.batch, decodedBatch);
+        Batch decodedBatch = decodeCompressedBatch(v1Batch);
+        assertMessages(v1Batch, decodedBatch);
     }
 
     @Test
     public void testEncodingDecodingFields() {
-        this.batch.setProtocol(Protocol.VERSION_1);
-        Batch decodedBatch = decodeBatch();
-        assertMessages(this.batch, decodedBatch);
+        Batch decodedBatch = decodeBatch(v1Batch);
+        assertMessages(v1Batch, decodedBatch);
     }
 
     @Test
-    public void testEncodingDecodingFieldWithUTFCharacters() {
-        this.batch = new Batch();
-        this.batch.setProtocol(Protocol.VERSION_2);
+    public void testEncodingDecodingFieldWithUTFCharacters() throws Exception {
+        V2Batch v2Batch = new V2Batch();
+
 
         // Generate Data with Keys and String with UTF-8
         for(int i = 0; i < numberOfMessage; i++) {
+            ByteBuf payload = Unpooled.buffer();
+
+            Map map = new HashMap<String, String>();
+            map.put("étoile", "mystère");
+            map.put("from", "ÉeèAççï");
+
+            byte[] json = MAPPER.writeValueAsBytes(map);
+            payload.writeBytes(json);
+
+            v2Batch.addMessage(i, payload, payload.readableBytes());
+        }
+
+        Batch decodedBatch = decodeBatch(v2Batch);
+        assertMessages(v2Batch, decodedBatch);
+    }
+
+    @Test
+    public void testV1EncodingDecodingFieldWithUTFCharacters() {
+        V1Batch batch = new V1Batch();
+
+        // Generate Data with Keys and String with UTF-8
+        for(int i = 0; i < numberOfMessage; i++) {
+
             Map map = new HashMap<String, String>();
             map.put("étoile", "mystère");
             map.put("from", "ÉeèAççï");
 
             Message message = new Message(i + 1, map);
-            this.batch.addMessage(message);
+            batch.addMessage(message);
         }
 
-        Batch decodedBatch = decodeBatch();
-        assertMessages(this.batch, decodedBatch);
+        Batch decodedBatch = decodeBatch(batch);
+        assertMessages(batch, decodedBatch);
     }
 
     @Test
     public void testCompressedEncodingDecodingFields() {
-        this.batch.setProtocol(Protocol.VERSION_1);
-        Batch decodedBatch = decodeCompressedBatch();
-        assertMessages(this.batch, decodedBatch);
+        Batch decodedBatch = decodeCompressedBatch(v1Batch);
+        assertMessages(this.v1Batch, decodedBatch);
     }
 
     @Test
@@ -160,7 +197,7 @@ public class BeatsParserTest {
         payload.writeInt(1);
         payload.writeInt(size);
 
-        byte[] json = BeatsParser.MAPPER.writeValueAsBytes(mapData);
+        byte[] json = MAPPER.writeValueAsBytes(mapData);
         payload.writeBytes(json);
 
         sendPayloadToParser(payload);
@@ -174,14 +211,18 @@ public class BeatsParserTest {
     }
 
     private void assertMessages(Batch expected, Batch actual) {
+
         assertNotNull(actual);
         assertEquals(expected.size(), actual.size());
 
-        for(int i=0; i < expected.size(); i++) {
-            assertEquals(expected.getMessages().get(i).getSequence(), actual.getMessages().get(i).getSequence());
+        int i = 0;
+        Iterator<Message> expectedMessages = expected.iterator();
+        for(Message actualMessage: actual) {
+            Message expectedMessage = expectedMessages.next();
+            assertEquals(expectedMessage.getSequence(), actualMessage.getSequence());
 
-            Map expectedData = expected.getMessages().get(i).getData();
-            Map actualData = actual.getMessages().get(i).getData();
+            Map expectedData = expectedMessage.getData();
+            Map actualData = actualMessage.getData();
 
             assertEquals(expectedData.size(), actualData.size());
 
@@ -195,18 +236,18 @@ public class BeatsParserTest {
         }
     }
 
-    private Batch decodeCompressedBatch() {
+    private Batch decodeCompressedBatch(Batch batch) {
         EmbeddedChannel channel = new EmbeddedChannel(new CompressedBatchEncoder(), new BeatsParser());
-        channel.writeOutbound(this.batch);
+        channel.writeOutbound(batch);
         Object o = channel.readOutbound();
         channel.writeInbound(o);
 
         return (Batch) channel.readInbound();
     }
 
-    private Batch decodeBatch() {
+    private Batch decodeBatch(Batch batch) {
         EmbeddedChannel channel = new EmbeddedChannel(new BatchEncoder(), new BeatsParser());
-        channel.writeOutbound(this.batch);
+        channel.writeOutbound(batch);
         Object o = channel.readOutbound();
         channel.writeInbound(o);
 
