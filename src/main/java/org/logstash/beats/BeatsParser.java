@@ -1,8 +1,6 @@
 package org.logstash.beats;
 
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.channel.ChannelHandlerContext;
@@ -20,8 +18,6 @@ import java.util.zip.InflaterOutputStream;
 
 
 public class BeatsParser extends ByteToMessageDecoder {
-    private static final int CHUNK_SIZE = 1024;
-    public final static ObjectMapper MAPPER = new ObjectMapper().registerModule(new AfterburnerModule());
     private final static Logger logger = LogManager.getLogger(BeatsParser.class);
 
     private Batch batch;
@@ -56,19 +52,17 @@ public class BeatsParser extends ByteToMessageDecoder {
 
         switch (currentState) {
             case READ_HEADER: {
-                if (batch == null){
-                    batch = new Batch();
-                }
                 logger.trace("Running: READ_HEADER");
 
                 byte currentVersion = in.readByte();
-
-                if(Protocol.isVersion2(currentVersion)) {
-                    logger.trace("Frame version 2 detected");
-                    batch.setProtocol(Protocol.VERSION_2);
-                } else {
-                    logger.trace("Frame version 1 detected");
-                    batch.setProtocol(Protocol.VERSION_1);
+                if (batch == null) {
+                    if (Protocol.isVersion2(currentVersion)) {
+                        batch = new V2Batch();
+                        logger.trace("Frame version 2 detected");
+                    } else {
+                        logger.trace("Frame version 1 detected");
+                        batch = new V1Batch();
+                    }
                 }
                 transition(States.READ_FRAME_TYPE);
                 break;
@@ -145,15 +139,13 @@ public class BeatsParser extends ByteToMessageDecoder {
 
                     count++;
                 }
-
                 Message message = new Message(sequence, dataMap);
-                batch.addMessage(message);
+                ((V1Batch)batch).addMessage(message);
 
-                if(batch.complete()) {
+                if (batch.isComplete()){
                     out.add(batch);
                     batchComplete();
                 }
-
                 transition(States.READ_HEADER);
 
                 break;
@@ -184,9 +176,9 @@ public class BeatsParser extends ByteToMessageDecoder {
                 ByteBuf buffer = ctx.alloc().buffer(requiredBytes);
                 try (
                         ByteBufOutputStream buffOutput = new ByteBufOutputStream(buffer);
-                        InflaterOutputStream inflater = new InflaterOutputStream(buffOutput, new Inflater());
+                        InflaterOutputStream inflater = new InflaterOutputStream(buffOutput, new Inflater())
                 ) {
-                    ByteBuf bytesRead = in.readBytes(inflater, requiredBytes);
+                    in.readBytes(inflater, requiredBytes);
                     transition(States.READ_HEADER);
                     try {
                         while (buffer.readableBytes() > 0) {
@@ -201,13 +193,11 @@ public class BeatsParser extends ByteToMessageDecoder {
             }
             case READ_JSON: {
                 logger.trace("Running: READ_JSON");
-
-                batch.addMessage(new Message(sequence, in.readBytes(requiredBytes)));
-                if(batch.size() == batch.getBatchSize()) {
+                ((V2Batch)batch).addMessage(sequence, in, requiredBytes);
+                if(batch.isComplete()) {
                     if(logger.isTraceEnabled()) {
                         logger.trace("Sending batch size: " + this.batch.size() + ", windowSize: " + batch.getBatchSize() + " , seq: " + sequence);
                     }
-
                     out.add(batch);
                     batchComplete();
                 }
@@ -238,7 +228,6 @@ public class BeatsParser extends ByteToMessageDecoder {
         requiredBytes = 0;
         sequence = 0;
         batch = null;
-        logger.warn("batch compete");
     }
 
     public class InvalidFrameProtocolException extends Exception {

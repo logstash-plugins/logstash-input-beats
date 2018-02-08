@@ -23,8 +23,6 @@ import java.util.concurrent.TimeUnit;
 public class Server {
     private final static Logger logger = LogManager.getLogger(Server.class);
 
-    private static final int DEFAULT_CLIENT_TIMEOUT_SECONDS = 15;
-
     private final int port;
     private final NioEventLoopGroup workGroup;
     private final String host;
@@ -36,13 +34,12 @@ public class Server {
     private final int clientInactivityTimeoutSeconds;
 
     public Server(String host, int p, int timeout, int threadCount) {
-
         this.host = host;
         port = p;
         clientInactivityTimeoutSeconds = timeout;
         beatsHeandlerThreadCount = threadCount;
         workGroup = new NioEventLoopGroup();
-   }
+    }
 
     public void enableSSL(SslSimpleBuilder builder) {
         sslBuilder = builder;
@@ -50,7 +47,7 @@ public class Server {
 
     public Server listen() throws InterruptedException {
         try {
-            logger.info("Starting server on port: " + this.port);
+            logger.info("Starting server on port: " +  this.port);
 
             beatsInitializer = new BeatsInitializer(isSslEnable(), messageListener, clientInactivityTimeoutSeconds, beatsHeandlerThreadCount);
 
@@ -97,8 +94,6 @@ public class Server {
         private final String SSL_HANDLER = "ssl-handler";
         private final String IDLESTATE_HANDLER = "idlestate-handler";
         private final String KEEP_ALIVE_HANDLER = "keep-alive-handler";
-        private final String BEATS_PARSER = "beats-parser";
-        private final String BEATS_HANDLER = "beats-handler";
         private final String BEATS_ACKER = "beats-acker";
 
 

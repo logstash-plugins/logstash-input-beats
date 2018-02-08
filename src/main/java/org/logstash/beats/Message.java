@@ -4,11 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.io.InputStream;
 import java.util.Map;
 
 public class Message implements Comparable<Message> {
@@ -17,67 +15,66 @@ public class Message implements Comparable<Message> {
     private Map data;
     private Batch batch;
     private ByteBuf buffer;
-    private Logger logger = LogManager.getLogger(Message.class);
 
     public final static ObjectMapper MAPPER = new ObjectMapper().registerModule(new AfterburnerModule());
 
+    /**
+     * Create a message using a map of key, value pairs
+     * @param sequence sequence number of the message
+     * @param map key/value pairs representing the message
+     */
     public Message(int sequence, Map map) {
         this.sequence = sequence;
         this.data = map;
     }
 
+    /**
+     * Create a message using a ByteBuf holding a Json object.
+     * Note that this ctr is *lazy* - it will not deserialize the Json object until it is needed.
+     * @param sequence sequence number of the message
+     * @param buffer {@link ByteBuf} buffer containing Json object
+     */
     public Message(int sequence, ByteBuf buffer){
         this.sequence = sequence;
         this.buffer = buffer;
     }
 
+    /**
+     * Returns the sequence number of this messsage
+     * @return
+     */
     public int getSequence() {
         return sequence;
     }
 
-    public boolean release() {
-        if (buffer != null){
-            return buffer.release();
-        }
-        return true;
-    }
-
+    /**
+     * Returns a list of key/value pairs representing the contents of the message.
+     * Note that this method is lazy if the Message was created using a {@link ByteBuf}
+     * @return {@link Map} Map of key/value pairs
+     */
     public Map getData(){
         if (data == null && buffer != null){
             try (ByteBufInputStream byteBufInputStream = new ByteBufInputStream(buffer)){
-                data = (Map)MAPPER.readValue(byteBufInputStream, Object.class);
+                data = MAPPER.readValue((InputStream)byteBufInputStream, Map.class);
+                buffer = null;
             } catch (IOException e){
                 throw new RuntimeException("Unable to parse beats payload ", e);
             }
-//            finally{
-//                release();
-//            }
         }
-
         return data;
     }
-
-    private NewBatch newBatch;
 
     @Override
     public int compareTo(Message o) {
         return Integer.compare(getSequence(), o.getSequence());
     }
 
-    public Batch getBatch() {
+    public Batch getBatch(){
         return batch;
     }
 
-    public void setBatch(Batch newBatch) {
-        batch = newBatch;
-    }
-
-    public NewBatch getNewBatch() {
-        return newBatch;
-    }
-
-    public void setNewBatch(NewBatch newnewBatch){
-        this.newBatch = newnewBatch;
+    public void setBatch(Batch batch){
+        this.batch = batch;
     }
 
 
@@ -89,7 +86,7 @@ public class Message implements Comparable<Message> {
     }
 
     private String extractIdentityStream() {
-        Map beatsData = (HashMap<String, String>) this.getData().get("beat");
+        Map beatsData = (Map<String, String>)this.getData().get("beat");
 
         if(beatsData != null) {
             String id = (String) beatsData.get("id");

@@ -27,27 +27,20 @@ module LogStash module Inputs class Beats
     end
 
     def onNewMessage(ctx, message)
-      begin
-         hash = message.getData()
+      hash = message.getData()
 
       target_field = extract_target_field(hash)
 
-        if target_field.nil?
-          event = LogStash::Event.new(hash)
-          @nocodec_transformer.transform(event)
-          @queue << event
-        else
-          codec(ctx).accept(CodecCallbackListener.new(target_field,
-                                                      hash,
-                                                      message.getIdentityStream(),
-                                                      @codec_transformer,
-                                                      @queue))
-        end
-      rescue => e
-        logger.warn("Error handling message #{message}", e)
-        raise e
-      ensure
-        message.release
+      if target_field.nil?
+        event = LogStash::Event.new(hash)
+        @nocodec_transformer.transform(event)
+        @queue << event
+      else
+        codec(ctx).accept(CodecCallbackListener.new(target_field,
+                                                    hash,
+                                                    message.getIdentityStream(),
+                                                    @codec_transformer,
+                                                    @queue))
       end
     end
 
@@ -82,11 +75,6 @@ module LogStash module Inputs class Beats
     def codec(ctx)
       return if connections_list[ctx].nil?
       connections_list[ctx].codec
-    end
-
-    def ip_address(ctx)
-      return if connections_list[ctx].nil?
-      connections_list[ctx].ip_address
     end
 
     def register_connection(ctx)

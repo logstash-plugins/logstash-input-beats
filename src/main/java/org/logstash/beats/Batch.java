@@ -1,47 +1,48 @@
 package org.logstash.beats;
 
-import java.util.ArrayList;
-import java.util.List;
+/**
+ * Interface representing a Batch of {@link Message}.
+ */
+public interface Batch extends Iterable<Message>{
+    /**
+     * Returns the protocol of the sent messages that this batch was constructed from
+     * @return byte - either '1' or '2'
+     */
+    byte getProtocol();
 
-public class Batch {
-    private byte protocol = Protocol.VERSION_2;
-    private int batchSize;
-    private List<Message> messages = new ArrayList();
+    /**
+     * Number of messages that the batch is expected to contain.
+     * @return int  - number of messages
+     */
+    int getBatchSize();
 
-    public List<Message> getMessages() {
-        return messages;
-    }
+    /**
+     * Set the number of messages that the batch is expected to contain.
+     * @param batchSize int - number of messages
+     */
+    void setBatchSize(int batchSize);
 
-    public void addMessage(Message message) {
-        message.setBatch(this);
-        messages.add(message);
-    }
+    /**
+     * Current number of messages in the batch
+     * @return int
+     */
+    int size();
 
-    public int size() {
-        return messages.size();
-    }
+    /**
+     * Is the batch currently empty?
+     * @return boolean
+     */
+    boolean isEmpty();
 
-    public void setBatchSize(int size) {
-        batchSize = size;
-    }
+    /**
+     * Is the batch complete?
+     * @return boolean
+     */
+    boolean isComplete();
 
-    public int getBatchSize() {
-        return batchSize;
-    }
-
-    public boolean isEmpty() {
-        return 0 == messages.size();
-    }
-
-    public boolean complete() {
-        return size() == getBatchSize();
-    }
-
-    public byte getProtocol() {
-        return protocol;
-    }
-
-    public void setProtocol(byte protocol) {
-        this.protocol = protocol;
-    }
+    /**
+     * Release the resources associated with the batch. Consumers of the batch *must* release
+     * after use.
+     */
+    void release();
 }
