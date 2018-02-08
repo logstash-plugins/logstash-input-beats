@@ -7,12 +7,12 @@ import java.util.HashMap;
 
 import static org.junit.Assert.*;
 
-public class BatchTest {
-    private Batch batch;
+public class V1BatchTest {
+    private V1Batch batch;
 
     @Before
     public void setUp() {
-        batch = new Batch();
+        batch = new V1Batch();
     }
 
     @Test
@@ -30,13 +30,7 @@ public class BatchTest {
     }
 
     @Test
-    public void TestGetDefaultProtocol() {
-        assertEquals(Protocol.VERSION_2, batch.getProtocol());
-    }
-
-    @Test
-    public void TestGetSetProtocol() {
-        batch.setProtocol(Protocol.VERSION_1);
+    public void TestGetProtocol() {
         assertEquals(Protocol.VERSION_1, batch.getProtocol());
     }
 
@@ -46,11 +40,11 @@ public class BatchTest {
 
         batch.setBatchSize(numberOfEvent);
 
-        for(int i = 0; i < numberOfEvent; i++) {
-            batch.addMessage(new Message(i + 1, new HashMap()));
+        for(int i = 1; i <= numberOfEvent; i++) {
+            batch.addMessage(new Message(i, new HashMap()));
         }
 
-        assertTrue(batch.complete());
+        assertTrue(batch.isComplete());
     }
 
     @Test
@@ -61,6 +55,6 @@ public class BatchTest {
 
         batch.addMessage(new Message(1, new HashMap()));
 
-        assertFalse(batch.complete());
+        assertFalse(batch.isComplete());
     }
 }

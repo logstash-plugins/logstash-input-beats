@@ -9,7 +9,7 @@ import org.apache.logging.log4j.Logger;
 import java.net.InetSocketAddress;
 import javax.net.ssl.SSLHandshakeException;
 
-public class BeatsHandler extends SimpleChannelInboundHandler<NewBatch> {
+public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     private final static Logger logger = LogManager.getLogger(BeatsHandler.class);
     public static AttributeKey<Boolean> PROCESSING_BATCH = AttributeKey.valueOf("processing-batch");
     private final IMessageListener messageListener;
@@ -45,50 +45,28 @@ public class BeatsHandler extends SimpleChannelInboundHandler<NewBatch> {
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, Batch batch) throws Exception {
-        if(logger.isTraceEnabled()) {
-            logger.trace(format("Received a new payload"));
-        }
-
-        ctx.channel().attr(BeatsHandler.PROCESSING_BATCH).set(true);
-        for(Message message : batch.getMessages()) {
-            if(logger.isTraceEnabled()) {
-                logger.trace(format("Sending a new message for the listener, sequence: " + message.getSequence()));
-            }
-            messageListener.onNewMessage(ctx, message);
-
-            if(needAck(message)) {
-                ack(ctx, message);
-            }
-        }
-        ctx.flush();
-        ctx.channel().attr(PROCESSING_BATCH).set(false);
-    }
-
-    @Override
-    public void channelRead0(ChannelHandlerContext ctx, NewBatch batch) throws Exception {
         if(logger.isDebugEnabled()) {
             logger.debug(format("Received a new payload"));
         }
 
-        ctx.channel().attr(PROCESSING_BATCH).set(true);
-        batch.getMessageStream().forEach(e -> {
-            messageListener.onNewMessage(ctx, e);
-            if (needAck(e)){
-                ack(ctx, e);
+        ctx.channel().attr(BeatsHandler.PROCESSING_BATCH).set(true);
+
+        try {
+            for (Message message : batch) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug(format("Sending a new message for the listener, sequence: " + message.getSequence()));
+                }
+                messageListener.onNewMessage(ctx, message);
+
+                if (needAck(message)) {
+                    ack(ctx, message);
+                }
             }
-        });
-//        for(Message message : batch.getMessages()) {
-//            if(logger.isDebugEnabled()) {
-//                logger.debug(format("Sending a new message for the listener, sequence: " + message.getSequence()));
-//            }
-//            messageListener.onNewMessage(ctx, message);
-//
-//            if(needAck(message)) {
-//                ack(ctx, message);
-//            }
-//        }
-        ctx.flush();
-        ctx.channel().attr(PROCESSING_BATCH).set(false);
+        }finally{
+            batch.release();
+            ctx.flush();
+            ctx.channel().attr(PROCESSING_BATCH).set(false);
+        }
     }
 
     /*
@@ -120,11 +98,10 @@ public class BeatsHandler extends SimpleChannelInboundHandler<NewBatch> {
     }
 
     private boolean needAck(Message message) {
-        return message.getSequence() == message.getNewBatch().getBatchSize();
+        return message.getSequence() == message.getBatch().getBatchSize();
     }
 
     private void ack(ChannelHandlerContext ctx, Message message) {
-        logger.warn(format("Acking message number " + message.getSequence()));
         if (logger.isTraceEnabled()){
             logger.trace(format("Acking message number " + message.getSequence()));
         }
@@ -155,7 +132,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<NewBatch> {
             remotehost = remote.getAddress().getHostAddress() + ":" + remote.getPort();
         } else{
             remotehost = "undefined";
-        };
+        }
 
         return "[local: " + localhost + ", remote: " + remotehost + "] " + message;
     }

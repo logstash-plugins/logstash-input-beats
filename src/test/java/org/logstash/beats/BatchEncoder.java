@@ -40,7 +40,7 @@ public class BatchEncoder extends MessageToByteEncoder<Batch> {
         ByteBuf payload = ctx.alloc().buffer();
 
         // Aggregates the payload that we could decide to compress or not.
-        for(Message message : batch.getMessages()) {
+        for(Message message : batch) {
             if (batch.getProtocol() == Protocol.VERSION_2) {
                 encodeMessageWithJson(payload, message);
             } else {
@@ -55,7 +55,7 @@ public class BatchEncoder extends MessageToByteEncoder<Batch> {
         payload.writeByte('J');
         payload.writeInt(message.getSequence());
 
-        byte[] json = BeatsParser.MAPPER.writeValueAsBytes(message.getData());
+        byte[] json = Message.MAPPER.writeValueAsBytes(message.getData());
         payload.writeInt(json.length);
         payload.writeBytes(json);
     }

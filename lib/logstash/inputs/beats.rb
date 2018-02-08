@@ -181,7 +181,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
       server.enableSSL(ssl_builder)
     end
-
     server
   end
 
