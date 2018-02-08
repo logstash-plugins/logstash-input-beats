@@ -9,12 +9,10 @@ import org.apache.logging.log4j.Logger;
 import java.net.InetSocketAddress;
 import javax.net.ssl.SSLHandshakeException;
 
-public class BeatsHandler extends SimpleChannelInboundHandler<NewBatch> {
+public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     private final static Logger logger = LogManager.getLogger(BeatsHandler.class);
     public static AttributeKey<Boolean> PROCESSING_BATCH = AttributeKey.valueOf("processing-batch");
     private final IMessageListener messageListener;
-    private ChannelHandlerContext context;
-
 
     public BeatsHandler(IMessageListener listener) {
         messageListener = listener;
@@ -23,12 +21,11 @@ public class BeatsHandler extends SimpleChannelInboundHandler<NewBatch> {
     @Override
     public void channelActive(final ChannelHandlerContext ctx) throws Exception {
         if (logger.isTraceEnabled()){
-            logger.trace(format("Channel Active"));
+            logger.trace("Channel Active");
         }
         ctx.channel().attr(BeatsHandler.PROCESSING_BATCH).set(false);
 
         super.channelActive(ctx);
-        context = ctx;
         messageListener.onNewConnection(ctx);
     }
 
@@ -36,7 +33,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<NewBatch> {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         super.channelInactive(ctx);
         if (logger.isTraceEnabled()){
-            logger.trace(format("Channel Inactive"));
+            logger.trace("Channel Inactive");
         }
         ctx.channel().attr(BeatsHandler.PROCESSING_BATCH).set(false);
         messageListener.onConnectionClose(ctx);
@@ -48,45 +45,23 @@ public class BeatsHandler extends SimpleChannelInboundHandler<NewBatch> {
         logger.debug("Received a new payload");
 
         ctx.channel().attr(BeatsHandler.PROCESSING_BATCH).set(true);
-        for(Message message : batch.getMessages()) {
-            if(logger.isDebugEnabled()) {
-                logger.debug("Sending a new message for the listener, sequence: " + message.getSequence());
-            }
-            messageListener.onNewMessage(ctx, message);
 
-            if(needAck(message)) {
-                ack(ctx, message);
+        try {
+            for (Message message : batch) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Sending a new message for the listener, sequence: " + message.getSequence());
+                }
+                messageListener.onNewMessage(ctx, message);
+
+                if (needAck(message)) {
+                    ack(ctx, message);
+                }
             }
+        }finally{
+            batch.release();
+            ctx.flush();
+            ctx.channel().attr(PROCESSING_BATCH).set(false);
         }
-        ctx.flush();
-        ctx.channel().attr(PROCESSING_BATCH).set(false);
-    }
-
-    @Override
-    public void channelRead0(ChannelHandlerContext ctx, NewBatch batch) throws Exception {
-        if(logger.isDebugEnabled()) {
-            logger.debug(format("Received a new payload"));
-        }
-
-        ctx.channel().attr(PROCESSING_BATCH).set(true);
-        batch.getMessageStream().forEach(e -> {
-            messageListener.onNewMessage(ctx, e);
-            if (needAck(e)){
-                ack(ctx, e);
-            }
-        });
-//        for(Message message : batch.getMessages()) {
-//            if(logger.isDebugEnabled()) {
-//                logger.debug(format("Sending a new message for the listener, sequence: " + message.getSequence()));
-//            }
-//            messageListener.onNewMessage(ctx, message);
-//
-//            if(needAck(message)) {
-//                ack(ctx, message);
-//            }
-//        }
-        ctx.flush();
-        ctx.channel().attr(PROCESSING_BATCH).set(false);
     }
 
     /*
@@ -99,7 +74,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<NewBatch> {
      * overlap Filebeat transmission; we were recommending multiline at the source in v5 and in v6 we enforce it.
      */
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         try {
             InetSocketAddress remoteAddress = (InetSocketAddress) ctx.channel().remoteAddress();
 

@@ -18,7 +18,7 @@ import static org.junit.Assert.assertTrue;
 public class BeatsHandlerTest {
     private SpyListener spyListener;
     private BeatsHandler beatsHandler;
-    private Batch batch;
+    private V1Batch batch;
 
     private class SpyListener implements IMessageListener {
         private boolean onNewConnectionCalled = false;
@@ -79,9 +79,8 @@ public class BeatsHandlerTest {
         Message message1 = new Message(1, new HashMap());
         Message message2 = new Message(2, new HashMap());
 
-        batch = new Batch();
+        batch = new V1Batch();
         batch.setBatchSize(2);
-        batch.setProtocol(Protocol.VERSION_1);
         batch.addMessage(message1);
         batch.addMessage(message2);
 
@@ -119,7 +118,6 @@ public class BeatsHandlerTest {
     public void TestItAckLastMessageFromBatch() {
         EmbeddedChannel embeddedChannel = new EmbeddedChannel(new BeatsHandler(spyListener));
         embeddedChannel.writeInbound(batch);
-
 
         embeddedChannel.close();
     }

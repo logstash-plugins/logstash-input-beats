@@ -1,6 +1,7 @@
 package org.logstash.beats;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -22,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.lang.Thread.currentThread;
 import static java.lang.Thread.sleep;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -242,7 +242,7 @@ public class ServerTest {
                                  public void initChannel(SocketChannel ch) throws Exception {
                                      ChannelPipeline pipeline = ch.pipeline();
                                      pipeline.addLast(new BatchEncoder());
-                                     pipeline.addLast(new DummySender());
+                                     pipeline.addLast(new DummyV2Sender());
                                  }
                              }
                     );
@@ -254,9 +254,9 @@ public class ServerTest {
      * A dummy class to send a unique batch to an active server
      *
      */
-    private class DummySender extends SimpleChannelInboundHandler<String> {
+    private class DummyV1Sender extends SimpleChannelInboundHandler<String> {
         public void channelActive(ChannelHandlerContext ctx) {
-            Batch batch = new Batch();
+            V1Batch batch = new V1Batch();
             batch.setBatchSize(1);
             batch.addMessage(new Message(1, Collections.singletonMap("hello", "world")));
 
@@ -272,6 +272,31 @@ public class ServerTest {
             ctx.close();
         }
     }
+
+    /**
+     * A dummy class to send a unique batch to an active server
+     *
+     */
+    private class DummyV2Sender extends SimpleChannelInboundHandler<String> {
+        public void channelActive(ChannelHandlerContext ctx) {
+            V2Batch batch = new V2Batch();
+            batch.setBatchSize(1);
+            ByteBuf contents = V2BatchTest.messageContents();
+            batch.addMessage(1, contents, contents.readableBytes());
+
+            ctx.writeAndFlush(batch);
+        }
+
+        @Override
+        protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
+        }
+
+        @Override
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+            ctx.close();
+        }
+    }
+
 
     /**
      *  Used to assert the number of messages send to the server

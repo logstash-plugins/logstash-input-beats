@@ -16,14 +16,13 @@ public class KeepAliveHandler extends ChannelDuplexHandler {
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        IdleStateEvent e = null;
+        IdleStateEvent e;
 
         if (evt instanceof IdleStateEvent) {
             e = (IdleStateEvent) evt;
             if (e.state() == IdleState.WRITER_IDLE) {
                 if (isProcessing(ctx)) {
                     ChannelFuture f = ctx.writeAndFlush(new Ack(Protocol.VERSION_2, 0));
-                    logger.warn("sending keep alive ack to libbeat");
                     if (logger.isTraceEnabled()) {
                         logger.trace("sending keep alive ack to libbeat");
                         f.addListener(new ChannelFutureListener() {
@@ -59,7 +58,7 @@ public class KeepAliveHandler extends ChannelDuplexHandler {
         }
     }
 
-    public boolean isProcessing(ChannelHandlerContext ctx) {
+     public boolean isProcessing(ChannelHandlerContext ctx) {
         return ctx.channel().hasAttr(BeatsHandler.PROCESSING_BATCH) && ctx.channel().attr(BeatsHandler.PROCESSING_BATCH).get();
     }
 }
