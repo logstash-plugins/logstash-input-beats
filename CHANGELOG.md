@@ -1,8 +1,5 @@
 ## 5.0.8
   - Update jackson deps to 2.9.1
-  - CVE-2017-7525 - https://bugzilla.redhat.com/show_bug.cgi?id=1462702
-  - https://github.com/FasterXML/jackson-databind/issues/1723
-  - Consistency with core deps
 
 ## 5.0.7
   - Docs: Deprecate `document_type` option
