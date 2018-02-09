@@ -1,3 +1,6 @@
+## 3.1.27
+  - Update jackson deps to 2.9.1
+
 ## 3.1.26
   - Re-order Netty pipeline to avoid NullPointerExceptions in KeepAliveHandler when Logstash is under load
   - Improve exception logging
