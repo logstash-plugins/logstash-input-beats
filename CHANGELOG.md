@@ -1,3 +1,6 @@
+## 3.1.28
+  - Improvements to back pressure handling and memory management #301
+  
 ## 3.1.27
   - Update jackson deps to 2.9.1
 
