@@ -1,3 +1,6 @@
+## 5.0.10
+  - Update jackson deps to 2.9.4
+  
 ## 5.0.9
   - Improvements to back pressure handling and memory management #299
 
