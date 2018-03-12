@@ -11,7 +11,6 @@ import javax.net.ssl.SSLHandshakeException;
 
 public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     private final static Logger logger = LogManager.getLogger(BeatsHandler.class);
-    public static AttributeKey<Boolean> PROCESSING_BATCH = AttributeKey.valueOf("processing-batch");
     private final IMessageListener messageListener;
     private ChannelHandlerContext context;
 
@@ -25,8 +24,6 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         if (logger.isTraceEnabled()){
             logger.trace(format("Channel Active"));
         }
-        ctx.channel().attr(BeatsHandler.PROCESSING_BATCH).set(false);
-
         super.channelActive(ctx);
         context = ctx;
         messageListener.onNewConnection(ctx);
@@ -38,7 +35,6 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         if (logger.isTraceEnabled()){
             logger.trace(format("Channel Inactive"));
         }
-        ctx.channel().attr(BeatsHandler.PROCESSING_BATCH).set(false);
         messageListener.onConnectionClose(ctx);
     }
 
@@ -48,9 +44,6 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         if(logger.isDebugEnabled()) {
             logger.debug(format("Received a new payload"));
         }
-
-        ctx.channel().attr(BeatsHandler.PROCESSING_BATCH).set(true);
-
         try {
             for (Message message : batch) {
                 if (logger.isDebugEnabled()) {
@@ -63,9 +56,13 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
                 }
             }
         }finally{
+            //this channel is done processing this payload, instruct the connection handler to stop sending TCP keep alive
+            ctx.channel().attr(ConnectionHandler.CHANNEL_SEND_KEEP_ALIVE).get().set(false);
+            if (logger.isDebugEnabled()) {
+                logger.debug("{}: batches pending: {}", ctx.channel().id().asShortText(),ctx.channel().attr(ConnectionHandler.CHANNEL_SEND_KEEP_ALIVE).get().get());
+            }
             batch.release();
             ctx.flush();
-            ctx.channel().attr(PROCESSING_BATCH).set(false);
         }
     }
 
