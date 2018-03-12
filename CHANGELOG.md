@@ -1,3 +1,6 @@
+## 3.1.30
+  - Ensure that the keep-alive is sent for ALL pending batches when the pipeline is blocked, not only the batches attempting to write to the queue. #310  
+  
 ## 3.1.29
   - Update jackson deps to 2.9.4
   
