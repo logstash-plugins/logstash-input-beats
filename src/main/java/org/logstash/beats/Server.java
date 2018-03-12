@@ -89,7 +89,7 @@ public class Server {
     private class BeatsInitializer extends ChannelInitializer<SocketChannel> {
         private final String SSL_HANDLER = "ssl-handler";
         private final String IDLESTATE_HANDLER = "idlestate-handler";
-        private final String KEEP_ALIVE_HANDLER = "keep-alive-handler";
+        private final String CONNECTION_HANDLER = "connection-handler";
         private final String BEATS_ACKER = "beats-acker";
 
 
@@ -121,7 +121,7 @@ public class Server {
             }
             pipeline.addLast(idleExecutorGroup, IDLESTATE_HANDLER, new IdleStateHandler(clientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS , clientInactivityTimeoutSeconds));
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
-            pipeline.addLast(KEEP_ALIVE_HANDLER, new KeepAliveHandler());
+            pipeline.addLast(CONNECTION_HANDLER, new ConnectionHandler());
             pipeline.addLast(beatsHandlerExecutorGroup, new BeatsParser(), new BeatsHandler(this.message));
         }
 
