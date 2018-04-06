@@ -1,3 +1,6 @@
+## 5.0.12
+  - Docs: Set the default_codec doc attribute.
+
 ## 5.0.11
   - Ensure that the keep-alive is sent for ALL pending batches when the pipeline is blocked, not only the batches attempting to write to the queue. #310  
   

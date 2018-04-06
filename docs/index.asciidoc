@@ -1,5 +1,6 @@
 :plugin: beats
 :type: input
+:default_codec: plain
 
 ///////////////////////////////////////////
 START - GENERATED VARIABLES, DO NOT EDIT!
@@ -221,3 +222,5 @@ The minimum TLS version allowed for the encrypted connections. The value must be
 
 [id="plugins-{type}s-{plugin}-common-options"]
 include::{include_path}/{type}.asciidoc[]
+
+:default_codec!:
