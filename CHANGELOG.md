@@ -1,3 +1,6 @@
+## 5.0.14
+  - - Update jackson deps to 2.9.5
+
 ## 5.0.13
   - Fix broken 5.0.12 release
 
