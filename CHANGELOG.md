@@ -1,3 +1,6 @@
+## 5.0.15
+  - [Ensure that context is available before trace is made](https://github.com/logstash-plugins/logstash-input-beats/pull/319/files)
+
 ## 5.0.14
   - - Update jackson deps to 2.9.5
 

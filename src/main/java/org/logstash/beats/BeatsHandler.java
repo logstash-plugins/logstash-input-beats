@@ -21,7 +21,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
 
     @Override
     public void channelActive(final ChannelHandlerContext ctx) throws Exception {
-	context = ctx;
+	    context = ctx;
         if (logger.isTraceEnabled()){
             logger.trace(format("Channel Active"));
         }
