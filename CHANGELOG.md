@@ -1,3 +1,6 @@
+## 5.0.16
+ - [#289](https://github.com/logstash-plugins/logstash-input-beats/pull/289#issuecomment-394072063) Re-initialise Netty worker group on plugin restart
+
 ## 5.0.15
   - [Ensure that context is available before trace is made](https://github.com/logstash-plugins/logstash-input-beats/pull/319/files)
 
