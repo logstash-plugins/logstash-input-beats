@@ -8,9 +8,7 @@ import org.logstash.netty.SslSimpleBuilder;
 public class Runner {
     private static final int DEFAULT_PORT = 5044;
 
-    private final static Logger logger = LogManager.getLogger(Runner.class);
-
-
+    private static final Logger logger = LogManager.getLogger();
 
     static public void main(String[] args) throws Exception {
         logger.info("Starting Beats Bulk");

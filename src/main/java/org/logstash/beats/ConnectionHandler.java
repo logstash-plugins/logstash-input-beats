@@ -16,16 +16,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Manages the connection state to the beats client.
  */
 public class ConnectionHandler extends ChannelDuplexHandler {
-    private final static Logger logger = LogManager.getLogger(ConnectionHandler.class);
+
+    private final static Logger logger = LogManager.getLogger();
 
     public static AttributeKey<AtomicBoolean> CHANNEL_SEND_KEEP_ALIVE = AttributeKey.valueOf("channel-send-keep-alive");
 
     @Override
     public void channelActive(final ChannelHandlerContext ctx) throws Exception {
         ctx.channel().attr(CHANNEL_SEND_KEEP_ALIVE).set(new AtomicBoolean(false));
-        if (logger.isTraceEnabled()) {
-            logger.trace("{}: channel activated", ctx.channel().id().asShortText());
-        }
+        logger.trace("{}: channel activated", () -> ctx.channel().id().asShortText());
         super.channelActive(ctx);
     }
 
@@ -37,9 +36,9 @@ public class ConnectionHandler extends ChannelDuplexHandler {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         ctx.channel().attr(CHANNEL_SEND_KEEP_ALIVE).get().set(true);
-        if (logger.isDebugEnabled()) {
-            logger.debug("{}: batches pending: {}", ctx.channel().id().asShortText(),ctx.channel().attr(CHANNEL_SEND_KEEP_ALIVE).get().get());
-        }
+        logger.debug("{}: batches pending: {}",
+                     () -> ctx.channel().id().asShortText(),
+                     () -> ctx.channel().attr(CHANNEL_SEND_KEEP_ALIVE).get().get());
         super.channelRead(ctx, msg);
     }
 
@@ -80,7 +79,8 @@ public class ConnectionHandler extends ChannelDuplexHandler {
                     }
                 }
             } else if (e.state() == IdleState.ALL_IDLE) {
-                logger.debug("{}: reader and writer are idle, closing remote connection", ctx.channel().id().asShortText());
+                logger.debug("{}: reader and writer are idle, closing remote connection",
+                             () -> ctx.channel().id().asShortText());
                 ctx.flush();
                 ChannelFuture f = ctx.close();
                 if (logger.isTraceEnabled()) {
