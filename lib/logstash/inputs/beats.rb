@@ -93,6 +93,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # This option needs to be used with `ssl_certificate_authorities` and a defined list of CAs.
   config :ssl_verify_mode, :validate => ["none", "peer", "force_peer"], :default => "none"
 
+  # Enables storing client certificate information in event's metadata. You need 
+  # to configure the `ssl_verify_mode` to `peer` or `force_peer` to enable this.
+  config :ssl_peer_metadata, :validate => :boolean, :default => false
+
   config :include_codec_tag, :validate => :boolean, :default => true
 
   # Time in milliseconds for an incomplete ssl handshake to timeout
@@ -204,6 +208,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   def client_authentification?
     @ssl_certificate_authorities && @ssl_certificate_authorities.size > 0
+  end
+
+  def client_authentication_metadata?
+    @ssl_peer_metadata && ssl_configured? && client_authentification? 
   end
 
   def require_certificate_authorities?
