@@ -134,7 +134,7 @@ module LogStash module Inputs class Beats
           rescue SSLPeerUnverifiedException => e
             tls_verified = false
             if input.logger.debug?
-              input.logger.warn("Failed to get peer certificates.", :exception => e.to_s)
+              input.logger.debug("SSL peer unverified. This is normal with 'peer' verification and client does not presents a certificate.", :exception => e.to_s)
             end
           end
         end
