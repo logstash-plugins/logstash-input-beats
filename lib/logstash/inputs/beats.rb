@@ -152,6 +152,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       raise LogStash::ConfigurationError, "Using `verify_mode` set to PEER or FORCE_PEER, requires the configuration of `certificate_authorities`"
     end
 
+    if client_authentication_metadata? && !require_certificate_authorities?
+      raise LogStash::ConfigurationError, "Enabling `peer_metadata` requires using `verify_mode` set to PEER or FORCE_PEER"
+    end
+
     # Logstash 6.x breaking change (introduced with 4.0.0 of this gem)
     if @codec.kind_of? LogStash::Codecs::Multiline
       raise LogStash::ConfigurationError, "Multiline codec with beats input is not supported. Please refer to the beats documentation for how to best manage multiline data. See https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html"
