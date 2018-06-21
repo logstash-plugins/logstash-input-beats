@@ -1,6 +1,7 @@
 # encoding: utf-8
 require "thread_safe"
 require "logstash-input-beats_jars"
+import "javax.net.ssl.SSLPeerUnverifiedException"
 import "org.logstash.beats.MessageListener"
 
 module LogStash module Inputs class Beats
@@ -32,6 +33,8 @@ module LogStash module Inputs class Beats
 
       hash['@metadata']['ip_address'] = ip_address unless ip_address.nil? || hash['@metadata'].nil?
       target_field = extract_target_field(hash)
+
+      extract_tls_peer(hash)
 
       if target_field.nil?
         event = LogStash::Event.new(hash)
@@ -116,6 +119,35 @@ module LogStash module Inputs class Beats
       codec(ctx).flush do |event|
         transformer.transform(event)
         @queue << event
+      end
+    end
+
+    def extract_tls_peer(hash)
+      if @input.client_authentication_metadata?
+        tls_session = ctx.channel().pipeline().get("ssl-handler").engine().getSession()
+        tls_verified = false
+
+        # throws SSLPeerUnverifiedException if unverified
+        begin
+          tls_session.getPeerCertificates()
+          tls_verified = true
+        rescue SSLPeerUnverifiedException => e
+          if input.logger.debug?
+            input.logger.warn("Failed to get peer certificates.", :exception => e.to_s)
+          end
+        end
+
+        if tls_verified
+          hash['@metadata']['tls_peer'] = {
+            :status     => "verified",
+            :protocol   => tls_session.getProtocol(),
+            :principal  => tls_session.getPeerPrincipal().getName()
+          }
+        else
+          hash['@metadata']['tls_peer'] = {
+            :status     => "unverified"
+          }
+        end
       end
     end
 
