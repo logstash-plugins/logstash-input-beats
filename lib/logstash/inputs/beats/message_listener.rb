@@ -34,7 +34,7 @@ module LogStash module Inputs class Beats
       hash['@metadata']['ip_address'] = ip_address unless ip_address.nil? || hash['@metadata'].nil?
       target_field = extract_target_field(hash)
 
-      extract_tls_peer(hash)
+      extract_tls_peer(hash, ctx)
 
       if target_field.nil?
         event = LogStash::Event.new(hash)
@@ -122,18 +122,20 @@ module LogStash module Inputs class Beats
       end
     end
 
-    def extract_tls_peer(hash)
+    def extract_tls_peer(hash, ctx)
       if @input.client_authentication_metadata?
         tls_session = ctx.channel().pipeline().get("ssl-handler").engine().getSession()
-        tls_verified = false
+        tls_verified = true
 
-        # throws SSLPeerUnverifiedException if unverified
-        begin
-          tls_session.getPeerCertificates()
-          tls_verified = true
-        rescue SSLPeerUnverifiedException => e
-          if input.logger.debug?
-            input.logger.warn("Failed to get peer certificates.", :exception => e.to_s)
+        if not @input.client_authentication_required?
+          # throws SSLPeerUnverifiedException if unverified
+          begin
+            tls_session.getPeerCertificates()
+          rescue SSLPeerUnverifiedException => e
+            tls_verified = false
+            if input.logger.debug?
+              input.logger.warn("Failed to get peer certificates.", :exception => e.to_s)
+            end
           end
         end
 
