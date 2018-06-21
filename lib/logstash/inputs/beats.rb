@@ -214,6 +214,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     @ssl_peer_metadata && ssl_configured? && client_authentification? 
   end
 
+  def client_authentication_required?
+    @ssl_verify_mode == "force_peer" 
+  end
+
   def require_certificate_authorities?
     @ssl_verify_mode == "force_peer" || @ssl_verify_mode == "peer"
   end
