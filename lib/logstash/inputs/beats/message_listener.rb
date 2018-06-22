@@ -143,7 +143,7 @@ module LogStash module Inputs class Beats
           hash['@metadata']['tls_peer'] = {
             :status       => "verified",
             :protocol     => tls_session.getProtocol(),
-            :principal    => tls_session.getPeerPrincipal().getName(),
+            :subject      => tls_session.getPeerPrincipal().getName(),
             :cipher_suite => tls_session.getCipherSuite()
           }
         else
