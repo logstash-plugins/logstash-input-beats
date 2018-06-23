@@ -1,3 +1,6 @@
+## 5.1.1
+- Docs: Add more detail about creating versioned indexes for Beats data
+
 ## 5.1.0 
  - Added ssl_peer_metadata option. [#327](https://github.com/logstash-plugins/logstash-input-beats/pull/327) 
  - Fixed ssl_verify_mode => peer. [#326](https://github.com/logstash-plugins/logstash-input-beats/pull/326)
@@ -9,7 +12,7 @@
   - [Ensure that context is available before trace is made](https://github.com/logstash-plugins/logstash-input-beats/pull/319/files)
 
 ## 5.0.14
-  - - Update jackson deps to 2.9.5
+  - Update jackson deps to 2.9.5
 
 ## 5.0.13
   - Fix broken 5.0.12 release
