@@ -40,6 +40,10 @@ test {
     }
 }
 
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
 task run (type: JavaExec, dependsOn: classes){
     // turn on or off ssl
     if(project.hasProperty('providedargs')){
@@ -89,9 +93,4 @@ publishing {
       from components.java
     }
   }
-}
-
-task wrapper(type: Wrapper) {
-    description = 'Install Gradle wrapper'
-    gradleVersion = '2.14'
 }
