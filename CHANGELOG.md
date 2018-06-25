@@ -1,3 +1,7 @@
+## 5.1.0 
+ - Added ssl_peer_metadata option. [#327](https://github.com/logstash-plugins/logstash-input-beats/pull/327) 
+ - Fixed ssl_verify_mode => peer. [#326](https://github.com/logstash-plugins/logstash-input-beats/pull/326)
+
 ## 5.0.16
  - [#289](https://github.com/logstash-plugins/logstash-input-beats/pull/289#issuecomment-394072063) Re-initialise Netty worker group on plugin restart
 
