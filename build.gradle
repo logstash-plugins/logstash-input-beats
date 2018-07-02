@@ -40,6 +40,10 @@ test {
     }
 }
 
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
 task run (type: JavaExec, dependsOn: classes){
     // turn on or off ssl
     if(project.hasProperty('providedargs')){
