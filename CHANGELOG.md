@@ -1,3 +1,7 @@
+## 5.1.2
+ - Changed project to use gradle version 4.8.1. [#334](https://github.com/logstash-plugins/logstash-input-beats/pull/334)
+   - This is an internal, non user-impacting, change to use a more modern version of gradle for building the plugin.
+
 ## 5.1.1
 - Docs: Add more detail about creating versioned indexes for Beats data
 
