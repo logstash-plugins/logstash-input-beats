@@ -90,6 +90,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 [cols="<,<,<",options="header",]
 |=======================================================================
 |Setting |Input type|Required
+| <<plugins-{type}s-{plugin}-add_hostname>> |<<boolean, boolean>>|No
 | <<plugins-{type}s-{plugin}-cipher_suites>> |<<array,array>>|No
 | <<plugins-{type}s-{plugin}-client_inactivity_timeout>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-host>> |<<string,string>>|No
@@ -111,6 +112,18 @@ Also see <<plugins-{type}s-{plugin}-common-options>> for a list of options suppo
 input plugins.
 
 &nbsp;
+
+[id="plugins-{type}s-{plugin}-add_hostname"]
+===== `add_hostname`
+
+  added[5.2.0, Field was added to allow users to not automatically add the `host` field in events.]
+  deprecated[5.2.0, In future versions of this plugin, this setting will be removed, and the 'hosts' field will not be added to events.]
+
+  * Value type is <<boolean,boolean>>
+  * Default value is `false`
+
+Flag to determine whether to add `host` field to event using the value supplied by the beat in the `hostname` field.
+
 
 [id="plugins-{type}s-{plugin}-cipher_suites"]
 ===== `cipher_suites`

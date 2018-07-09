@@ -12,6 +12,7 @@ module LogStash module Inputs class Beats
     # Copies the beat.hostname field into the host field unless
     # the host field is already defined
     def copy_beat_hostname(event)
+      return unless @input.add_hostname
       host = event.get("[beat][hostname]")
 
       if host && event.get("host").nil?
