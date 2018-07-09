@@ -82,6 +82,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # 
   config :ssl_certificate_authorities, :validate => :array, :default => []
 
+  # Flag to determine whether to add host information (provided by the beat in the 'hostname' field) to the event
+  config :add_hostname, :validate => :boolean, :default => true, :deprecated => 'Host field will not be automatically populated by future version of the Beats input'
+
+
   # By default the server doesn't do any client verification.
   # 
   # `peer` will make the server ask the client to provide a certificate. 
