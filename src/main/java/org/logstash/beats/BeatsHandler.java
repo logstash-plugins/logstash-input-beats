@@ -95,7 +95,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     }
 
     private boolean needAck(Message message) {
-        return message.getSequence() == message.getBatch().getBatchSize();
+        return message.getSequence() == message.getBatch().getHighestSequence();
     }
 
     private void ack(ChannelHandlerContext ctx, Message message) {

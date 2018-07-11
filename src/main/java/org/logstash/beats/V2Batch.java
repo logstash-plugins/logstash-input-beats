@@ -14,6 +14,7 @@ public class V2Batch implements Batch {
     private int read = 0;
     private static final int SIZE_OF_INT = 4;
     private int batchSize;
+    private int highestSequence = -1;
 
     public void setProtocol(byte protocol){
         if (protocol != Protocol.VERSION_2){
@@ -72,6 +73,11 @@ public class V2Batch implements Batch {
         return written == batchSize;
     }
 
+    @Override
+    public int getHighestSequence(){
+        return highestSequence;
+    }
+
     /**
      * Adds a message to the batch, which will be constructed into an actual {@link Message} lazily.
       * @param sequenceNumber sequence number of the message within the batch
@@ -86,6 +92,9 @@ public class V2Batch implements Batch {
         internalBuffer.writeInt(sequenceNumber);
         internalBuffer.writeInt(size);
         buffer.readBytes(internalBuffer, size);
+        if (sequenceNumber > highestSequence){
+            highestSequence = sequenceNumber;
+        }
     }
 
     @Override
