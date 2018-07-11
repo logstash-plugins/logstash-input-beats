@@ -13,6 +13,7 @@ public class V1Batch implements Batch{
     private int batchSize;
     private List<Message> messages = new ArrayList<>();
     private byte protocol = Protocol.VERSION_1;
+    private int highestSequence = -1;
 
     @Override
     public byte getProtocol() {
@@ -30,6 +31,9 @@ public class V1Batch implements Batch{
     void addMessage(Message message){
         message.setBatch(this);
         messages.add(message);
+        if (message.getSequence() > highestSequence){
+            highestSequence = message.getSequence();
+        }
     }
 
     @Override
@@ -55,6 +59,11 @@ public class V1Batch implements Batch{
     @Override
     public boolean isEmpty() {
         return 0 == messages.size();
+    }
+
+    @Override
+    public int getHighestSequence(){
+        return highestSequence;
     }
 
     @Override
