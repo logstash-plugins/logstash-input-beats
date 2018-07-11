@@ -5,6 +5,7 @@ import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,8 +18,10 @@ import static org.junit.Assert.assertTrue;
  * Created by ph on 2016-06-01.
  */
 public class BeatsHandlerTest {
+    private static final SecureRandom randomizer = new SecureRandom();
     private SpyListener spyListener;
-    private BeatsHandler beatsHandler;
+    private int startSequenceNumber = randomizer.nextInt(100);
+    private int messageCount = 5;
     private V1Batch batch;
 
     private class SpyListener implements IMessageListener {
@@ -76,16 +79,12 @@ public class BeatsHandlerTest {
     @Before
     public void setup() {
         spyListener = new SpyListener();
-        beatsHandler = new BeatsHandler(spyListener);
-
-        Message message1 = new Message(1, new HashMap());
-        Message message2 = new Message(2, new HashMap());
-
         batch = new V1Batch();
-        batch.setBatchSize(2);
-        batch.addMessage(message1);
-        batch.addMessage(message2);
-
+        batch.setBatchSize(messageCount);
+        for (int i = 0;i < messageCount;i++) {
+            Message message = new Message(i + startSequenceNumber, new HashMap());
+            batch.addMessage(message);
+        }
     }
 
     @Test
@@ -112,15 +111,18 @@ public class BeatsHandlerTest {
         embeddedChannel.writeInbound(batch);
 
 
-        assertEquals(2, spyListener.getLastMessages().size());
+        assertEquals(messageCount, spyListener.getLastMessages().size());
         embeddedChannel.close();
     }
 
     @Test
-    public void TestItAckLastMessageFromBatch() {
+    public void testAcksLastMessageInBatch() {
         EmbeddedChannel embeddedChannel = new EmbeddedChannel(new BeatsHandler(spyListener));
         embeddedChannel.writeInbound(batch);
-
+        assertEquals(messageCount, spyListener.getLastMessages().size());
+        Ack ack = embeddedChannel.readOutbound();
+        assertEquals(ack.getProtocol(), Protocol.VERSION_1);
+        assertEquals(ack.getSequence(), startSequenceNumber + messageCount - 1);
         embeddedChannel.close();
     }
 }
