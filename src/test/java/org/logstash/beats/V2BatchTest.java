@@ -7,6 +7,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.Test;
 
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -73,6 +74,21 @@ public class V2BatchTest {
         }finally {
             batch.release();
         }
+    }
+
+    @Test
+    public void testHighSequence(){
+        V2Batch batch = new V2Batch();
+        int numberOfEvent = 2;
+        int startSequenceNumber = new SecureRandom().nextInt(10000);
+        batch.setBatchSize(numberOfEvent);
+        ByteBuf content = messageContents();
+
+        for(int i = 1; i <= numberOfEvent; i++) {
+            batch.addMessage(startSequenceNumber + i, content, content.readableBytes());
+        }
+
+        assertEquals(startSequenceNumber + numberOfEvent, batch.getHighestSequence());
     }
 
 
