@@ -1,3 +1,6 @@
+## 3.1.32
+ - Fixed handling of batches where the sequence numbers do not start with 1 [#342](https://github.com/logstash-plugins/logstash-input-beats/pull/342)
+
 ## 3.1.31
   - Update jackson deps to 2.9.5
 
