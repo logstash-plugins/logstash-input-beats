@@ -61,6 +61,20 @@ public class V1BatchTest {
         assertTrue(batch.isComplete());
     }
 
+
+    @Test
+    public void testHighSequence(){
+        int numberOfEvent = 2;
+        int startSequenceNumber = new SecureRandom().nextInt(10000);
+        batch.setBatchSize(numberOfEvent);
+
+        for(int i = 1; i <= numberOfEvent; i++) {
+            batch.addMessage(new Message(startSequenceNumber + i, new HashMap()));
+        }
+
+        assertEquals(startSequenceNumber + numberOfEvent, batch.getHighestSequence());
+    }
+
     @Test
     public void TestCompleteReturnWhenTheNumberOfEventDoesntMatchBatchSize() {
         int numberOfEvent = 2;
