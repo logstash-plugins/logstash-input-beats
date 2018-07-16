@@ -1,3 +1,6 @@
+## 5.1.3
+ - Fixed handling of batches where the sequence numbers do not start with 1 [#342](https://github.com/logstash-plugins/logstash-input-beats/pull/342)
+
 ## 5.1.2
  - Changed project to use gradle version 4.8.1. [#334](https://github.com/logstash-plugins/logstash-input-beats/pull/334)
    - This is an internal, non user-impacting, change to use a more modern version of gradle for building the plugin.
