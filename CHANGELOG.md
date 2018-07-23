@@ -1,3 +1,6 @@
+## 5.1.4
+ - Added `add_hostname` flag to enable/disable the population of the `host` field from the beats.hostname field [#340](https://github.com/logstash-plugins/logstash-input-beats/pull/340)
+
 ## 5.1.3
  - Fixed handling of batches where the sequence numbers do not start with 1 [#342](https://github.com/logstash-plugins/logstash-input-beats/pull/342)
 
