@@ -120,7 +120,7 @@ input plugins.
   deprecated[5.2.0, In future versions of this plugin, this setting will be removed, and the 'hosts' field will not be added to events.]
 
   * Value type is <<boolean,boolean>>
-  * Default value is `false`
+  * Default value is `true`
 
 Flag to determine whether to add `host` field to event using the value supplied by the beat in the `hostname` field.
 
