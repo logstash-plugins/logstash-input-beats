@@ -44,7 +44,7 @@ output {
   }
 }
 ------------------------------------------------------------------------------
-<1> Specifies the index to write events to. See <<versioned-indexes>> for
+<1> Specifies the index to write events to. See <<plugins-{type}s-{plugin}-versioned-indexes>> for
 more about this setting.
 <2> Starting with Logstash 6.0, the `document_type` option is
 deprecated due to the
@@ -59,7 +59,7 @@ before sending the event data to Logstash. You cannot use the
 {logstash-ref}/plugins-codecs-multiline.html[Multiline codec plugin] to handle multiline events. Doing so will
 result in the failure to start Logstash.
 
-[[versioned-indexes]]
+[id="plugins-{type}s-{plugin}-versioned-indexes"]
 ==== Versioned Beats Indices
 
 To minimize the impact of future schema changes on your existing indices and
