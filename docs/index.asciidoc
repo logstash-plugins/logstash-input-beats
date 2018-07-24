@@ -116,8 +116,8 @@ input plugins.
 [id="plugins-{type}s-{plugin}-add_hostname"]
 ===== `add_hostname`
 
-  added[5.2.0, Field was added to allow users to not automatically add the `host` field in events.]
-  deprecated[5.2.0, In future versions of this plugin, this setting will be removed, and the 'hosts' field will not be added to events.]
+  added[5.1.4, Field was added to allow users to control whether or not the `host` field is automatically added to events.]
+  deprecated[5.1.4, In future versions of this plugin, this setting will be removed, and the 'hosts' field will not be added to events.]
 
   * Value type is <<boolean,boolean>>
   * Default value is `true`
