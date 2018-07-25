@@ -1,3 +1,6 @@
+## 5.1.6
+ - Docs: Fix broken link by removing extra space. 
+
 ## 5.1.5
  - Docs: Fixed section ID that was causing doc build errors in the versioned
 plugin docs. 
