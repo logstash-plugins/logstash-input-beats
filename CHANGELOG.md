@@ -1,6 +1,9 @@
+## 5.1.6
+ - Docs: Fixed broken link by removing extra space. [#347](https://github.com/logstash-plugins/logstash-input-beats/pull/347)
+
 ## 5.1.5
  - Docs: Fixed section ID that was causing doc build errors in the versioned
-plugin docs. 
+plugin docs. [#346](https://github.com/logstash-plugins/logstash-input-beats/pull/346)
  
 ## 5.1.4
  - Added `add_hostname` flag to enable/disable the population of the `host` field from the beats.hostname field [#340](https://github.com/logstash-plugins/logstash-input-beats/pull/340)
