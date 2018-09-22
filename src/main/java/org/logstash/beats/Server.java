@@ -110,15 +110,15 @@ public class Server {
 
         private final EventExecutorGroup idleExecutorGroup;
         private final EventExecutorGroup beatsHandlerExecutorGroup;
-        private final IMessageListener message;
-        private int clientInactivityTimeoutSeconds;
+        private final IMessageListener localMessageListener;
+        private final int localClientInactivityTimeoutSeconds;
+        private final boolean localEnableSSL;
 
-        private boolean enableSSL = false;
-
-        public BeatsInitializer(Boolean secure, IMessageListener messageListener, int clientInactivityTimeoutSeconds, int beatsHandlerThread) {
-            enableSSL = secure;
-            this.message = messageListener;
-            this.clientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
+        BeatsInitializer(Boolean enableSSL, IMessageListener messageListener, int clientInactivityTimeoutSeconds, int beatsHandlerThread) {
+            // Keeps a local copy of Server settings, so they can't be modified once it starts listening
+            this.localEnableSSL = enableSSL;
+            this.localMessageListener = messageListener;
+            this.localClientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
             beatsHandlerExecutorGroup = new DefaultEventExecutorGroup(beatsHandlerThread);
 
@@ -127,21 +127,22 @@ public class Server {
         public void initChannel(SocketChannel socket) throws IOException, NoSuchAlgorithmException, CertificateException {
             ChannelPipeline pipeline = socket.pipeline();
 
-            if(enableSSL) {
+            if (localEnableSSL) {
                 SslHandler sslHandler = sslBuilder.build(socket.alloc());
                 pipeline.addLast(SSL_HANDLER, sslHandler);
             }
-            pipeline.addLast(idleExecutorGroup, IDLESTATE_HANDLER, new IdleStateHandler(clientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS , clientInactivityTimeoutSeconds));
+            pipeline.addLast(idleExecutorGroup, IDLESTATE_HANDLER,
+                             new IdleStateHandler(localClientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS, localClientInactivityTimeoutSeconds));
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
             pipeline.addLast(CONNECTION_HANDLER, new ConnectionHandler());
-            pipeline.addLast(beatsHandlerExecutorGroup, new BeatsParser(), new BeatsHandler(this.message));
+            pipeline.addLast(beatsHandlerExecutorGroup, new BeatsParser(), new BeatsHandler(localMessageListener));
         }
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
             logger.warn("Exception caught in channel initializer", cause);
             try {
-                this.message.onChannelInitializeException(ctx, cause);
+                localMessageListener.onChannelInitializeException(ctx, cause);
             } finally {
                 super.exceptionCaught(ctx, cause);
             }
