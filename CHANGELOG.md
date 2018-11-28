@@ -1,3 +1,6 @@
+## 5.1.7
+ - Updated jar dependencies to reflect newer releases
+
 ## 5.1.6
  - Docs: Fixed broken link by removing extra space. [#347](https://github.com/logstash-plugins/logstash-input-beats/pull/347)
 
