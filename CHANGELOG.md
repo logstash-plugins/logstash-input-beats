@@ -1,3 +1,6 @@
+## 5.1.8
+ - Loosen jar-dependencies manager gem dependency to allow plugin to work with JRubies that include a later version.
+
 ## 5.1.7
  - Updated jar dependencies to reflect newer releases
 
