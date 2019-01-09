@@ -1,3 +1,7 @@
+## 6.0.0
+ - Removed obsolete setting congestion_threshold and target_field_for_codec
+ - Changed default value of `add_hostname` to false
+
 ## 5.1.8
  - Loosen jar-dependencies manager gem dependency to allow plugin to work with JRubies that include a later version.
 

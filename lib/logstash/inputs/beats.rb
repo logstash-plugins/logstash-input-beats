@@ -83,8 +83,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   config :ssl_certificate_authorities, :validate => :array, :default => []
 
   # Flag to determine whether to add host information (provided by the beat in the 'hostname' field) to the event
-  config :add_hostname, :validate => :boolean, :default => true, :deprecated => 'Host field will not be automatically populated by future version of the Beats input'
-
+  config :add_hostname, :validate => :boolean, :default => false, :deprecated => 'This option will be removed in the future as beats determine the event schema'
 
   # By default the server doesn't do any client verification.
   # 
@@ -105,13 +104,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   # Time in milliseconds for an incomplete ssl handshake to timeout
   config :ssl_handshake_timeout, :validate => :number, :default => 10000
-
-  # The number of seconds before we raise a timeout. 
-  # This option is useful to control how much time to wait if something is blocking the pipeline.
-  config :congestion_threshold, :validate => :number, :obsolete => "This option is obsolete since congestion control is done automatically"
-
-  # This is the default field to which the specified codec will be applied.
-  config :target_field_for_codec, :validate => :string, :obsolete => "This option is obsolete"
 
   # The minimum TLS version allowed for the encrypted connections. The value must be one of the following:
   # 1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2
