@@ -37,14 +37,13 @@ describe "Filebeat", :integration => true do
   let(:filebeat_config) do
     {
       "filebeat" => {
-        "prospectors" => [{ "paths" => [log_file],  "input_type" => "log" }],
-        "scan_frequency" => "1s",
-        "idle_timeout" => "1s"
+        "prospectors" => [{ "paths" => [log_file],  "type" => "log" }],
+        "scan_frequency" => "1s"
       },
       "output" => {
         "logstash" => { "hosts" => ["#{host}:#{port}"] },
-        "logging" => { "level" => "debug" }
-      }
+      },
+      "logging" => { "level" => "debug" }
     }
   end
 
@@ -90,9 +89,10 @@ describe "Filebeat", :integration => true do
             "logstash" => {
               "hosts" => ["#{host}:#{port}"],
               "ssl" => { "certificate_authorities" => certificate_authorities }
-            },
-            "logging" => { "level" => "debug" }
-          }})
+            }
+          },
+          "logging" => { "level" => "debug" }
+          })
       end
 
       let(:input_config) do
@@ -123,9 +123,10 @@ describe "Filebeat", :integration => true do
                     "versions" => ["TLSv1.2"],
                     "cipher_suites" => [beats_cipher]
                   }
-                },
-                "logging" => { "level" => "debug" }
-              }})
+                }
+              },
+              "logging" => { "level" => "debug" }
+              })
           end
 
           let(:input_config) {
@@ -222,9 +223,10 @@ describe "Filebeat", :integration => true do
                   "certificate" => certificate_file,
                   "key" => certificate_key_file
                 }
-              },
-              "logging" => { "level" => "debug" }
-            }})
+              }
+            },
+            "logging" => { "level" => "debug" }
+            })
         end
 
         let(:input_config) do
@@ -319,9 +321,10 @@ describe "Filebeat", :integration => true do
                           "certificate" => secondary_client_certificate_file,
                           "key" => secondary_client_certificate_key_file
                         }
-                      },
-                      "logging" => { "level" => "debug" }
-                    }})
+                      }
+                    },
+                    "logging" => { "level" => "debug" }
+                    })
                 end
 
                 include_examples "send events"
