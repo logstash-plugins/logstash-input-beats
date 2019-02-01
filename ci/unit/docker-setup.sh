@@ -8,7 +8,7 @@ VERSION_URL="https://raw.githubusercontent.com/elastic/logstash/master/ci/logsta
 
 if [ "$ELASTIC_STACK_VERSION" ]; then
     echo "Fetching versions from $VERSION_URL"
-    VERSIONS=$(curl $VERSION_URL)
+    VERSIONS=$(curl -s $VERSION_URL)
     if [[ "$SNAPSHOT" = "true" ]]; then
       ELASTIC_STACK_RETRIEVED_VERSION=$(echo $VERSIONS | jq '.snapshots."'"$ELASTIC_STACK_VERSION"'"')
       echo $ELASTIC_STACK_RETRIEVED_VERSION
