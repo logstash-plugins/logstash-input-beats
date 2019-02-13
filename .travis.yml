@@ -4,14 +4,15 @@ services: docker
 addons:
   apt:
     packages:
-      - docker-ce
+    - docker-ce
 matrix:
   include:
-  - env: ELASTIC_STACK_VERSION=5.x
-  - env: ELASTIC_STACK_VERSION=6.x
+  - env: ELASTIC_STACK_VERSION=8.x
+  - env: SNAPSHOT=true ELASTIC_STACK_VERSION=7.x
   - env: ELASTIC_STACK_VERSION=7.x
   - env: SNAPSHOT=true ELASTIC_STACK_VERSION=6.x
-  - env: SNAPSHOT=true ELASTIC_STACK_VERSION=7.x
+  - env: ELASTIC_STACK_VERSION=6.x
+  - env: ELASTIC_STACK_VERSION=5.x
   fast_finish: true
 install: ci/unit/docker-setup.sh
 script: ci/unit/docker-run.sh
