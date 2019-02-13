@@ -7,7 +7,7 @@ addons:
     - docker-ce
 matrix:
   include:
-  - env: ELASTIC_STACK_VERSION=8.x
+  - env: SNAPSHOT=true ELASTIC_STACK_VERSION=8.x
   - env: SNAPSHOT=true ELASTIC_STACK_VERSION=7.x
   - env: ELASTIC_STACK_VERSION=7.x
   - env: SNAPSHOT=true ELASTIC_STACK_VERSION=6.x
