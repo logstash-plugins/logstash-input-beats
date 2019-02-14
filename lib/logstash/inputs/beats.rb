@@ -145,11 +145,11 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     end
 
     if @ssl && require_certificate_authorities? && !client_authentification?
-      raise LogStash::ConfigurationError, "Using `verify_mode` set to PEER or FORCE_PEER, requires the configuration of `certificate_authorities`"
+      raise LogStash::ConfigurationError, "Using `ssl_verify_mode` set to `peer` or `force_peer`, requires the configuration of `certificate_authorities`"
     end
 
     if client_authentication_metadata? && !require_certificate_authorities?
-      raise LogStash::ConfigurationError, "Enabling `peer_metadata` requires using `verify_mode` set to PEER or FORCE_PEER"
+      raise LogStash::ConfigurationError, "Enabling `peer_metadata` requires using `ssl_verify_mode` set to `peer` or `force_peer`"
     end
 
     # Logstash 6.x breaking change (introduced with 4.0.0 of this gem)
@@ -217,7 +217,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end
 
   def client_authentication_required?
-    @ssl_verify_mode == "force_peer" 
+    @ssl_verify_mode == "force_peer"
   end
 
   def require_certificate_authorities?
