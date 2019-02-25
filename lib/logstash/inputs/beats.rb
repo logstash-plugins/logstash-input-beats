@@ -177,9 +177,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       ssl_builder.setHandshakeTimeoutMilliseconds(@ssl_handshake_timeout)
 
       if client_authentification?
-        if @ssl_verify_mode.upcase == "FORCE_PEER"
+        if @ssl_verify_mode == "force_peer"
             ssl_builder.setVerifyMode(org.logstash.netty.SslSimpleBuilder::SslClientVerifyMode::FORCE_PEER)
-        elsif @ssl_verify_mode.upcase == "PEER"
+        elsif @ssl_verify_mode == "peer"
             ssl_builder.setVerifyMode(org.logstash.netty.SslSimpleBuilder::SslClientVerifyMode::VERIFY_PEER)
         end
         ssl_builder.setCertificateAuthorities(@ssl_certificate_authorities)
