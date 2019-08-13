@@ -1,3 +1,6 @@
+##  6.0.1
+ - Updated Jackson dependencies [#366](https://github.com/logstash-plugins/logstash-input-beats/pull/366)
+
 ## 6.0.0
  - Removed obsolete setting congestion_threshold and target_field_for_codec
  - Changed default value of `add_hostname` to false
