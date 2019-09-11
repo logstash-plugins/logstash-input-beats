@@ -22,7 +22,7 @@ public class ProtocolTest {
 
     @Test
     public void invalidVersionTest() throws InvalidFrameProtocolException{
-        thrown.expectCause(isA(InvalidFrameProtocolException.class));
+        thrown.expect(isA(InvalidFrameProtocolException.class));
         Protocol.version((byte) '3');
     }
 }
