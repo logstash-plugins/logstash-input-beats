@@ -126,7 +126,7 @@ public class BeatsParserTest {
 
     @Test
     public void testShouldNotCrashOnGarbageData() {
-        thrown.expectCause(isA(BeatsParser.InvalidFrameProtocolException.class));
+        thrown.expectCause(isA(InvalidFrameProtocolException.class));
 
         byte[] n = new byte[10000];
         new Random().nextBytes(n);
@@ -146,6 +146,27 @@ public class BeatsParserTest {
         sendInvalidJSonPayload(0);
     }
 
+
+    @Test
+    public void testInvalidCompression() throws JsonProcessingException {
+        thrown.expectCause(isA(InvalidFrameProtocolException.class));
+        thrown.expectMessage("Insufficient bytes in compressed content");
+        ByteBuf payload = Unpooled.buffer();
+
+        payload.writeByte(Protocol.VERSION_2);
+        payload.writeByte('W');
+        payload.writeInt(1);
+        payload.writeByte(Protocol.VERSION_2);
+        payload.writeByte('C');
+        payload.writeInt(9);
+
+        int[] next = {0x78,0x9c,0x33,0xf2,0x62,0x60,0x60,0x60,0x04,0x62,0x66,0x17,0xff,0x60,0x00,0x07,0xe0,0x01,0x67};
+        for (int n : next){
+            payload.writeByte(n);
+        }
+        sendPayloadToParser(payload);
+    }
+
     @Test
     public void testNegativeFieldsCountShouldRaiseAnException() {
         sendInvalidV1Payload(-1);
@@ -157,7 +178,7 @@ public class BeatsParserTest {
     }
 
     private void sendInvalidV1Payload(int size) {
-        thrown.expectCause(isA(BeatsParser.InvalidFrameProtocolException.class));
+        thrown.expectCause(isA(InvalidFrameProtocolException.class));
         thrown.expectMessage("Invalid number of fields, received: " + size);
 
         ByteBuf payload = Unpooled.buffer();
@@ -182,7 +203,7 @@ public class BeatsParserTest {
     }
 
     private void sendInvalidJSonPayload(int size) throws JsonProcessingException {
-        thrown.expectCause(isA(BeatsParser.InvalidFrameProtocolException.class));
+        thrown.expectCause(isA(InvalidFrameProtocolException.class));
         thrown.expectMessage("Invalid json length, received: " + size);
 
         Map mapData = Collections.singletonMap("message", "hola");
@@ -202,6 +223,8 @@ public class BeatsParserTest {
 
         sendPayloadToParser(payload);
     }
+
+
 
     private void sendPayloadToParser(ByteBuf payload) {
         EmbeddedChannel channel = new EmbeddedChannel(new BeatsParser());
