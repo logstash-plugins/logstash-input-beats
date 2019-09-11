@@ -65,10 +65,10 @@ public class BeatsParser extends ByteToMessageDecoder {
                     if (version == 2) {
                         batch = new V2Batch();
                         logger.trace("Frame version 2 detected");
-                    } else if (version == 1) {
+                    } else {
                         logger.trace("Frame version 1 detected");
                         batch = new V1Batch();
-                    } else throw new InvalidFrameProtocolException("Invalid frame version detected: " +  version);
+                    }
                 }
                 transition(States.READ_FRAME_TYPE);
                 break;
