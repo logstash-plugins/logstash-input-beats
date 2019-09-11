@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
@@ -43,10 +44,14 @@ public class BeatsParser extends ByteToMessageDecoder {
     private States currentState = States.READ_HEADER;
     private int requiredBytes = 0;
     private int sequence = 0;
+    private boolean decodingCompressedBuffer = false;
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
         if(!hasEnoughBytes(in)) {
+            if (decodingCompressedBuffer){
+                throw new InvalidFrameProtocolException("Insufficient bytes in compressed content to decode: " + currentState);
+            }
             return;
         }
 
@@ -54,15 +59,16 @@ public class BeatsParser extends ByteToMessageDecoder {
             case READ_HEADER: {
                 logger.trace("Running: READ_HEADER");
 
-                byte currentVersion = in.readByte();
+                int version = Protocol.version(in.readByte());
+
                 if (batch == null) {
-                    if (Protocol.isVersion2(currentVersion)) {
+                    if (version == 2) {
                         batch = new V2Batch();
                         logger.trace("Frame version 2 detected");
-                    } else {
+                    } else if (version == 1) {
                         logger.trace("Frame version 1 detected");
                         batch = new V1Batch();
-                    }
+                    } else throw new InvalidFrameProtocolException("Invalid frame version detected: " +  version);
                 }
                 transition(States.READ_FRAME_TYPE);
                 break;
@@ -173,22 +179,19 @@ public class BeatsParser extends ByteToMessageDecoder {
             case READ_COMPRESSED_FRAME: {
                 logger.trace("Running: READ_COMPRESSED_FRAME");
                 // Use the compressed size as the safe start for the buffer.
-                ByteBuf buffer = ctx.alloc().buffer(requiredBytes);
-                try (
-                        ByteBufOutputStream buffOutput = new ByteBufOutputStream(buffer);
-                        InflaterOutputStream inflater = new InflaterOutputStream(buffOutput, new Inflater())
-                ) {
-                    in.readBytes(inflater, requiredBytes);
-                    transition(States.READ_HEADER);
-                    try {
-                        while (buffer.readableBytes() > 0) {
-                            decode(ctx, buffer, out);
-                        }
-                    } finally {
-                        buffer.release();
-                    }
-                }
+                ByteBuf buffer = inflateCompressedFrame(ctx, in);
+                transition(States.READ_HEADER);
 
+                decodingCompressedBuffer = true;
+                try {
+                    while (buffer.readableBytes() > 0) {
+                        decode(ctx, buffer, out);
+                    }
+                } finally {
+                    decodingCompressedBuffer = false;
+                    buffer.release();
+                    transition(States.READ_HEADER);
+                }
                 break;
             }
             case READ_JSON: {
@@ -206,6 +209,17 @@ public class BeatsParser extends ByteToMessageDecoder {
                 break;
             }
         }
+    }
+
+    private ByteBuf inflateCompressedFrame(final ChannelHandlerContext ctx, final ByteBuf in) throws IOException {
+        ByteBuf buffer = ctx.alloc().buffer(requiredBytes);
+        try (
+                ByteBufOutputStream buffOutput = new ByteBufOutputStream(buffer);
+                InflaterOutputStream inflater = new InflaterOutputStream(buffOutput, new Inflater())
+        ) {
+            in.readBytes(inflater, requiredBytes);
+        }
+        return buffer;
     }
 
     private boolean hasEnoughBytes(ByteBuf in) {
@@ -228,12 +242,6 @@ public class BeatsParser extends ByteToMessageDecoder {
         requiredBytes = 0;
         sequence = 0;
         batch = null;
-    }
-
-    public class InvalidFrameProtocolException extends Exception {
-        InvalidFrameProtocolException(String message) {
-            super(message);
-        }
     }
 
 }
