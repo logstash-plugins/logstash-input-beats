@@ -1,3 +1,6 @@
+## 5.1.9
+ - Backport [#366](https://github.com/logstash-plugins/logstash-input-beats/pull/366) and [#368](https://github.com/logstash-plugins/logstash-input-beats/pull/368) from 6.x
+
 ## 5.1.8
  - Loosen jar-dependencies manager gem dependency to allow plugin to work with JRubies that include a later version.
 
