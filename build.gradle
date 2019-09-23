@@ -25,10 +25,10 @@ dependencies {
     compile 'io.netty:netty-all:4.1.30.Final'
     compile 'io.netty:netty-tcnative-boringssl-static:2.0.12.Final'
     compile 'org.javassist:javassist:3.24.0-GA'
-    compile 'com.fasterxml.jackson.core:jackson-core:2.9.7'
-    compile 'com.fasterxml.jackson.core:jackson-annotations:2.9.7'
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.9.7'
-    compile 'com.fasterxml.jackson.module:jackson-module-afterburner:2.9.7'
+    compile 'com.fasterxml.jackson.core:jackson-core:2.9.9'
+    compile 'com.fasterxml.jackson.core:jackson-annotations:2.9.9'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.9.9.3'
+    compile 'com.fasterxml.jackson.module:jackson-module-afterburner:2.9.9'
     compile 'org.apache.logging.log4j:log4j-api:2.11.1'
 
 }
