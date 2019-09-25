@@ -1,7 +1,7 @@
-##  6.0.2
+## 6.0.2
  - Improved handling of invalid compressed content [#368](https://github.com/logstash-plugins/logstash-input-beats/pull/368)
 
-##  6.0.1
+## 6.0.1
  - Updated Jackson dependencies [#366](https://github.com/logstash-plugins/logstash-input-beats/pull/366)
 
 ## 6.0.0
