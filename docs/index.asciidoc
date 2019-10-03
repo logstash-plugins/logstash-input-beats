@@ -49,7 +49,7 @@ the Beat's version. For example:
 metricbeat-7.4.0.
 
 Events indexed into Elasticsearch with the Logstash configuration shown here
-will be similar to events directly indexed by beats into Elasticsearch.
+will be similar to events directly indexed by Beats into Elasticsearch.
 
 NOTE: If ILM is not being used, set `index` to
 `%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}` instead so
