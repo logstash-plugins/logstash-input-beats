@@ -1,3 +1,6 @@
+## 6.0.3
+ - Fixed configuration example in doc [#371](https://github.com/logstash-plugins/logstash-input-beats/pull/371)
+
 ## 6.0.2
  - Improved handling of invalid compressed content [#368](https://github.com/logstash-plugins/logstash-input-beats/pull/368)
 

@@ -27,8 +27,9 @@ https://www.elastic.co/products/beats[Elastic Beats] framework.
 The following example shows how to configure Logstash to listen on port
 5044 for incoming Beats connections and to index into Elasticsearch.
 
-[source,ruby]
-------------------------------------------------------------------------------
+[source,logstash]
+-----
+
 input {
   beats {
     port => 5044
@@ -37,21 +38,23 @@ input {
 
 output {
   elasticsearch {
-    hosts => "localhost:9200"
-    manage_template => false
-    index => "%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}" <1>
-    document_type => "%{[@metadata][type]}" <2>
+    hosts => ["http://localhost:9200"]
+    index => "%{[@metadata][beat]}-%{[@metadata][version]}" <1>
   }
 }
-------------------------------------------------------------------------------
-<1> Specifies the index to write events to. See <<plugins-{type}s-{plugin}-versioned-indexes>> for
-more about this setting.
-<2> Starting with Logstash 6.0, the `document_type` option is
-deprecated due to the
-https://www.elastic.co/guide/en/elasticsearch/reference/6.0/removal-of-types.html[removal of types in Logstash 6.0].
-It will be removed in the next major version of Logstash. If you are running
-Logstash 6.0 or later, do not set `document_type` in your configuration because
-Logstash sets the type to `doc` by default.
+-----
+<1> `%{[@metadata][beat]}` sets the first part of the index name to the value
+of the `beat` metadata field and `%{[@metadata][version]}` sets the second part to
+the Beat's version. For example:
+metricbeat-7.4.0.
+
+Events indexed into Elasticsearch with the Logstash configuration shown here
+will be similar to events directly indexed by Beats into Elasticsearch.
+
+NOTE: If ILM is not being used, set `index` to
+`%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}` instead so
+Logstash creates an index per day, based on the `@timestamp` value of the events
+coming from Beats.
 
 IMPORTANT: If you are shipping events that span multiple lines, you need to
 use the https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html[configuration options available in Filebeat] to handle multiline events
