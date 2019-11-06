@@ -12,7 +12,8 @@ import org.apache.logging.log4j.Logger;
  */
 // This need to be implemented in Ruby
 public class MessageListener implements IMessageListener {
-    private final static Logger logger = LogManager.getLogger(MessageListener.class);
+
+    private static final Logger logger = LogManager.getLogger();
 
 
     /**
