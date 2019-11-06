@@ -62,13 +62,22 @@ describe LogStash::Inputs::Beats do
         end
       end
 
-      context "verify_mode" do
-        context "verify_mode configured to PEER" do
+      context "ssl_verify_mode" do
+        context 'ssl_verify_mode requires downcased values' do
+          let(:config)   { {"ssl_certificate_authorities" => [certificate.ssl_cert], "port" => 0, "ssl" => true, "ssl_verify_mode" => "PEER", "ssl_certificate" => certificate.ssl_cert, "ssl_key" => certificate.ssl_key, "type" => "example", "tags" => "Beats"} }
+
+          it "raise a ConfigurationError when ssl_verify_mode is not downcased" do
+            expect {LogStash::Inputs::Beats.new(config)}.to raise_error(LogStash::ConfigurationError)
+          end
+
+        end
+
+        context "ssl_verify_mode configured to peer" do
           let(:config)   { { "port" => 0, "ssl" => true, "ssl_verify_mode" => "peer", "ssl_certificate" => certificate.ssl_cert, "ssl_key" => certificate.ssl_key, "type" => "example", "tags" => "Beats"} }
 
           it "raise a ConfigurationError when certificate_authorities is not set" do
             plugin = LogStash::Inputs::Beats.new(config)
-            expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "Using `verify_mode` set to PEER or FORCE_PEER, requires the configuration of `certificate_authorities`")
+            expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "Using `ssl_verify_mode` set to `peer` or `force_peer`, requires the configuration of `certificate_authorities`")
           end
 
           it "doesn't raise a configuration error when certificate_authorities is set" do
@@ -78,12 +87,12 @@ describe LogStash::Inputs::Beats do
           end
         end
 
-        context "verify_mode configured to FORCE_PEER" do
+        context "ssl_verify_mode configured to force_peer" do
           let(:config)   { { "port" => 0, "ssl" => true, "ssl_verify_mode" => "force_peer", "ssl_certificate" => certificate.ssl_cert, "ssl_key" => certificate.ssl_key, "type" => "example", "tags" => "Beats"} }
 
           it "raise a ConfigurationError when certificate_authorities is not set" do
             plugin = LogStash::Inputs::Beats.new(config)
-            expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "Using `verify_mode` set to PEER or FORCE_PEER, requires the configuration of `certificate_authorities`")
+            expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "Using `ssl_verify_mode` set to `peer` or `force_peer`, requires the configuration of `certificate_authorities`")
           end
 
           it "doesn't raise a configuration error when certificate_authorities is set" do
