@@ -1,3 +1,6 @@
+## 6.0.4
+ - Updated Jackson dependencies
+
 ## 6.0.3
  - Fixed configuration example in doc [#371](https://github.com/logstash-plugins/logstash-input-beats/pull/371)
 
