@@ -77,7 +77,7 @@ public class SslSimpleBuilder {
             if(!OpenSsl.isCipherSuiteAvailable(cipher)) {
                 throw new IllegalArgumentException("Cipher `" + cipher + "` is not available");
             } else {
-                logger.debug("Cipher is supported: " + cipher);
+                logger.debug("Cipher is supported: {}", cipher);
             }
         }
 
@@ -111,9 +111,10 @@ public class SslSimpleBuilder {
     public SslHandler build(ByteBufAllocator bufferAllocator) throws IOException, NoSuchAlgorithmException, CertificateException {
         SslContextBuilder builder = SslContextBuilder.forServer(sslCertificateFile, sslKeyFile, passPhrase);
 
-        if(logger.isDebugEnabled())
-            logger.debug("Available ciphers:" + Arrays.toString(OpenSsl.availableOpenSslCipherSuites().toArray()));
+        if (logger.isDebugEnabled()) {
+            logger.debug("Available ciphers: " + Arrays.toString(OpenSsl.availableOpenSslCipherSuites().toArray()));
             logger.debug("Ciphers:  " + Arrays.toString(ciphers));
+        }
 
 
         builder.ciphers(Arrays.asList(ciphers));
@@ -128,7 +129,7 @@ public class SslSimpleBuilder {
         SslContext context = builder.build();
         SslHandler sslHandler = context.newHandler(bufferAllocator);
 
-        if(logger.isDebugEnabled())
+        if (logger.isDebugEnabled())
             logger.debug("TLS: " + Arrays.toString(protocols));
 
         SSLEngine engine = sslHandler.engine();
@@ -162,7 +163,7 @@ public class SslSimpleBuilder {
         for(int i = 0; i < certificates.length; i++) {
             String certificate = certificates[i];
 
-            logger.debug("Loading certificates from file " + certificate);
+            logger.debug("Loading certificates from file {}", certificate);
 
             try(InputStream in = new FileInputStream(certificate)) {
                 List<X509Certificate> certificatesChains = (List<X509Certificate>) certificateFactory.generateCertificates(in);
