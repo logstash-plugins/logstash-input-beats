@@ -7,11 +7,9 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.logstash.beats.Server;
 
 import javax.net.ssl.SSLEngine;
 import java.io.*;
-import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -45,14 +43,10 @@ public class SslSimpleBuilder {
     This list require the OpenSSl engine for netty.
     */
     public final static String[] DEFAULT_CIPHERS = new String[] {
-            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
             "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
             "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
-            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
-            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
+            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
     };
 
     private String[] ciphers = DEFAULT_CIPHERS;
@@ -60,11 +54,10 @@ public class SslSimpleBuilder {
     private String[] certificateAuthorities;
     private String passPhrase;
 
-    public SslSimpleBuilder(String sslCertificateFilePath, String sslKeyFilePath, String pass) throws FileNotFoundException {
+    public SslSimpleBuilder(String sslCertificateFilePath, String sslKeyFilePath, String pass) {
         sslCertificateFile = new File(sslCertificateFilePath);
         sslKeyFile = new File(sslKeyFilePath);
         passPhrase = pass;
-        ciphers = DEFAULT_CIPHERS;
     }
 
     public SslSimpleBuilder setProtocols(String[] protocols) {
@@ -77,7 +70,7 @@ public class SslSimpleBuilder {
             if(!OpenSsl.isCipherSuiteAvailable(cipher)) {
                 throw new IllegalArgumentException("Cipher `" + cipher + "` is not available");
             } else {
-                logger.debug("Cipher is supported: " + cipher);
+                logger.debug("Cipher is supported: {}", cipher);
             }
         }
 
@@ -108,12 +101,13 @@ public class SslSimpleBuilder {
         return sslCertificateFile;
     }
 
-    public SslHandler build(ByteBufAllocator bufferAllocator) throws IOException, NoSuchAlgorithmException, CertificateException {
+    public SslHandler build(ByteBufAllocator bufferAllocator) throws IOException, CertificateException {
         SslContextBuilder builder = SslContextBuilder.forServer(sslCertificateFile, sslKeyFile, passPhrase);
 
-        if(logger.isDebugEnabled())
-            logger.debug("Available ciphers:" + Arrays.toString(OpenSsl.availableOpenSslCipherSuites().toArray()));
+        if (logger.isDebugEnabled()) {
+            logger.debug("Available ciphers: " + Arrays.toString(OpenSsl.availableOpenSslCipherSuites().toArray()));
             logger.debug("Ciphers:  " + Arrays.toString(ciphers));
+        }
 
 
         builder.ciphers(Arrays.asList(ciphers));
@@ -128,7 +122,7 @@ public class SslSimpleBuilder {
         SslContext context = builder.build();
         SslHandler sslHandler = context.newHandler(bufferAllocator);
 
-        if(logger.isDebugEnabled())
+        if (logger.isDebugEnabled())
             logger.debug("TLS: " + Arrays.toString(protocols));
 
         SSLEngine engine = sslHandler.engine();
@@ -162,7 +156,7 @@ public class SslSimpleBuilder {
         for(int i = 0; i < certificates.length; i++) {
             String certificate = certificates[i];
 
-            logger.debug("Loading certificates from file " + certificate);
+            logger.debug("Loading certificates from file {}", certificate);
 
             try(InputStream in = new FileInputStream(certificate)) {
                 List<X509Certificate> certificatesChains = (List<X509Certificate>) certificateFactory.generateCertificates(in);

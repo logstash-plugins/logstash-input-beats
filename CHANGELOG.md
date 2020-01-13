@@ -1,3 +1,6 @@
+## 6.0.5
+ - Security: update netty deps - avoid CBC ciphers [#376](hhttps://github.com/logstash-plugins/logstash-input-beats/pull/376)
+
 ## 6.0.4
  - Updated Jackson dependencies
 
