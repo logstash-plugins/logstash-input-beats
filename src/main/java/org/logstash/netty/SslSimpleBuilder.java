@@ -7,11 +7,9 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.logstash.beats.Server;
 
 import javax.net.ssl.SSLEngine;
 import java.io.*;
-import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -60,11 +58,10 @@ public class SslSimpleBuilder {
     private String[] certificateAuthorities;
     private String passPhrase;
 
-    public SslSimpleBuilder(String sslCertificateFilePath, String sslKeyFilePath, String pass) throws FileNotFoundException {
+    public SslSimpleBuilder(String sslCertificateFilePath, String sslKeyFilePath, String pass) {
         sslCertificateFile = new File(sslCertificateFilePath);
         sslKeyFile = new File(sslKeyFilePath);
         passPhrase = pass;
-        ciphers = DEFAULT_CIPHERS;
     }
 
     public SslSimpleBuilder setProtocols(String[] protocols) {
@@ -108,7 +105,7 @@ public class SslSimpleBuilder {
         return sslCertificateFile;
     }
 
-    public SslHandler build(ByteBufAllocator bufferAllocator) throws IOException, NoSuchAlgorithmException, CertificateException {
+    public SslHandler build(ByteBufAllocator bufferAllocator) throws IOException, CertificateException {
         SslContextBuilder builder = SslContextBuilder.forServer(sslCertificateFile, sslKeyFile, passPhrase);
 
         if (logger.isDebugEnabled()) {
