@@ -12,24 +12,30 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.netty.SslHandlerProvider;
 
+
+import static org.logstash.beats.DaemonThreadFactory.daemonThreadFactory;
+
 public class Server {
     private final static Logger logger = LogManager.getLogger(Server.class);
 
     private final int port;
     private final String host;
-    private final int beatsHeandlerThreadCount;
+    private final int beatsHandlerThreadCount;
+    private final int maxPendingRequests;
     private NioEventLoopGroup workGroup;
     private IMessageListener messageListener = new MessageListener();
     private SslHandlerProvider sslHandlerProvider;
     private BeatsInitializer beatsInitializer;
+    private final int connectionBacklog = 128;
 
     private final int clientInactivityTimeoutSeconds;
 
-    public Server(String host, int p, int clientInactivityTimeoutSeconds, int threadCount) {
+    public Server(String host, int p, int clientInactivityTimeoutSeconds, int threadCount, int maxPendingRequests) {
         this.host = host;
         port = p;
         this.clientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
-        beatsHeandlerThreadCount = threadCount;
+        beatsHandlerThreadCount = threadCount;
+        this.maxPendingRequests = maxPendingRequests;
     }
 
     public void setSslHandlerProvider(SslHandlerProvider sslHandlerProvider){
@@ -49,11 +55,12 @@ public class Server {
         try {
             logger.info("Starting server on port: {}", this.port);
 
-            beatsInitializer = new BeatsInitializer(messageListener, clientInactivityTimeoutSeconds, beatsHeandlerThreadCount);
+            beatsInitializer = new BeatsInitializer(messageListener, clientInactivityTimeoutSeconds, beatsHandlerThreadCount, maxPendingRequests);
 
             ServerBootstrap server = new ServerBootstrap();
             server.group(workGroup)
                     .channel(NioServerSocketChannel.class)
+                    .option(ChannelOption.SO_BACKLOG, connectionBacklog)
                     .childOption(ChannelOption.SO_LINGER, 0) // Since the protocol doesn't support yet a remote close from the server and we don't want to have 'unclosed' socket lying around we have to use `SO_LINGER` to force the close of the socket.
                     .childHandler(beatsInitializer);
 
@@ -108,12 +115,13 @@ public class Server {
         private final IMessageListener localMessageListener;
         private final int localClientInactivityTimeoutSeconds;
 
-        BeatsInitializer(IMessageListener messageListener, int clientInactivityTimeoutSeconds, int beatsHandlerThread) {
+        BeatsInitializer(IMessageListener messageListener, int clientInactivityTimeoutSeconds, int beatsHandlerThread, int maxPendingRequests) {
             // Keeps a local copy of Server settings, so they can't be modified once it starts listening
             this.localMessageListener = messageListener;
             this.localClientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
-            beatsHandlerExecutorGroup = new DefaultEventExecutorGroup(beatsHandlerThread);
+            beatsHandlerExecutorGroup = new DefaultEventExecutorGroup(beatsHandlerThread, daemonThreadFactory("beats-input-handler-executor"), maxPendingRequests, new CustomRejectedExecutionHandler());
+            //beatsHandlerExecutorGroup = new DefaultEventExecutorGroup(beatsHandlerThread);
         }
 
         public void initChannel(SocketChannel socket){
@@ -127,6 +135,7 @@ public class Server {
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
             pipeline.addLast(CONNECTION_HANDLER, new ConnectionHandler());
             pipeline.addLast(beatsHandlerExecutorGroup, new BeatsParser(), new BeatsHandler(localMessageListener));
+
         }
 
 

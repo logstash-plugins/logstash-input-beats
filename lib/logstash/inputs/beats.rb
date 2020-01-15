@@ -162,7 +162,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end # def register
 
   def create_server
-    server = org.logstash.beats.Server.new(@host, @port, @client_inactivity_timeout, @executor_threads)
+    server = org.logstash.beats.Server.new(@host, @port, @client_inactivity_timeout, @executor_threads, 5)
     if @ssl
       ssl_context_builder = new_ssl_context_builder
       if client_authentification?
