@@ -21,7 +21,7 @@ shared_context "beats configuration" do
 
   let(:queue) { [] }
   let_tmp_file(:log_file) { events.join("\n") + "\n" } # make sure we end of line
-  let(:number_of_events) { 5000 }
+  let(:number_of_events) { 25_000 }
   let(:event) { "Hello world" }
   let(:events) do
     events = []
