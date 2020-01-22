@@ -1,5 +1,8 @@
+## 6.0.6
+ - Downgraded netty to 4.1.34 due to an issue in IdleStateHandler [#380](https://github.com/logstash-plugins/logstash-input-beats/pull/380)
+
 ## 6.0.5
- - Security: update netty deps - avoid CBC ciphers [#376](hhttps://github.com/logstash-plugins/logstash-input-beats/pull/376)
+ - Security: update netty deps - avoid CBC ciphers [#376](https://github.com/logstash-plugins/logstash-input-beats/pull/376)
 
 ## 6.0.4
  - Updated Jackson dependencies

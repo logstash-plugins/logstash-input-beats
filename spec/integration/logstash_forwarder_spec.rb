@@ -74,7 +74,7 @@ describe "Logstash-Forwarder", :integration => true do
   context "TLS" do
     context "Server Verification" do
       let(:input_config) do
-        super.merge({ 
+        super.merge({
           "ssl" => true,
           "ssl_certificate" => certificate_file,
           "ssl_key" => certificate_key_file,
@@ -87,6 +87,11 @@ describe "Logstash-Forwarder", :integration => true do
       let(:certificate_authorities) { certificate_file }
 
       context "self signed certificate" do
+        include_examples "send events"
+      end
+
+      context "with large batches" do
+        let(:number_of_events) { 10_000 }
         include_examples "send events"
       end
 

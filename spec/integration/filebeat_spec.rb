@@ -79,6 +79,21 @@ describe "Filebeat", :integration => true do
   # Actuals tests
   context "Plain TCP" do
     include_examples "send events"
+
+    context "with large batches" do
+      let(:number_of_events) { 10_000 }
+      include_examples "send events"
+    end
+
+    context "without pipelining" do
+      let(:filebeat_config) { config = super; config["output"]["logstash"]["pipelining"] = 0; config }
+      include_examples "send events"
+
+      context "with large batches" do
+        let(:number_of_events) { 10_000 }
+        include_examples "send events"
+      end
+    end
   end
 
   context "TLS" do
