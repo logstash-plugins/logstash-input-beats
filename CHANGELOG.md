@@ -1,3 +1,6 @@
+## 6.0.7
+ - Reverted changes to netty and tcnative dependencies and removal of CBC ciphers to preserve compatibility with Lumberjack output [#381](https://github.com/logstash-plugins/logstash-input-beats/pull/381)
+
 ## 6.0.6
  - Downgraded netty to 4.1.34 due to an issue in IdleStateHandler [#380](https://github.com/logstash-plugins/logstash-input-beats/pull/380)
 
