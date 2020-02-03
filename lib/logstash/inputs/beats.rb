@@ -134,8 +134,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
     java_import "org.logstash.beats.Server"
     java_import "org.logstash.netty.SslContextBuilder"
+    java_import "org.logstash.netty.SslHandlerProvider"
     java_import "java.io.FileInputStream"
-    java_import "io.netty.handler.ssl.OpenSsl"
 
     if !@ssl
       @logger.warn("Beats input: SSL Certificate will not be used") unless @ssl_certificate.nil?
@@ -183,7 +183,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
         end
         ssl_context_builder.setCertificateAuthorities(@ssl_certificate_authorities)
       end
-      server.enable_ssl(ssl_context_builder.build_context, @ssl_handshake_timeout)
+      server.setSslHandlerProvider(org.logstash.netty.SslHandlerProvider.new(ssl_context_builder.build_context, @ssl_handshake_timeout))
     end
     server
   end
