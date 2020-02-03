@@ -1,7 +1,6 @@
 package org.logstash.netty;
 
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.handler.ssl.OpenSsl;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
@@ -9,13 +8,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLServerSocketFactory;
 import java.io.*;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -54,6 +53,7 @@ public class SslSimpleBuilder {
     };
 
     private String[] ciphers = DEFAULT_CIPHERS;
+    private String[] supportedCiphers = ((SSLServerSocketFactory)SSLServerSocketFactory.getDefault()).getSupportedCipherSuites();
     private String[] protocols = new String[] { "TLSv1.2" };
     private String[] certificateAuthorities;
     private String passPhrase;
@@ -71,10 +71,10 @@ public class SslSimpleBuilder {
 
     public SslSimpleBuilder setCipherSuites(String[] ciphersSuite) throws IllegalArgumentException {
         for(String cipher : ciphersSuite) {
-            if(!OpenSsl.isCipherSuiteAvailable(cipher)) {
-                throw new IllegalArgumentException("Cipher `" + cipher + "` is not available");
-            } else {
+            if(Arrays.asList(supportedCiphers).contains(cipher)) {
                 logger.debug("Cipher is supported: {}", cipher);
+            } else {
+                throw new IllegalArgumentException("Cipher `" + cipher + "` is not available");
             }
         }
 
@@ -109,7 +109,7 @@ public class SslSimpleBuilder {
         SslContextBuilder builder = SslContextBuilder.forServer(sslCertificateFile, sslKeyFile, passPhrase);
 
         if (logger.isDebugEnabled()) {
-            logger.debug("Available ciphers: " + Arrays.toString(OpenSsl.availableOpenSslCipherSuites().toArray()));
+            logger.debug("Available ciphers:" + Arrays.toString(supportedCiphers));
             logger.debug("Ciphers:  " + Arrays.toString(ciphers));
         }
 
