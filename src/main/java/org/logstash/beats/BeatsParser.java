@@ -213,11 +213,14 @@ public class BeatsParser extends ByteToMessageDecoder {
 
     private ByteBuf inflateCompressedFrame(final ChannelHandlerContext ctx, final ByteBuf in) throws IOException {
         ByteBuf buffer = ctx.alloc().buffer(requiredBytes);
+        Inflater inflater = new Inflater();
         try (
                 ByteBufOutputStream buffOutput = new ByteBufOutputStream(buffer);
-                InflaterOutputStream inflater = new InflaterOutputStream(buffOutput, new Inflater())
+                InflaterOutputStream inflaterStream = new InflaterOutputStream(buffOutput, inflater)
         ) {
-            in.readBytes(inflater, requiredBytes);
+            in.readBytes(inflaterStream, requiredBytes);
+        }finally{
+            inflater.end();
         }
         return buffer;
     }
