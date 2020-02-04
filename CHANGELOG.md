@@ -1,3 +1,7 @@
+## 6.0.8
+ - Fixed issue where an SslContext was unnecessarily being created for each connection [#383](https://github.com/logstash-plugins/logstash-input-beats/pull/383)
+ - Fixed issue where `end` was not being called when an Inflater was closed [#383](https://github.com/logstash-plugins/logstash-input-beats/pull/383)
+
 ## 6.0.7
  - Reverted changes to netty and tcnative dependencies and removal of CBC ciphers to preserve compatibility with Lumberjack output [#381](https://github.com/logstash-plugins/logstash-input-beats/pull/381)
 
