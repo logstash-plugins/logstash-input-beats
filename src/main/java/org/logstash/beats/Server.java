@@ -5,17 +5,19 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.logstash.netty.SslSimpleBuilder;
+import org.logstash.netty.SslContextBuilder;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.util.concurrent.TimeUnit;
 
 public class Server {
     private final static Logger logger = LogManager.getLogger(Server.class);
@@ -25,20 +27,22 @@ public class Server {
     private final int beatsHeandlerThreadCount;
     private NioEventLoopGroup workGroup;
     private IMessageListener messageListener = new MessageListener();
-    private SslSimpleBuilder sslBuilder;
+    private SslContext sslContext;
     private BeatsInitializer beatsInitializer;
+    private int handshakeTimeoutMillis;
 
     private final int clientInactivityTimeoutSeconds;
 
-    public Server(String host, int p, int timeout, int threadCount) {
+    public Server(String host, int p, int clientInactivityTimeoutSeconds, int threadCount) {
         this.host = host;
         port = p;
-        clientInactivityTimeoutSeconds = timeout;
+        this.clientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
         beatsHeandlerThreadCount = threadCount;
     }
 
-    public void enableSSL(SslSimpleBuilder builder) {
-        sslBuilder = builder;
+    public void enableSsl(SslContext sslContext, int handshakeTimeoutMillis) {
+        this.handshakeTimeoutMillis = handshakeTimeoutMillis;
+        this.sslContext = sslContext;
     }
 
     public Server listen() throws InterruptedException {
@@ -54,7 +58,7 @@ public class Server {
         try {
             logger.info("Starting server on port: {}", this.port);
 
-            beatsInitializer = new BeatsInitializer(isSslEnable(), messageListener, clientInactivityTimeoutSeconds, beatsHeandlerThreadCount);
+            beatsInitializer = new BeatsInitializer(messageListener, clientInactivityTimeoutSeconds, beatsHeandlerThreadCount);
 
             ServerBootstrap server = new ServerBootstrap();
             server.group(workGroup)
@@ -95,7 +99,7 @@ public class Server {
     }
 
     public boolean isSslEnable() {
-        return this.sslBuilder != null;
+        return this.sslContext != null;
     }
 
     private class BeatsInitializer extends ChannelInitializer<SocketChannel> {
@@ -112,24 +116,20 @@ public class Server {
         private final EventExecutorGroup beatsHandlerExecutorGroup;
         private final IMessageListener localMessageListener;
         private final int localClientInactivityTimeoutSeconds;
-        private final boolean localEnableSSL;
 
-        BeatsInitializer(Boolean enableSSL, IMessageListener messageListener, int clientInactivityTimeoutSeconds, int beatsHandlerThread) {
+        BeatsInitializer(IMessageListener messageListener, int clientInactivityTimeoutSeconds, int beatsHandlerThread) {
             // Keeps a local copy of Server settings, so they can't be modified once it starts listening
-            this.localEnableSSL = enableSSL;
             this.localMessageListener = messageListener;
             this.localClientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
             beatsHandlerExecutorGroup = new DefaultEventExecutorGroup(beatsHandlerThread);
-
         }
 
-        public void initChannel(SocketChannel socket) throws IOException, NoSuchAlgorithmException, CertificateException {
+        public void initChannel(SocketChannel socket){
             ChannelPipeline pipeline = socket.pipeline();
 
-            if (localEnableSSL) {
-                SslHandler sslHandler = sslBuilder.build(socket.alloc());
-                pipeline.addLast(SSL_HANDLER, sslHandler);
+            if (sslContext != null) {
+                pipeline.addLast(SSL_HANDLER, sslHandlerForChannel(socket));
             }
             pipeline.addLast(idleExecutorGroup, IDLESTATE_HANDLER,
                              new IdleStateHandler(localClientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS, localClientInactivityTimeoutSeconds));
@@ -137,6 +137,8 @@ public class Server {
             pipeline.addLast(CONNECTION_HANDLER, new ConnectionHandler());
             pipeline.addLast(beatsHandlerExecutorGroup, new BeatsParser(), new BeatsHandler(localMessageListener));
         }
+
+
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
@@ -156,5 +158,11 @@ public class Server {
                 throw new IllegalStateException(e);
             }
         }
+    }
+
+    private SslHandler sslHandlerForChannel(final SocketChannel socket) {
+        SslHandler handler =  sslContext.newHandler(socket.alloc());
+        handler.setHandshakeTimeoutMillis(handshakeTimeoutMillis);
+        return handler;
     }
 }

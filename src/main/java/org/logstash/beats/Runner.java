@@ -1,8 +1,9 @@
 package org.logstash.beats;
 
+import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.logstash.netty.SslSimpleBuilder;
+import org.logstash.netty.SslContextBuilder;
 
 
 public class Runner {
@@ -30,12 +31,10 @@ public class Runner {
 
 
 
-            SslSimpleBuilder sslBuilder = new SslSimpleBuilder(sslCertificate, sslKey, null)
+            SslContextBuilder sslBuilder = new SslContextBuilder(sslCertificate, sslKey, null)
                     .setProtocols(new String[] { "TLSv1.2" })
-                    .setCertificateAuthorities(certificateAuthorities)
-                    .setHandshakeTimeoutMilliseconds(10000);
-
-            server.enableSSL(sslBuilder);
+                    .setCertificateAuthorities(certificateAuthorities);
+            server.enableSsl(sslBuilder.buildContext(), 10000);
         }
 
         server.listen();
