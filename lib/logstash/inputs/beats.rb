@@ -114,7 +114,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   config :tls_max_version, :validate => :number, :default => TLS.max.version
 
   # The list of ciphers suite to use, listed by priorities.
-  config :cipher_suites, :validate => :array, :default => org.logstash.netty.SslSimpleBuilder::DEFAULT_CIPHERS
+  config :cipher_suites, :validate => :array, :default => org.logstash.netty.SslContextBuilder::DEFAULT_CIPHERS
 
   # Close Idle clients after X seconds of inactivity.
   config :client_inactivity_timeout, :validate => :number, :default => 60
@@ -133,7 +133,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     end
 
     java_import "org.logstash.beats.Server"
-    java_import "org.logstash.netty.SslSimpleBuilder"
+    java_import "org.logstash.netty.SslContextBuilder"
     java_import "java.io.FileInputStream"
     java_import "io.netty.handler.ssl.OpenSsl"
 
@@ -167,25 +167,23 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     if @ssl
 
       begin
-      ssl_builder = org.logstash.netty.SslSimpleBuilder.new(@ssl_certificate, @ssl_key, @ssl_key_passphrase.nil? ? nil : @ssl_key_passphrase.value)
-        .setProtocols(convert_protocols)
-        .setCipherSuites(normalized_ciphers)
+        ssl_context_builder = org.logstash.netty.SslContextBuilder.new(@ssl_certificate, @ssl_key, @ssl_key_passphrase.nil? ? nil : @ssl_key_passphrase.value)
+                          .setProtocols(convert_protocols)
+                          .setCipherSuites(normalized_ciphers)
       rescue java.lang.IllegalArgumentException => e
         raise LogStash::ConfigurationError, e
       end
 
-      ssl_builder.setHandshakeTimeoutMilliseconds(@ssl_handshake_timeout)
 
       if client_authentification?
         if @ssl_verify_mode.upcase == "FORCE_PEER"
-            ssl_builder.setVerifyMode(org.logstash.netty.SslSimpleBuilder::SslClientVerifyMode::FORCE_PEER)
+          ssl_context_builder.setVerifyMode(org.logstash.netty.SslContextBuilder::SslClientVerifyMode::FORCE_PEER)
         elsif @ssl_verify_mode.upcase == "PEER"
-            ssl_builder.setVerifyMode(org.logstash.netty.SslSimpleBuilder::SslClientVerifyMode::VERIFY_PEER)
+          ssl_context_builder.setVerifyMode(org.logstash.netty.SslContextBuilder::SslClientVerifyMode::VERIFY_PEER)
         end
-        ssl_builder.setCertificateAuthorities(@ssl_certificate_authorities)
+        ssl_context_builder.setCertificateAuthorities(@ssl_certificate_authorities)
       end
-
-      server.enableSSL(ssl_builder)
+      server.enable_ssl(ssl_context_builder.build_context, @ssl_handshake_timeout)
     end
     server
   end
