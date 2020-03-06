@@ -132,11 +132,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       LogStash::Logger.setup_log4j(@logger)
     end
 
-    java_import "org.logstash.beats.Server"
-    java_import "org.logstash.netty.SslContextBuilder"
-    java_import "org.logstash.netty.SslHandlerProvider"
-    java_import "java.io.FileInputStream"
-
     if !@ssl
       @logger.warn("Beats input: SSL Certificate will not be used") unless @ssl_certificate.nil?
       @logger.warn("Beats input: SSL Key will not be used") unless @ssl_key.nil?
