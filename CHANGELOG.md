@@ -1,3 +1,7 @@
+## 6.0.9
+ - Fixed issue where calling `java_import` on `org.logstash.netty.SslContextBuilder` was causing the TCP input to pick up the wrong SslContextBuilder class
+   potentially causing pipeline creation to fail [#388](https://github.com/logstash-plugins/logstash-input-beats/pull/388)
+
 ## 6.0.8
  - Fixed issue where an SslContext was unnecessarily being created for each connection [#383](https://github.com/logstash-plugins/logstash-input-beats/pull/383)
  - Fixed issue where `end` was not being called when an Inflater was closed [#383](https://github.com/logstash-plugins/logstash-input-beats/pull/383)
