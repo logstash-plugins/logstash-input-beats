@@ -240,6 +240,8 @@ If the client doesn't provide a certificate, the connection will be closed.
 
 This option needs to be used with `ssl_certificate_authorities` and a defined list of CAs.
 
+When using `peer` and `force_peer`, the subject `CN` verification is not performed.
+
 [id="plugins-{type}s-{plugin}-ssl_peer_metadata"]
 ===== `ssl_peer_metadata`
 
