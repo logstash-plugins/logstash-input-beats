@@ -1,3 +1,6 @@
+## 6.0.10
+ - Added error handling to detect if ssl certificate or key files can't be read [#394](https://github.com/logstash-plugins/logstash-input-beats/pull/394)
+
 ## 6.0.9
  - Fixed issue where calling `java_import` on `org.logstash.netty.SslContextBuilder` was causing the TCP input to pick up the wrong SslContextBuilder class
    potentially causing pipeline creation to fail [#388](https://github.com/logstash-plugins/logstash-input-beats/pull/388)

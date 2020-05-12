@@ -58,9 +58,17 @@ public class SslContextBuilder {
     private String[] certificateAuthorities;
     private String passPhrase;
 
-    public SslContextBuilder(String sslCertificateFilePath, String sslKeyFilePath, String pass) {
+    public SslContextBuilder(String sslCertificateFilePath, String sslKeyFilePath, String pass) throws IllegalArgumentException {
         sslCertificateFile = new File(sslCertificateFilePath);
+        if (!sslCertificateFile.canRead()) {
+            throw new IllegalArgumentException(
+                    String.format("Certificate file cannot be read. Please confirm the user running Logstash has permissions to read: %s", sslCertificateFilePath));
+        }
         sslKeyFile = new File(sslKeyFilePath);
+        if (!sslKeyFile.canRead()) {
+            throw new IllegalArgumentException(
+                    String.format("Private key file cannot be read. Please confirm the user running Logstash has permissions to read: %s", sslKeyFilePath));
+        }
         passPhrase = pass;
     }
 
