@@ -1,7 +1,6 @@
 package org.logstash.netty;
 
 import io.netty.handler.ssl.ClientAuth;
-import io.netty.handler.ssl.OpenSsl;
 import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,7 +40,6 @@ public class SslContextBuilder {
     /*
     Mordern Ciphers List from
     https://wiki.mozilla.org/Security/Server_Side_TLS
-    This list require the OpenSSl engine for netty.
     */
     public final static String[] DEFAULT_CIPHERS = new String[] {
             "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
