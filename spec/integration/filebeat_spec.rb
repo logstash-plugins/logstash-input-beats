@@ -166,8 +166,8 @@ describe "Filebeat", :integration => true do
             end
 
             context "when the cipher is not supported" do
-              let(:beats_cipher) { "ECDHE-RSA-AES-128-GCM-SHA256" }
-              let(:logstash_cipher) { "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"}
+              let(:beats_cipher) { "ECDHE-RSA-AES-256-GCM-SHA384" }
+              let(:logstash_cipher) { "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"}
 
               include_examples "doesn't send events"
             end

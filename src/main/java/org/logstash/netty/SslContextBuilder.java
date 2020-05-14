@@ -5,12 +5,14 @@ import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.crypto.Cipher;
 import javax.net.ssl.SSLServerSocketFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -41,7 +43,7 @@ public class SslContextBuilder {
     Mordern Ciphers List from
     https://wiki.mozilla.org/Security/Server_Side_TLS
     */
-    public final static String[] DEFAULT_CIPHERS = new String[] {
+    private final static String[] DEFAULT_CIPHERS = new String[] {
             "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
             "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
             "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
@@ -51,6 +53,17 @@ public class SslContextBuilder {
             "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
             "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
     };
+
+    /*
+      Reduced set of ciphers available when JCE Unlimited Strength Jurisdiction Policy is not installed.
+     */
+    private final static String[] DEFAULT_CIPHERS_LIMITED = new String[] {
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
+    };
+
     private String[] supportedCiphers = ((SSLServerSocketFactory)SSLServerSocketFactory
             .getDefault()).getSupportedCipherSuites();
     private String[] ciphers = DEFAULT_CIPHERS;
@@ -82,6 +95,9 @@ public class SslContextBuilder {
             if(Arrays.asList(supportedCiphers).contains(cipher)) {
                 logger.debug("Cipher is supported: {}", cipher);
             }else{
+                if (!isUnlimitedJCEAvailable()) {
+                    logger.warn("JCE Unlimited Strength Jurisdiction Policy not installed");
+                }
                 throw new IllegalArgumentException("Cipher `" + cipher + "` is not available");
             }
         }
@@ -90,6 +106,23 @@ public class SslContextBuilder {
         return this;
     }
 
+    public static String[] getDefaultCiphers(){
+        if (isUnlimitedJCEAvailable()){
+            return DEFAULT_CIPHERS;
+        } else {
+            logger.warn("JCE Unlimited Strength Jurisdiction Policy not installed - max key length is 128 bits");
+            return DEFAULT_CIPHERS_LIMITED;
+        }
+    }
+
+    public static boolean isUnlimitedJCEAvailable(){
+        try {
+            return (Cipher.getMaxAllowedKeyLength("AES") > 128);
+        } catch (NoSuchAlgorithmException e) {
+            logger.warn("AES not available", e);
+            return false;
+        }
+    }
     public SslContextBuilder setCertificateAuthorities(String[] cert) {
         certificateAuthorities = cert;
         return this;
