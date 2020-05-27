@@ -1,3 +1,9 @@
+## 6.0.11
+ - Updated jackson databind and Netty dependencies. Additionally, this release removes the dependency on `tcnative` +
+      `boringssl`, using JVM supplied ciphers instead. This may result in fewer ciphers being available if the JCE
+      unlimited strength jurisdiction policy is not installed. (This policy is installed by default on versions of the
+      JDK from u161 onwards)[#393](https://github.com/logstash-plugins/logstash-input-beats/pull/393)
+
 ## 6.0.10
  - Added error handling to detect if ssl certificate or key files can't be read [#394](https://github.com/logstash-plugins/logstash-input-beats/pull/394)
 
