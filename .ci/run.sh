@@ -7,4 +7,4 @@ set -ex
 
 bundle exec rspec spec
 bundle exec rake test:integration:setup
-bundle exec rspec spec --tag integration
+bundle exec rspec spec --tag integration  -fd
