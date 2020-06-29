@@ -1,6 +1,5 @@
 package org.logstash.beats;
 
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.channel.ChannelHandlerContext;
@@ -10,15 +9,16 @@ import org.apache.logging.log4j.Logger;
 
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterOutputStream;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class BeatsParser extends ByteToMessageDecoder {
+
     private final static Logger logger = LogManager.getLogger(BeatsParser.class);
 
     private Batch batch;
@@ -48,7 +48,7 @@ public class BeatsParser extends ByteToMessageDecoder {
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
-        if(!hasEnoughBytes(in)) {
+        if (!hasEnoughBytes(in)) {
             if (decodingCompressedBuffer){
                 throw new InvalidFrameProtocolException("Insufficient bytes in compressed content to decode: " + currentState);
             }
@@ -122,31 +122,11 @@ public class BeatsParser extends ByteToMessageDecoder {
                 logger.trace("Running: READ_DATA_FIELDS");
                 sequence = (int) in.readUnsignedInt();
                 int fieldsCount = (int) in.readUnsignedInt();
-                int count = 0;
-
-                if(fieldsCount <= 0) {
+                if (fieldsCount <= 0) {
                     throw new InvalidFrameProtocolException("Invalid number of fields, received: " + fieldsCount);
                 }
 
-                Map dataMap = new HashMap<String, String>(fieldsCount);
-
-                while(count < fieldsCount) {
-                    int fieldLength = (int) in.readUnsignedInt();
-                    ByteBuf fieldBuf = in.readBytes(fieldLength);
-                    String field = fieldBuf.toString(Charset.forName("UTF8"));
-                    fieldBuf.release();
-
-                    int dataLength = (int) in.readUnsignedInt();
-                    ByteBuf dataBuf = in.readBytes(dataLength);
-                    String data = dataBuf.toString(Charset.forName("UTF8"));
-                    dataBuf.release();
-
-                    dataMap.put(field, data);
-
-                    count++;
-                }
-                Message message = new Message(sequence, dataMap);
-                ((V1Batch)batch).addMessage(message);
+                ((V1Batch)batch).addMessage(new Message(sequence, readData(in, fieldsCount)));
 
                 if (batch.isComplete()){
                     out.add(batch);
@@ -245,6 +225,30 @@ public class BeatsParser extends ByteToMessageDecoder {
         requiredBytes = 0;
         sequence = 0;
         batch = null;
+    }
+
+    private static Map<String, String> readData(final ByteBuf in, final int fieldsCount) {
+        Map<String, String> dataMap = new HashMap<>(fieldsCount, 1.0f);
+        int count = 0;
+        while (count++ < fieldsCount) {
+            int fieldLength = (int) in.readUnsignedInt();
+            assert fieldLength >= 0;
+            String field = readStringData(in, fieldLength);
+
+            int dataLength = (int) in.readUnsignedInt();
+            assert dataLength >= 0;
+            String data = readStringData(in, dataLength);
+
+            dataMap.put(field, data);
+        }
+        return dataMap;
+    }
+
+    private static String readStringData(final ByteBuf in, final int length) {
+        int index = in.readerIndex();
+        String str = in.toString(index, length, UTF_8);
+        in.readerIndex(index + length);
+        return str;
     }
 
 }
