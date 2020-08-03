@@ -7,6 +7,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+
 import javax.net.ssl.SSLHandshakeException;
 
 public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
@@ -114,23 +116,21 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
      * we will use similar logic than Netty's LoggingHandler
      */
     private String format(String message) {
-        InetSocketAddress local = (InetSocketAddress) context.channel().localAddress();
-        InetSocketAddress remote = (InetSocketAddress) context.channel().remoteAddress();
+        SocketAddress local = context.channel().localAddress();
+        SocketAddress remote = context.channel().remoteAddress();
 
-        String localhost;
-        if(local != null) {
-            localhost = local.getAddress().getHostAddress() + ":" + local.getPort();
-        } else{
-            localhost = "undefined";
-        }
-
-        String remotehost;
-        if(remote != null) {
-            remotehost = remote.getAddress().getHostAddress() + ":" + remote.getPort();
-        } else{
-            remotehost = "undefined";
-        }
+        String localhost = addressToString(local);
+        String remotehost = addressToString(remote);
 
         return "[local: " + localhost + ", remote: " + remotehost + "] " + message;
+    }
+
+    private String addressToString(SocketAddress saddr) {
+        if (saddr instanceof InetSocketAddress) {
+            InetSocketAddress inetaddr = (InetSocketAddress) saddr;
+            return inetaddr.getAddress().getHostAddress() + ":" + inetaddr.getPort();
+        } else {
+            return "undefined";
+        }
     }
 }
