@@ -132,8 +132,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     end
 
     if !@ssl
-      @logger.warn("Beats input: SSL Certificate will not be used") unless @ssl_certificate.nil?
-      @logger.warn("Beats input: SSL Key will not be used") unless @ssl_key.nil?
+      @logger.warn("SSL Certificate will not be used") unless @ssl_certificate.nil?
+      @logger.warn("SSL Key will not be used") unless @ssl_key.nil?
     elsif !ssl_configured?
       raise LogStash::ConfigurationError, "Certificate or Certificate Key not configured"
     end
@@ -151,7 +151,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       raise LogStash::ConfigurationError, "Multiline codec with beats input is not supported. Please refer to the beats documentation for how to best manage multiline data. See https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html"
     end
 
-    @logger.info("Beats inputs: Starting input listener", :address => "#{@host}:#{@port}")
+    @logger.info("Starting input listener", :address => "#{@host}:#{@port}")
 
     @server = create_server
   end # def register
