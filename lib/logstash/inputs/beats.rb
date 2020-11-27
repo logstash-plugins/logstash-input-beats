@@ -159,16 +159,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   def create_server
     server = org.logstash.beats.Server.new(@host, @port, @client_inactivity_timeout, @executor_threads)
     if @ssl
-
-      begin
-        ssl_context_builder = org.logstash.netty.SslContextBuilder.new(@ssl_certificate, @ssl_key, @ssl_key_passphrase.nil? ? nil : @ssl_key_passphrase.value)
-                          .setProtocols(convert_protocols)
-                          .setCipherSuites(normalized_ciphers)
-      rescue java.lang.IllegalArgumentException => e
-        raise LogStash::ConfigurationError, e
-      end
-
-
+      ssl_context_builder = new_ssl_context_builder
       if client_authentification?
         if @ssl_verify_mode.upcase == "FORCE_PEER"
           ssl_context_builder.setVerifyMode(org.logstash.netty.SslContextBuilder::SslClientVerifyMode::FORCE_PEER)
@@ -177,9 +168,33 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
         end
         ssl_context_builder.setCertificateAuthorities(@ssl_certificate_authorities)
       end
-      server.setSslHandlerProvider(org.logstash.netty.SslHandlerProvider.new(ssl_context_builder.build_context, @ssl_handshake_timeout))
+      server.setSslHandlerProvider(new_ssl_handshake_provider(ssl_context_builder))
     end
     server
+  end
+
+  def new_ssl_handshake_provider(ssl_context_builder)
+    begin
+      org.logstash.netty.SslHandlerProvider.new(ssl_context_builder.build_context, @ssl_handshake_timeout)
+    rescue java.lang.IllegalArgumentException => e
+      @logger.error("SSL configuration invalid", :message => e.message)
+      raise LogStash::ConfigurationError, e
+    rescue java.security.GeneralSecurityException => e
+      @logger.error("SSL configuration failed", :exception => e.class, :message => e.message, :backtrace => e.backtrace)
+      raise e
+    end
+  end
+
+  def new_ssl_context_builder
+    passphrase = @ssl_key_passphrase.nil? ? nil : @ssl_key_passphrase.value
+    begin
+      org.logstash.netty.SslContextBuilder.new(@ssl_certificate, @ssl_key, passphrase)
+                                .setProtocols(convert_protocols)
+                                .setCipherSuites(normalized_ciphers)
+    rescue java.lang.IllegalArgumentException => e
+      @logger.error("SSL configuration invalid", :message => e.message)
+      raise LogStash::ConfigurationError, e
+    end
   end
 
   def ssl_configured?
