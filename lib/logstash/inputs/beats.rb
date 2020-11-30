@@ -131,24 +131,29 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       LogStash::Logger.setup_log4j(@logger)
     end
 
-    if !@ssl
-      @logger.warn("SSL Certificate will not be used") unless @ssl_certificate.nil?
-      @logger.warn("SSL Key will not be used") unless @ssl_key.nil?
-    elsif !ssl_configured?
-      raise LogStash::ConfigurationError, "Certificate or Certificate Key not configured"
-    end
+    if @ssl
+      if @ssl_key.nil? || @ssl_key.empty?
+        configuration_error "Missing required setting ssl_key => ... (due ssl => true)"
+      end
+      if @ssl_certificate.nil? || @ssl_certificate.empty?
+        configuration_error "Missing required setting ssl_certificate => ... (due ssl => true)"
+      end
 
-    if @ssl && require_certificate_authorities? && !client_authentification?
-      raise LogStash::ConfigurationError, "Using `verify_mode` set to PEER or FORCE_PEER, requires the configuration of `certificate_authorities`"
-    end
+      if require_certificate_authorities? && !client_authentification?
+        configuration_error "Using verify_mode => '#{@ssl_verify_mode}' requires the configuration of ssl_certificate_authorities => ..."
+      end
 
-    if client_authentication_metadata? && !require_certificate_authorities?
-      raise LogStash::ConfigurationError, "Enabling `peer_metadata` requires using `verify_mode` set to PEER or FORCE_PEER"
+      if client_authentication_metadata? && !require_certificate_authorities?
+        configuration_error "Enabling ssl_peer_metadata => true requires using verify_mode => 'peer' or 'force_peer'"
+      end
+    else
+      @logger.warn("configured ssl_certificate => #{@ssl_certificate.inspect} will not be used") if @ssl_certificate
+      @logger.warn("configured ssl_key => #{@ssl_key.inspect} will not be used") if @ssl_key
     end
 
     # Logstash 6.x breaking change (introduced with 4.0.0 of this gem)
     if @codec.kind_of? LogStash::Codecs::Multiline
-      raise LogStash::ConfigurationError, "Multiline codec with beats input is not supported. Please refer to the beats documentation for how to best manage multiline data. See https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html"
+      configuration_error "Multiline codec with beats input is not supported. Please refer to the beats documentation for how to best manage multiline data. See https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html"
     end
 
     @logger.info("Starting input listener", :address => "#{@host}:#{@port}")
@@ -195,6 +200,11 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       @logger.error("SSL configuration invalid", :message => e.message)
       raise LogStash::ConfigurationError, e
     end
+  end
+
+  def configuration_error(message)
+    @logger.error message
+    raise LogStash::ConfigurationError, message
   end
 
   def ssl_configured?

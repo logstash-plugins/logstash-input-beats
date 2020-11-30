@@ -94,7 +94,7 @@ describe LogStash::Inputs::Beats do
 
           it "raise a ConfigurationError when certificate_authorities is not set" do
             plugin = LogStash::Inputs::Beats.new(config)
-            expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "Using `verify_mode` set to PEER or FORCE_PEER, requires the configuration of `certificate_authorities`")
+            expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "Using verify_mode => 'peer' requires the configuration of ssl_certificate_authorities => ...")
           end
 
           it "doesn't raise a configuration error when certificate_authorities is set" do
@@ -109,7 +109,7 @@ describe LogStash::Inputs::Beats do
 
           it "raise a ConfigurationError when certificate_authorities is not set" do
             plugin = LogStash::Inputs::Beats.new(config)
-            expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "Using `verify_mode` set to PEER or FORCE_PEER, requires the configuration of `certificate_authorities`")
+            expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "Using verify_mode => 'force_peer' requires the configuration of ssl_certificate_authorities => ...")
           end
 
           it "doesn't raise a configuration error when certificate_authorities is set" do
