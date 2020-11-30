@@ -13,6 +13,13 @@ module BeatsInputTest
 
       system("openssl req -x509  -batch -nodes -newkey rsa:2048 -keyout #{ssl_key} -out #{ssl_cert} -subj /CN=localhost > /dev/null 2>&1")
     end
+
+    def p12_key
+      p12_key = Stud::Temporary.pathname("p12_key")
+      system "openssl pkcs12 -export -passout pass:123 -inkey #{ssl_key} -in #{ssl_cert} -out #{p12_key}"
+      p12_key
+    end
+
   end
 
   class << self

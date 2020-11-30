@@ -50,7 +50,7 @@ describe LogStash::Inputs::Beats do
 
         it "should fail to register the plugin with ConfigurationError" do
           plugin = LogStash::Inputs::Beats.new(config)
-          expect {plugin.register}.to raise_error(LogStash::ConfigurationError)
+          expect { plugin.register }.to raise_error(LogStash::ConfigurationError)
         end
       end
 
@@ -58,7 +58,20 @@ describe LogStash::Inputs::Beats do
         let(:config) { { "port" => 0, "ssl" => true, "ssl_certificate" => certificate.ssl_cert, "type" => "example" } }
         it "should fail to register the plugin with ConfigurationError" do
           plugin = LogStash::Inputs::Beats.new(config)
-          expect {plugin.register}.to raise_error(LogStash::ConfigurationError)
+          expect { plugin.register }.to raise_error(LogStash::ConfigurationError)
+        end
+      end
+
+      context "with invalid key configuration" do
+        let(:p12_key) { certificate.p12_key }
+        let(:config) { { "port" => 0, "ssl" => true, "ssl_certificate" => certificate.ssl_cert, "ssl_key" => p12_key } }
+        it "should fail to register the plugin" do
+          plugin = LogStash::Inputs::Beats.new(config)
+          expect( plugin.logger ).to receive(:error) do |msg, opts|
+            expect( msg ).to match /.*?configuration invalid/
+            expect( opts[:message] ).to match /does not contain valid private key/
+          end
+          expect { plugin.register }.to raise_error(LogStash::ConfigurationError)
         end
       end
 
@@ -67,6 +80,10 @@ describe LogStash::Inputs::Beats do
 
         it "should raise a configuration error" do
           plugin = LogStash::Inputs::Beats.new(config)
+          expect( plugin.logger ).to receive(:error) do |msg, opts|
+            expect( msg ).to match /.*?configuration invalid/
+            expect( opts[:message] ).to match /TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA38.*? not available/
+          end
           expect { plugin.register }.to raise_error(LogStash::ConfigurationError)
         end
       end
