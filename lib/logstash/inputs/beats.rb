@@ -188,37 +188,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     @server.stop unless @server.nil?
   end
 
-  private
-
-  def new_ssl_handshake_provider(ssl_context_builder)
-    begin
-      org.logstash.netty.SslHandlerProvider.new(ssl_context_builder.build_context, @ssl_handshake_timeout)
-    rescue java.lang.IllegalArgumentException => e
-      @logger.error("SSL configuration invalid", error_details(e))
-      raise LogStash::ConfigurationError, e
-    rescue java.security.GeneralSecurityException => e
-      @logger.error("SSL configuration failed", error_details(e, true))
-      raise e
-    end
-  end
-
-  def new_ssl_context_builder
-    passphrase = @ssl_key_passphrase.nil? ? nil : @ssl_key_passphrase.value
-    begin
-      org.logstash.netty.SslContextBuilder.new(@ssl_certificate, @ssl_key, passphrase)
-                                .setProtocols(convert_protocols)
-                                .setCipherSuites(normalized_ciphers)
-    rescue java.lang.IllegalArgumentException => e
-      @logger.error("SSL configuration invalid", error_details(e))
-      raise LogStash::ConfigurationError, e
-    end
-  end
-
-  def configuration_error(message)
-    @logger.error message
-    raise LogStash::ConfigurationError, message
-  end
-
   def ssl_configured?
     !(@ssl_certificate.nil? || @ssl_key.nil?)
   end
@@ -243,12 +212,43 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     @ssl_verify_mode == "force_peer" || @ssl_verify_mode == "peer"
   end
 
+  private
+
+  def new_ssl_handshake_provider(ssl_context_builder)
+    begin
+      org.logstash.netty.SslHandlerProvider.new(ssl_context_builder.build_context, @ssl_handshake_timeout)
+    rescue java.lang.IllegalArgumentException => e
+      @logger.error("SSL configuration invalid", error_details(e))
+      raise LogStash::ConfigurationError, e
+    rescue java.security.GeneralSecurityException => e
+      @logger.error("SSL configuration failed", error_details(e, true))
+      raise e
+    end
+  end
+
+  def new_ssl_context_builder
+    passphrase = @ssl_key_passphrase.nil? ? nil : @ssl_key_passphrase.value
+    begin
+      org.logstash.netty.SslContextBuilder.new(@ssl_certificate, @ssl_key, passphrase)
+          .setProtocols(convert_protocols)
+          .setCipherSuites(normalized_ciphers)
+    rescue java.lang.IllegalArgumentException => e
+      @logger.error("SSL configuration invalid", error_details(e))
+      raise LogStash::ConfigurationError, e
+    end
+  end
+
   def normalized_ciphers
     @cipher_suites.map(&:upcase)
   end
 
   def convert_protocols
     TLS.get_supported(@tls_min_version..@tls_max_version).map(&:name)
+  end
+
+  def configuration_error(message)
+    @logger.error message
+    raise LogStash::ConfigurationError, message
   end
 
   def error_details(e, trace = false)
