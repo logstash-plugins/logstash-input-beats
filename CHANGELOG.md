@@ -1,3 +1,7 @@
+## 6.0.12
+ - Fix: log error when SSL context building fails [#402](https://github.com/logstash-plugins/logstash-input-beats/pull/402).
+   We've also made sure to log messages on configuration errors as LS 7.8/7.9 only prints details when level set to debug.
+
 ## 6.0.11
  - Updated jackson databind and Netty dependencies. Additionally, this release removes the dependency on `tcnative` +
       `boringssl`, using JVM supplied ciphers instead. This may result in fewer ciphers being available if the JCE
