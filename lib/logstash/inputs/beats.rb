@@ -178,6 +178,18 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     server
   end
 
+  def run(output_queue)
+    message_listener = MessageListener.new(output_queue, self)
+    @server.setMessageListener(message_listener)
+    @server.listen
+  end # def run
+
+  def stop
+    @server.stop unless @server.nil?
+  end
+
+  private
+
   def new_ssl_handshake_provider(ssl_context_builder)
     begin
       org.logstash.netty.SslHandlerProvider.new(ssl_context_builder.build_context, @ssl_handshake_timeout)
@@ -213,16 +225,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   def target_codec_on_field?
     !@target_codec_on_field.empty?
-  end
-
-  def run(output_queue)
-    message_listener = MessageListener.new(output_queue, self)
-    @server.setMessageListener(message_listener)
-    @server.listen
-  end # def run
-
-  def stop
-    @server.stop unless @server.nil?
   end
 
   def client_authentification?
