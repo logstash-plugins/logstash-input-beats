@@ -131,27 +131,32 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       LogStash::Logger.setup_log4j(@logger)
     end
 
-    if !@ssl
-      @logger.warn("Beats input: SSL Certificate will not be used") unless @ssl_certificate.nil?
-      @logger.warn("Beats input: SSL Key will not be used") unless @ssl_key.nil?
-    elsif !ssl_configured?
-      raise LogStash::ConfigurationError, "Certificate or Certificate Key not configured"
-    end
+    if @ssl
+      if @ssl_key.nil? || @ssl_key.empty?
+        configuration_error "ssl_key => is a required setting when ssl => true is configured"
+      end
+      if @ssl_certificate.nil? || @ssl_certificate.empty?
+        configuration_error "ssl_certificate => is a required setting when ssl => true is configured"
+      end
 
-    if @ssl && require_certificate_authorities? && !client_authentification?
-      raise LogStash::ConfigurationError, "Using `verify_mode` set to PEER or FORCE_PEER, requires the configuration of `certificate_authorities`"
-    end
+      if require_certificate_authorities? && !client_authentification?
+        configuration_error "ssl_certificate_authorities => is a required setting when ssl_verify_mode => '#{@ssl_verify_mode}' is configured"
+      end
 
-    if client_authentication_metadata? && !require_certificate_authorities?
-      raise LogStash::ConfigurationError, "Enabling `peer_metadata` requires using `verify_mode` set to PEER or FORCE_PEER"
+      if client_authentication_metadata? && !require_certificate_authorities?
+        configuration_error "Configuring ssl_peer_metadata => true requires ssl_verify_mode => to be configured with 'peer' or 'force_peer'"
+      end
+    else
+      @logger.warn("configured ssl_certificate => #{@ssl_certificate.inspect} will not be used") if @ssl_certificate
+      @logger.warn("configured ssl_key => #{@ssl_key.inspect} will not be used") if @ssl_key
     end
 
     # Logstash 6.x breaking change (introduced with 4.0.0 of this gem)
     if @codec.kind_of? LogStash::Codecs::Multiline
-      raise LogStash::ConfigurationError, "Multiline codec with beats input is not supported. Please refer to the beats documentation for how to best manage multiline data. See https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html"
+      configuration_error "Multiline codec with beats input is not supported. Please refer to the beats documentation for how to best manage multiline data. See https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html"
     end
 
-    @logger.info("Beats inputs: Starting input listener", :address => "#{@host}:#{@port}")
+    @logger.info("Starting input listener", :address => "#{@host}:#{@port}")
 
     @server = create_server
   end # def register
@@ -159,35 +164,18 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   def create_server
     server = org.logstash.beats.Server.new(@host, @port, @client_inactivity_timeout, @executor_threads)
     if @ssl
-
-      begin
-        ssl_context_builder = org.logstash.netty.SslContextBuilder.new(@ssl_certificate, @ssl_key, @ssl_key_passphrase.nil? ? nil : @ssl_key_passphrase.value)
-                          .setProtocols(convert_protocols)
-                          .setCipherSuites(normalized_ciphers)
-      rescue java.lang.IllegalArgumentException => e
-        raise LogStash::ConfigurationError, e
-      end
-
-
+      ssl_context_builder = new_ssl_context_builder
       if client_authentification?
-        if @ssl_verify_mode.upcase == "FORCE_PEER"
+        if @ssl_verify_mode == "force_peer"
           ssl_context_builder.setVerifyMode(org.logstash.netty.SslContextBuilder::SslClientVerifyMode::FORCE_PEER)
-        elsif @ssl_verify_mode.upcase == "PEER"
+        elsif @ssl_verify_mode == "peer"
           ssl_context_builder.setVerifyMode(org.logstash.netty.SslContextBuilder::SslClientVerifyMode::VERIFY_PEER)
         end
         ssl_context_builder.setCertificateAuthorities(@ssl_certificate_authorities)
       end
-      server.setSslHandlerProvider(org.logstash.netty.SslHandlerProvider.new(ssl_context_builder.build_context, @ssl_handshake_timeout))
+      server.setSslHandlerProvider(new_ssl_handshake_provider(ssl_context_builder))
     end
     server
-  end
-
-  def ssl_configured?
-    !(@ssl_certificate.nil? || @ssl_key.nil?)
-  end
-
-  def target_codec_on_field?
-    !@target_codec_on_field.empty?
   end
 
   def run(output_queue)
@@ -198,6 +186,14 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   def stop
     @server.stop unless @server.nil?
+  end
+
+  def ssl_configured?
+    !(@ssl_certificate.nil? || @ssl_key.nil?)
+  end
+
+  def target_codec_on_field?
+    !@target_codec_on_field.empty?
   end
 
   def client_authentification?
@@ -216,6 +212,32 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     @ssl_verify_mode == "force_peer" || @ssl_verify_mode == "peer"
   end
 
+  private
+
+  def new_ssl_handshake_provider(ssl_context_builder)
+    begin
+      org.logstash.netty.SslHandlerProvider.new(ssl_context_builder.build_context, @ssl_handshake_timeout)
+    rescue java.lang.IllegalArgumentException => e
+      @logger.error("SSL configuration invalid", error_details(e))
+      raise LogStash::ConfigurationError, e
+    rescue java.security.GeneralSecurityException => e
+      @logger.error("SSL configuration failed", error_details(e, true))
+      raise e
+    end
+  end
+
+  def new_ssl_context_builder
+    passphrase = @ssl_key_passphrase.nil? ? nil : @ssl_key_passphrase.value
+    begin
+      org.logstash.netty.SslContextBuilder.new(@ssl_certificate, @ssl_key, passphrase)
+          .setProtocols(convert_protocols)
+          .setCipherSuites(normalized_ciphers)
+    rescue java.lang.IllegalArgumentException => e
+      @logger.error("SSL configuration invalid", error_details(e))
+      raise LogStash::ConfigurationError, e
+    end
+  end
+
   def normalized_ciphers
     @cipher_suites.map(&:upcase)
   end
@@ -223,4 +245,16 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   def convert_protocols
     TLS.get_supported(@tls_min_version..@tls_max_version).map(&:name)
   end
+
+  def configuration_error(message)
+    @logger.error message
+    raise LogStash::ConfigurationError, message
+  end
+
+  def error_details(e, trace = false)
+    error_details = { :exception => e.class, :message => e.message }
+    error_details[:backtrace] = e.backtrace if trace || @logger.debug?
+    error_details
+  end
+
 end

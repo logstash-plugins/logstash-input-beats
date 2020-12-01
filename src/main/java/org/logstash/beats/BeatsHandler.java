@@ -81,12 +81,12 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
             if (!(cause instanceof SSLHandshakeException)) {
                 messageListener.onException(ctx, cause);
             }
-            String causeMessage = cause.getMessage() == null ? cause.getClass().toString() : cause.getMessage();
-
+            final Throwable realCause = extractCause(cause, 0);
             if (logger.isDebugEnabled()){
-                logger.debug(format("Handling exception: " + causeMessage), cause);
+                logger.debug(format("Handling exception: " + cause + " (caused by: " + realCause + ")"), cause);
+            } else {
+                logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"));
             }
-            logger.info(format("Handling exception: " + causeMessage));
         } finally{
             super.exceptionCaught(ctx, cause);
             ctx.flush();
@@ -132,5 +132,14 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         }
 
         return "[local: " + localhost + ", remote: " + remotehost + "] " + message;
+    }
+
+    private static final int MAX_CAUSE_NESTING = 10;
+
+    private static Throwable extractCause(final Throwable ex, final int nesting) {
+        final Throwable cause = ex.getCause();
+        if (cause == null || cause == ex) return ex;
+        if (nesting >= MAX_CAUSE_NESTING) return cause; // do not recurse infinitely
+        return extractCause(cause, nesting + 1);
     }
 }
