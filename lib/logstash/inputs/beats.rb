@@ -140,7 +140,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       end
 
       if require_certificate_authorities? && !client_authentification?
-        configuration_error "Using verify_mode => '#{@ssl_verify_mode}' requires the configuration of ssl_certificate_authorities => ..."
+        configuration_error "ssl_certificate_authorities => is a required setting when ssl_verify_mode => '#{@ssl_verify_mode}' is configured"
       end
 
       if client_authentication_metadata? && !require_certificate_authorities?
