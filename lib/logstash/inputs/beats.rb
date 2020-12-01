@@ -133,10 +133,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
     if @ssl
       if @ssl_key.nil? || @ssl_key.empty?
-        configuration_error "Missing required setting ssl_key => ... (due ssl => true)"
+        configuration_error "ssl_key => is a required setting when ssl => true is configured"
       end
       if @ssl_certificate.nil? || @ssl_certificate.empty?
-        configuration_error "Missing required setting ssl_certificate => ... (due ssl => true)"
+        configuration_error "ssl_certificate => is a required setting when ssl => true is configured"
       end
 
       if require_certificate_authorities? && !client_authentification?
@@ -144,7 +144,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       end
 
       if client_authentication_metadata? && !require_certificate_authorities?
-        configuration_error "Enabling ssl_peer_metadata => true requires using verify_mode => 'peer' or 'force_peer'"
+        configuration_error "Configuring ssl_peer_metadata => true requires ssl_verify_mode => to be configured with 'peer' or 'force_peer'"
       end
     else
       @logger.warn("configured ssl_certificate => #{@ssl_certificate.inspect} will not be used") if @ssl_certificate
