@@ -166,9 +166,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     if @ssl
       ssl_context_builder = new_ssl_context_builder
       if client_authentification?
-        if @ssl_verify_mode.upcase == "FORCE_PEER"
+        if @ssl_verify_mode == "force_peer"
           ssl_context_builder.setVerifyMode(org.logstash.netty.SslContextBuilder::SslClientVerifyMode::FORCE_PEER)
-        elsif @ssl_verify_mode.upcase == "PEER"
+        elsif @ssl_verify_mode == "peer"
           ssl_context_builder.setVerifyMode(org.logstash.netty.SslContextBuilder::SslClientVerifyMode::VERIFY_PEER)
         end
         ssl_context_builder.setCertificateAuthorities(@ssl_certificate_authorities)
