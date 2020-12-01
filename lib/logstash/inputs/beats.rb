@@ -194,10 +194,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     begin
       org.logstash.netty.SslHandlerProvider.new(ssl_context_builder.build_context, @ssl_handshake_timeout)
     rescue java.lang.IllegalArgumentException => e
-      @logger.error("SSL configuration invalid", :message => e.message)
+      @logger.error("SSL configuration invalid", error_details(e))
       raise LogStash::ConfigurationError, e
     rescue java.security.GeneralSecurityException => e
-      @logger.error("SSL configuration failed", :exception => e.class, :message => e.message, :backtrace => e.backtrace)
+      @logger.error("SSL configuration failed", error_details(e, true))
       raise e
     end
   end
@@ -209,7 +209,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
                                 .setProtocols(convert_protocols)
                                 .setCipherSuites(normalized_ciphers)
     rescue java.lang.IllegalArgumentException => e
-      @logger.error("SSL configuration invalid", :message => e.message)
+      @logger.error("SSL configuration invalid", error_details(e))
       raise LogStash::ConfigurationError, e
     end
   end
@@ -250,4 +250,11 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   def convert_protocols
     TLS.get_supported(@tls_min_version..@tls_max_version).map(&:name)
   end
+
+  def error_details(e, trace = false)
+    error_details = { :exception => e.class, :message => e.message }
+    error_details[:backtrace] = e.backtrace if trace || @logger.debug?
+    error_details
+  end
+
 end
