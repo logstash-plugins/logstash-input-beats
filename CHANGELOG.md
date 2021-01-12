@@ -1,3 +1,6 @@
+## 6.0.13
+ - [DOC] Update links to use shared attributes
+
 ## 6.0.12
  - Fix: log error when SSL context building fails [#402](https://github.com/logstash-plugins/logstash-input-beats/pull/402).
    We've also made sure to log messages on configuration errors as LS 7.8/7.9 only prints details when level set to debug.
