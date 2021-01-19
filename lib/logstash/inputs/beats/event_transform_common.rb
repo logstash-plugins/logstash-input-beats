@@ -15,8 +15,8 @@ module LogStash module Inputs class Beats
       return unless @input.add_hostname
       host = event.get("[beat][hostname]")
 
-      if host && event.get("host").nil?
-        event.set("host", host)
+      if host && event.get(@input.field_hostname).nil?
+        event.set(@input.field_hostname, host)
       end
     end
 

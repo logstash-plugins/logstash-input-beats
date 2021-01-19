@@ -5,6 +5,7 @@ require "logstash/timestamp"
 require "logstash/codecs/multiline"
 require "logstash/util"
 require "logstash-input-beats_jars"
+require "logstash/plugin_mixins/ecs_compatibility_support"
 require_relative "beats/patch"
 
 # This input plugin enables Logstash to receive events from the
@@ -48,6 +49,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   require "logstash/inputs/beats/raw_event_transform"
   require "logstash/inputs/beats/message_listener"
   require "logstash/inputs/beats/tls"
+
+  # adds ecs_compatibility config which could be :disabled or :v1
+  include LogStash::PluginMixins::ECSCompatibilitySupport(:disabled,:v1)
 
   config_name "beats"
 
@@ -121,6 +125,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # Beats handler executor thread
   config :executor_threads, :validate => :number, :default => LogStash::Config::CpuCoreStrategy.maximum
 
+  attr_reader :field_hostname, :field_hostip
+
   def register
     # For Logstash 2.4 we need to make sure that the logger is correctly set for the
     # java classes before actually loading them.
@@ -155,6 +161,13 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     if @codec.kind_of? LogStash::Codecs::Multiline
       configuration_error "Multiline codec with beats input is not supported. Please refer to the beats documentation for how to best manage multiline data. See https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html"
     end
+
+    # define ecs name mapping
+    @field_hostname = ecs_select[disabled: "host", v1: "[@metadata][input][beats][host][name]"]
+    @field_hostip   = ecs_select[disabled: "[@metadata][ip_address]", v1: "[@metadata][input][beats][host][ip]"]
+    @field_tls_protocol_version   = ecs_select[disabled: "[@metadata][tls_peer][protocol]", v1: "[@metadata][input][beats][tls][version_protocol]"]
+    @field_tls_peer_subject   = ecs_select[disabled: "[@metadata][tls_peer][subject]", v1: "[@metadata][input][beats][tls][client][subject]"]
+    @field_tls_cipher   = ecs_select[disabled: "[@metadata][tls_peer][cipher_suite]", v1: "[@metadata][input][beats][tls][cipher]"]
 
     @logger.info("Starting input listener", :address => "#{@host}:#{@port}")
 

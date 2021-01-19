@@ -9,7 +9,16 @@ module LogStash module Inputs class Beats
       ts = coerce_ts(hash.delete("@timestamp"))
 
       event.set("@timestamp", ts) unless ts.nil?
-      hash.each { |k, v| event.set(k, v) }
+      hash.each do |k, v|
+        #could be a nested map, so we need to merge and not overwrite
+        existing_value = event.get(k)
+        if existing_value.is_a?(Hash)
+          existing_value = existing_value.merge(v)
+        else
+          existing_value = v
+        end
+        event.set(k, existing_value)
+      end
       super(event)
       event.tag("beats_input_codec_#{codec_name}_applied") if include_codec_tag?
       event
