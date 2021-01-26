@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.crypto.Cipher;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLServerSocketFactory;
 import java.io.File;
 import java.io.FileInputStream;
@@ -141,7 +142,7 @@ public class SslContextBuilder {
         return sslCertificateFile;
     }
 
-    public SslContext buildContext() throws IOException, CertificateException  {
+    public SslContext buildContext() throws Exception {
         io.netty.handler.ssl.SslContextBuilder builder = io.netty.handler.ssl.SslContextBuilder.forServer(sslCertificateFile, sslKeyFile, passPhrase);
 
         if (logger.isDebugEnabled()) {
@@ -167,7 +168,22 @@ public class SslContextBuilder {
             builder.clientAuth(ClientAuth.NONE);
         }
         builder.protocols(protocols);
-        return builder.build();
+
+        try {
+            return builder.build();
+        } catch (SSLException e) {
+            logger.debug("Failed to initialize SSL", e);
+            // unwrap generic wrapped exception from Netty's JdkSsl{Client|Server}Context
+            if ("failed to initialize the server-side SSL context".equals(e.getMessage()) ||
+                "failed to initialize the client-side SSL context".equals(e.getMessage())) {
+                // Netty catches Exception and simply wraps: throw new SSLException("...", e);
+                if (e.getCause() instanceof Exception) throw (Exception) e.getCause();
+            }
+            throw e;
+        } catch (Exception e) {
+            logger.debug("Failed to initialize SSL", e);
+            throw e;
+        }
     }
 
     private X509Certificate[] loadCertificateCollection(String[] certificates) throws IOException, CertificateException {
