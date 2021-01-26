@@ -220,7 +220,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     rescue java.lang.IllegalArgumentException => e
       @logger.error("SSL configuration invalid", error_details(e))
       raise LogStash::ConfigurationError, e
-    rescue java.security.GeneralSecurityException => e
+    rescue java.lang.Exception => e # java.security.GeneralSecurityException
       @logger.error("SSL configuration failed", error_details(e, true))
       raise e
     end
@@ -254,6 +254,11 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   def error_details(e, trace = false)
     error_details = { :exception => e.class, :message => e.message }
     error_details[:backtrace] = e.backtrace if trace || @logger.debug?
+    cause = e.cause
+    if cause && e != cause
+      error_details[:cause] = { :exception => cause.class, :message => cause.message }
+      error_details[:cause][:backtrace] = cause.backtrace if trace || @logger.debug?
+    end
     error_details
   end
 
