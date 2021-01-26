@@ -1,3 +1,6 @@
+## 6.0.14
+ - Feat: log + unwrap generic SSL context exceptions [#405](https://github.com/logstash-plugins/logstash-input-beats/pull/405)
+
 ## 6.0.13
  - [DOC] Update links to use shared attributes
 
