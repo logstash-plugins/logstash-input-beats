@@ -115,12 +115,12 @@ public class Server {
         private final IMessageListener localMessageListener;
         private final int localClientInactivityTimeoutSeconds;
 
-        BeatsInitializer(IMessageListener messageListener, int clientInactivityTimeoutSeconds, int beatsHandlerThread, int maxPendingRequests) {
+        BeatsInitializer(IMessageListener messageListener, int clientInactivityTimeoutSeconds, int beatsHandlerThreadCount, int maxPendingRequests) {
             // Keeps a local copy of Server settings, so they can't be modified once it starts listening
             this.localMessageListener = messageListener;
             this.localClientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
-            beatsHandlerExecutorGroup = new DefaultEventExecutorGroup(beatsHandlerThread, daemonThreadFactory("beats-input-handler-executor"), maxPendingRequests, new CustomRejectedExecutionHandler());
+            beatsHandlerExecutorGroup = new DefaultEventExecutorGroup(beatsHandlerThreadCount, daemonThreadFactory("beats-input-handler-executor"), maxPendingRequests, new CustomRejectedExecutionHandler());
             //beatsHandlerExecutorGroup = new DefaultEventExecutorGroup(beatsHandlerThread);
         }
 

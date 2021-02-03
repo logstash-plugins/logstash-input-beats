@@ -34,7 +34,7 @@ describe LogStash::Inputs::Beats do
       subject(:plugin) { LogStash::Inputs::Beats.new(config) }
 
       it "sends the required options to the server" do
-        expect(org.logstash.beats.Server).to receive(:new).with(host, port, client_inactivity_timeout, threads)
+        expect(org.logstash.beats.Server).to receive(:new).with(host, port, client_inactivity_timeout, threads, 5)
         subject.register
       end
     end
