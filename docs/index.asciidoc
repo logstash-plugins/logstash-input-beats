@@ -97,6 +97,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-add_hostname>> |<<boolean,boolean>>|No
 | <<plugins-{type}s-{plugin}-cipher_suites>> |<<array,array>>|No
 | <<plugins-{type}s-{plugin}-client_inactivity_timeout>> |<<number,number>>|No
+| <<plugins-{type}s-{plugin}-executor_threads>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-host>> |<<string,string>>|No
 | <<plugins-{type}s-{plugin}-include_codec_tag>> |<<boolean,boolean>>|No
 | <<plugins-{type}s-{plugin}-port>> |<<number,number>>|Yes
@@ -143,6 +144,24 @@ The list of ciphers suite to use, listed by priorities.
   * Default value is `60`
 
 Close Idle clients after X seconds of inactivity.
+
+[id="plugins-{type}s-{plugin}-executor_threads"]
+===== `executor_threads`
+
+  * Value type is <<number,number>>
+  * Default value is the number of CPU cores
+
+Number of threads used to handle beats data.
+The Beats input will create a threadpool of size 2*CPU cores to handle incoming connections,
+reading from the established sockets and execute most of the tasks such as SSL/idle state detection/batch acking.
+Parsing of the lumberjack protocol frames is however done by a separate threadpool of size "CPU cores".
+
+By default you don't need to touch this setting.
+If you are sending very large events and observing "OutOfDirectMemory" exceptions,
+you may want to reduce this number to half or 1/4 of the CPU cores.
+This will reduce the number of threads decompressing batches of data into direct memory.
+However, this will only be a mitigating tweak, as the proper solution may require resizing your Logstash deployment,
+either by increasing number of Logstash nodes or increasing the JVM's Direct Memory.
 
 [id="plugins-{type}s-{plugin}-host"]
 ===== `host`
