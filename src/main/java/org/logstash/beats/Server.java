@@ -17,7 +17,6 @@ public class Server {
 
     private final int port;
     private final String host;
-    private final int beatsHeandlerThreadCount;
     private NioEventLoopGroup workGroup;
     private IMessageListener messageListener = new MessageListener();
     private SslHandlerProvider sslHandlerProvider;
@@ -25,11 +24,10 @@ public class Server {
 
     private final int clientInactivityTimeoutSeconds;
 
-    public Server(String host, int p, int clientInactivityTimeoutSeconds, int threadCount) {
+    public Server(String host, int p, int clientInactivityTimeoutSeconds) {
         this.host = host;
         port = p;
         this.clientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
-        beatsHeandlerThreadCount = threadCount;
     }
 
     public void setSslHandlerProvider(SslHandlerProvider sslHandlerProvider){
@@ -49,7 +47,7 @@ public class Server {
         try {
             logger.info("Starting server on port: {}", this.port);
 
-            beatsInitializer = new BeatsInitializer(messageListener, clientInactivityTimeoutSeconds, beatsHeandlerThreadCount);
+            beatsInitializer = new BeatsInitializer(messageListener, clientInactivityTimeoutSeconds);
 
             ServerBootstrap server = new ServerBootstrap();
             server.group(workGroup)
@@ -99,21 +97,18 @@ public class Server {
         private final String CONNECTION_HANDLER = "connection-handler";
         private final String BEATS_ACKER = "beats-acker";
 
-
         private final int DEFAULT_IDLESTATEHANDLER_THREAD = 4;
         private final int IDLESTATE_WRITER_IDLE_TIME_SECONDS = 5;
 
         private final EventExecutorGroup idleExecutorGroup;
-        private final EventExecutorGroup beatsHandlerExecutorGroup;
         private final IMessageListener localMessageListener;
         private final int localClientInactivityTimeoutSeconds;
 
-        BeatsInitializer(IMessageListener messageListener, int clientInactivityTimeoutSeconds, int beatsHandlerThread) {
+        BeatsInitializer(IMessageListener messageListener, int clientInactivityTimeoutSeconds) {
             // Keeps a local copy of Server settings, so they can't be modified once it starts listening
             this.localMessageListener = messageListener;
             this.localClientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
-            beatsHandlerExecutorGroup = new DefaultEventExecutorGroup(beatsHandlerThread);
         }
 
         public void initChannel(SocketChannel socket){
@@ -126,10 +121,9 @@ public class Server {
                              new IdleStateHandler(localClientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS, localClientInactivityTimeoutSeconds));
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
             pipeline.addLast(CONNECTION_HANDLER, new ConnectionHandler());
-            pipeline.addLast(beatsHandlerExecutorGroup, new BeatsParser(), new BeatsHandler(localMessageListener));
+            pipeline.addLast(new BeatsParser());
+            pipeline.addLast(new BeatsHandler(localMessageListener));
         }
-
-
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
@@ -144,7 +138,6 @@ public class Server {
         public void shutdownEventExecutor() {
             try {
                 idleExecutorGroup.shutdownGracefully().sync();
-                beatsHandlerExecutorGroup.shutdownGracefully().sync();
             } catch (InterruptedException e) {
                 throw new IllegalStateException(e);
             }
