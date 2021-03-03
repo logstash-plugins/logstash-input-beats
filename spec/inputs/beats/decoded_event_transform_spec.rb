@@ -44,7 +44,7 @@ describe LogStash::Inputs::Beats::DecodedEventTransform do
   context "map contains a timestamp" do
     context "when its valid" do
       let(:timestamp) { Time.now }
-      let(:map) { super.merge({"@timestamp" => timestamp }) }
+      let(:map) { super().merge({"@timestamp" => timestamp }) }
      
       it "uses as the event timestamp" do
         expect(subject.get("@timestamp")).to eq(LogStash::Timestamp.coerce(timestamp)) 
@@ -52,7 +52,7 @@ describe LogStash::Inputs::Beats::DecodedEventTransform do
     end
 
     context "when its not valid" do
-      let(:map) { super.merge({"@timestamp" => "invalid" }) }
+      let(:map) { super().merge({"@timestamp" => "invalid" }) }
 
       it "fallback the current time" do
         expect(subject.get("@timestamp")).to be_kind_of(LogStash::Timestamp)

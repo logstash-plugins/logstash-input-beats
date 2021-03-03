@@ -25,7 +25,7 @@ describe LogStash::Inputs::Beats do
 
   context "#register" do
     context "host related configuration" do
-      let(:config) { super.merge("host" => host, "port" => port, "client_inactivity_timeout" => client_inactivity_timeout, "executor_threads" => threads) }
+      let(:config) { super().merge("host" => host, "port" => port, "client_inactivity_timeout" => client_inactivity_timeout, "executor_threads" => threads) }
       let(:host) { "192.168.1.20" }
       let(:port) { 9000 }
       let(:client_inactivity_timeout) { 400 }
@@ -76,7 +76,7 @@ describe LogStash::Inputs::Beats do
       end
 
       context "with invalid ciphers" do
-        let(:config) { super.merge("ssl" => true, "cipher_suites" => "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA38") }
+        let(:config) { super().merge("ssl" => true, "cipher_suites" => "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA38") }
 
         it "should raise a configuration error" do
           plugin = LogStash::Inputs::Beats.new(config)
@@ -90,7 +90,7 @@ describe LogStash::Inputs::Beats do
 
       context "verify_mode" do
         context "verify_mode configured to PEER" do
-          let(:config) { super.merge("ssl" => true, "ssl_verify_mode" => "peer") }
+          let(:config) { super().merge("ssl" => true, "ssl_verify_mode" => "peer") }
 
           it "raise a ConfigurationError when certificate_authorities is not set" do
             plugin = LogStash::Inputs::Beats.new(config)
@@ -105,7 +105,7 @@ describe LogStash::Inputs::Beats do
         end
 
         context "verify_mode configured to FORCE_PEER" do
-          let(:config) { super.merge("ssl" => true, "ssl_verify_mode" => "force_peer") }
+          let(:config) { super().merge("ssl" => true, "ssl_verify_mode" => "force_peer") }
 
           it "raise a ConfigurationError when certificate_authorities is not set" do
             plugin = LogStash::Inputs::Beats.new(config)
@@ -154,7 +154,7 @@ describe LogStash::Inputs::Beats do
       let(:codec) { LogStash::Codecs::Multiline.new("pattern" => '^2015',
                                                     "what" => "previous",
                                                     "negate" => true) }
-      let(:config) { super.merge({ "codec" => codec }) }
+      let(:config) { super().merge({ "codec" => codec }) }
 
       it "raise a ConfigurationError when multiline codec is set" do
         plugin = LogStash::Inputs::Beats.new(config)

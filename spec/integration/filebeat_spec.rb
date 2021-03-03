@@ -99,7 +99,7 @@ describe "Filebeat", :integration => true do
   context "TLS" do
     context "Server verification" do
       let(:filebeat_config) do
-        super.merge({
+        super().merge({
           "output" => {
             "logstash" => {
               "hosts" => ["#{host}:#{port}"],
@@ -111,7 +111,7 @@ describe "Filebeat", :integration => true do
       end
 
       let(:input_config) do
-        super.merge({
+        super().merge({
           "ssl" => true,
           "ssl_certificate" => certificate_file,
           "ssl_key" => certificate_key_file
@@ -129,7 +129,7 @@ describe "Filebeat", :integration => true do
 
         context "when specifying a cipher" do
           let(:filebeat_config) do
-            super.merge({
+            super().merge({
               "output" => {
                 "logstash" => {
                   "hosts" => ["#{host}:#{port}"],
@@ -145,7 +145,7 @@ describe "Filebeat", :integration => true do
           end
 
           let(:input_config) {
-            super.merge({
+            super().merge({
               "cipher_suites" => [logstash_cipher],
               "tls_min_version" => "1.2"
             })
@@ -194,7 +194,7 @@ describe "Filebeat", :integration => true do
             LogStash::Inputs::Beats.new(input_config)
           }
           let(:input_config) {
-            super.merge({
+            super().merge({
             "ssl_key_passphrase" => passphrase,
             "ssl_key" => certificate_key_file_pkcs8
           })}
@@ -229,7 +229,7 @@ describe "Filebeat", :integration => true do
 
       context "Client verification / Mutual validation" do
         let(:filebeat_config) do
-          super.merge({
+          super().merge({
             "output" => {
               "logstash" => {
                 "hosts" => ["#{host}:#{port}"],
@@ -245,7 +245,7 @@ describe "Filebeat", :integration => true do
         end
 
         let(:input_config) do
-          super.merge({
+          super().merge({
             "ssl" => true,
             "ssl_certificate_authorities" => certificate_authorities,
             "ssl_certificate" => server_certificate_file,
@@ -327,7 +327,7 @@ describe "Filebeat", :integration => true do
 
               context "client from secondary CA" do
                 let(:filebeat_config) do
-                  super.merge({
+                  super().merge({
                     "output" => {
                       "logstash" => {
                         "hosts" => ["#{host}:#{port}"],
