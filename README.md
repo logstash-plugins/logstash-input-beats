@@ -45,6 +45,13 @@ bundle install
 bundle exec rspec
 ```
 
+- Run integration tests
+
+```sh
+bundle exec rake test:integration:setup
+bundle exec rspec spec --tag integration  -fd
+```
+
 ### 2. Running your unpublished Plugin in Logstash
 
 #### 2.1 Run in a local Logstash clone
