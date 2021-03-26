@@ -1,21 +1,28 @@
-:plugin: beats
+:plugin: agent
 :type: input
 :default_codec: plain
 
 ///////////////////////////////////////////
 START - GENERATED VARIABLES, DO NOT EDIT!
 ///////////////////////////////////////////
+
+// Copied from Beats generated plugin output.
+// Not actively generated at this time!
+
+////
 :version: %VERSION%
 :release_date: %RELEASE_DATE%
 :changelog_url: %CHANGELOG_URL%
 :include_path: ../../../../logstash/docs/include
+////
+
 ///////////////////////////////////////////
 END - GENERATED VARIABLES, DO NOT EDIT!
 ///////////////////////////////////////////
 
 [id="plugins-{type}s-{plugin}"]
 
-=== Beats input plugin
+=== Agent input plugin
 
 include::{include_path}/plugin_header.asciidoc[]
 
@@ -95,7 +102,7 @@ of the client's connection. When <<plugins-{type}s-{plugin}-ecs_compatibility,EC
 enabled these are now moved in ECS compatible namespace.
 
 [id="plugins-{type}s-{plugin}-options"]
-==== Beats Input Configuration Options
+==== Agent Input Configuration Options
 
 This plugin supports the following configuration options plus the <<plugins-{type}s-{plugin}-common-options>> described later.
 
