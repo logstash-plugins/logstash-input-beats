@@ -32,12 +32,12 @@ shared_examples "Common Event Transformation" do |ecs_compatibility, host_field_
   end
 
   context 'when add_hostname is true' do
-    let(:config) { super.merge({'add_hostname' => true, 'ecs_compatibility' => ecs_compatibility})}
+    let(:config) { super().merge({'add_hostname' => true, 'ecs_compatibility' => ecs_compatibility})}
 
     context 'when a host is provided in beat.host.name' do
       let(:already_exist) { "already_exist" }
       let(:producer_host) { "newhost01" }
-      let(:event_map) { super.merge({ "beat" => { "host" => {"name" => producer_host }}}) }
+      let(:event_map) { super().merge({ "beat" => { "host" => {"name" => producer_host }}}) }
 
       context "when no `host` key already exists on the event" do
         it "does not set the host value" do
@@ -47,7 +47,7 @@ shared_examples "Common Event Transformation" do |ecs_compatibility, host_field_
 
       context "when `host` key exists on the event" do
         let(:already_exist) { "already_exist" }
-        let(:event_map) { super.merge({ "host" => already_exist }) }
+        let(:event_map) { super().merge({ "host" => already_exist }) }
 
         it "doesn't override it" do
           expect(subject.get("host")).to eq(already_exist)
@@ -57,7 +57,7 @@ shared_examples "Common Event Transformation" do |ecs_compatibility, host_field_
 
     context "when a host is set in `beat.hostname`" do
       let(:producer_host) { "newhost01" }
-      let(:event_map) { super.merge({ "beat" => { "hostname" => producer_host }}) }
+      let(:event_map) { super().merge({ "beat" => { "hostname" => producer_host }}) }
 
       context "when no `#{host_field_name}` key already exists on the event" do
         it "copies the value in `beat.hostname` to `#{host_field_name}`" do
@@ -67,7 +67,7 @@ shared_examples "Common Event Transformation" do |ecs_compatibility, host_field_
 
       context "when `#{host_field_name}` key exists on the event" do
         let(:already_exist) { "already_exist" }
-        let(:event_map) { super.merge(key_as_nested_maps(host_field_name, already_exist)) }
+        let(:event_map) { super().merge(key_as_nested_maps(host_field_name, already_exist)) }
 
         it "doesn't override it" do
           expect(subject.get(host_field_name)).to eq(already_exist)
@@ -84,7 +84,7 @@ shared_examples "Common Event Transformation" do |ecs_compatibility, host_field_
 
       context "when `#{host_field_name}` key already exists on the event" do
         let(:already_exist) { "already_exist" }
-        let(:event_map) { super.merge(key_as_nested_maps(host_field_name, already_exist)) }
+        let(:event_map) { super().merge(key_as_nested_maps(host_field_name, already_exist)) }
 
         it "doesn't override it" do
           expect(subject.get(host_field_name)).to eq(already_exist)
@@ -94,12 +94,12 @@ shared_examples "Common Event Transformation" do |ecs_compatibility, host_field_
   end
 
   context 'when add hostname is false' do
-    let(:config) { super.merge({'add_hostname' => false})}
+    let(:config) { super().merge({'add_hostname' => false})}
 
     context 'when a host is provided in beat.host.name' do
       let(:already_exist) { "already_exist" }
       let(:producer_host) { "newhost01" }
-      let(:event_map) { super.merge({ "beat" => { "host" => {"name" => producer_host }}}) }
+      let(:event_map) { super().merge({ "beat" => { "host" => {"name" => producer_host }}}) }
 
       context "when no `#{host_field_name}` key already exists on the event" do
         it "does not set the host" do
@@ -109,7 +109,7 @@ shared_examples "Common Event Transformation" do |ecs_compatibility, host_field_
 
       context "when `#{host_field_name}` key already exists on the event" do
         let(:already_exist) { "already_exist" }
-        let(:event_map) { super.merge(key_as_nested_maps(host_field_name, already_exist)) }
+        let(:event_map) { super().merge(key_as_nested_maps(host_field_name, already_exist)) }
 
         it "doesn't override it" do
           expect(subject.get(host_field_name)).to eq(already_exist)
@@ -119,7 +119,7 @@ shared_examples "Common Event Transformation" do |ecs_compatibility, host_field_
 
     context "when a host is provided in `beat.hostname`" do
       let(:producer_host) { "newhost01" }
-      let(:event_map) { super.merge({ "beat" => { "hostname" => producer_host }}) }
+      let(:event_map) { super().merge({ "beat" => { "hostname" => producer_host }}) }
 
       context "when no `#{host_field_name}` key already exists on the event" do
         it "does not set the host" do
@@ -129,7 +129,7 @@ shared_examples "Common Event Transformation" do |ecs_compatibility, host_field_
 
       context "when `host` key already exists on the event" do
         let(:already_exist) { "already_exist" }
-        let(:event_map) { super.merge(key_as_nested_maps(host_field_name, already_exist)) }
+        let(:event_map) { super().merge(key_as_nested_maps(host_field_name, already_exist)) }
 
         it "doesn't override it" do
           expect(subject.get(host_field_name)).to eq(already_exist)
@@ -146,7 +146,7 @@ shared_examples "Common Event Transformation" do |ecs_compatibility, host_field_
 
       context "when `#{host_field_name}` key already exists on the event" do
         let(:already_exist) { "already_exist" }
-        let(:event_map) { super.merge(key_as_nested_maps(host_field_name, already_exist)) }
+        let(:event_map) { super().merge(key_as_nested_maps(host_field_name, already_exist)) }
 
         it "doesn't override it" do
           expect(subject.get(host_field_name)).to eq(already_exist)
