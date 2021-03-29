@@ -92,7 +92,19 @@ This configuration results in daily index names like
 When decoding `beats` events, this plugin adds two fields related to the event: the deprecated `host`
 which contains the `hostname` provided by beats and the `ip_address` containing the remote address
 of the client's connection. When <<plugins-{type}s-{plugin}-ecs_compatibility,ECS compatibility mode>> is
-enabled these are now moved in ECS compatible namespace.
+enabled these are now moved in ECS compatible namespace:
+
+[cols="<l,<l,e,<e"]
+|=======================================================================
+|`disabled`              |`v1`                      |Availability |Description
+
+|[host]                  |[@metadata][input][beats][host][name]   |Always       |Name or address of the beat host
+|[@metadata][ip_address] |[@metadata][input][beats][host][ip]     |Always       |IP address of the Beats client
+|[@metadata][tls_peer][status] | [@metadata][tls_peer][status] | When SSL related fields are populated | Contains "verified"/"unverified" labels in `disabled`, `true`/`false` in `v1`
+|[@metadata][tls_peer][protocol] | [@metadata][input][beats][tls][version_protocol] | When SSL status is "verified" | Contains the TLS version used (e.g. `TLSv1.2`)
+|[@metadata][tls_peer][subject] | [@metadata][input][beats][tls][client][subject] | When SSL status is "verified" | Contains the identity name of the remote end (e.g. `CN=artifacts-no-kpi.elastic.co`)
+|[@metadata][tls_peer][cipher_suite] | [@metadata][input][beats][tls][cipher] | When SSL status is "verified" | Contains the name of cipher suite used (e.g. `TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256`)
+|=======================================================================
 
 [id="plugins-{type}s-{plugin}-options"]
 ==== Beats Input Configuration Options
@@ -164,21 +176,7 @@ Close Idle clients after X seconds of inactivity.
 ** When Logstash provides a `pipeline.ecs_compatibility` setting, its value is used as the default
 ** Otherwise, the default value is `disabled`.
 
-Controls this plugin's compatibility with the {ecs-ref}[Elastic Common Schema (ECS)].
-The value of this setting affects the keys for the Beats connection's metadata on the event:
-
-.Metadata Location by `ecs_compatibility` value
-[cols="<l,<l,e,<e"]
-|=======================================================================
-|`disabled`              |`v1`                      |Availability |Description
-
-|[host]                  |[@metadata][input][beats][host][name]   |Always       |Name or address of the beat host
-|[@metadata][ip_address] |[@metadata][input][beats][host][ip]     |Always       |IP address of the Beats client
-|[@metadata][tls_peer][status] | [@metadata][tls_peer][status] | When SSL related fields are populated | Contains "verified"/"unverified" labels in `disabled`, `true`/`false` in `v1`
-|[@metadata][tls_peer][protocol] | [@metadata][input][beats][tls][version_protocol] | When SSL status is "verified" | Contains the TLS version used (e.g. `TLSv1.2`)
-|[@metadata][tls_peer][subject] | [@metadata][input][beats][tls][client][subject] | When SSL status is "verified" | Contains the identity name of the remote end (e.g. `CN=artifacts-no-kpi.elastic.co`)
-|[@metadata][tls_peer][cipher_suite] | [@metadata][input][beats][tls][cipher] | When SSL status is "verified" | Contains the name of cipher suite used (e.g. `TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256`)
-|=======================================================================
+Refer to <<plugins-{type}s-{plugin}-ecs_metadata,ECS mapping>> for detailed information.
 
 [id="plugins-{type}s-{plugin}-host"]
 ===== `host`
