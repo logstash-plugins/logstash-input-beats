@@ -86,7 +86,7 @@ describe "Filebeat", :integration => true do
     end
 
     context "without pipelining" do
-      let(:filebeat_config) { config = super; config["output"]["logstash"]["pipelining"] = 0; config }
+      let(:filebeat_config) { config = super(); config["output"]["logstash"]["pipelining"] = 0; config }
       include_examples "send events"
 
       context "with large batches" do
