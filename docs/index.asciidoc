@@ -92,7 +92,7 @@ This configuration results in daily index names like
 When decoding `beats` events, this plugin adds two fields related to the event: the deprecated `host`
 which contains the `hostname` provided by beats and the `ip_address` containing the remote address
 of the client's connection. When <<plugins-{type}s-{plugin}-ecs_compatibility,ECS compatibility mode>> is
-enabled these are now moved in ECS compatible namespace:
+enabled these are now moved in ECS compatible namespace. Here's how <<plugins-{type}s-{plugin}-ecs_compatibility,ECS compatibility mode>> affects output.  
 
 [cols="<l,<l,e,<e"]
 |=======================================================================
