@@ -1,7 +1,10 @@
+## 6.1.1
+ - [DOC] Enhanced ECS compatibility information for ease of use and readability
+ [#413](https://github.com/logstash-plugins/logstash-input-beats/pull/413)
+
 ## 6.1.0
- - ECS compatibility enablement, now an `ecs_compatibility` setting is used to declare the level of ECS compatibility 
-   (`disabled` or `v1`) at plugin level. `disabled` let the plugin behave like before while `v1` does a rename of
-   `host` and `@metadata.ip_address` event fields. [404](https://github.com/logstash-plugins/logstash-input-beats/pull/404)
+ - ECS compatibility enablement. Adds `ecs_compatibility` setting to declare the level of ECS compatibility (`disabled` or `v1`) at plugin level. When `disabled`, the plugin behaves like before, while `v1` does a rename of
+   `host` and `@metadata.ip_address` event fields. [#404](https://github.com/logstash-plugins/logstash-input-beats/pull/404)
 
 ## 6.0.14
 - Feat: log + unwrap generic SSL context exceptions [#405](https://github.com/logstash-plugins/logstash-input-beats/pull/405)
