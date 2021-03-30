@@ -96,7 +96,7 @@ enabled these are now moved in ECS compatible namespace. Here's how <<plugins-{t
 
 [cols="<l,<l,e,<e"]
 |=======================================================================
-|non-ECS mode (`disabled`) |ECS mode (`v1`) |Availability |Description
+|ECS disabled |ECS v1 |Availability |Description
 
 |[host]                  |[@metadata][input][beats][host][name]   |Always       |Name or address of the beat host
 |[@metadata][ip_address] |[@metadata][input][beats][host][ip]     |Always       |IP address of the Beats client
