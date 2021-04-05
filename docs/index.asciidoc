@@ -28,7 +28,7 @@ https://www.elastic.co/products/beats[Elastic Beats] framework.
 The following example shows how to configure Logstash to listen on port
 5044 for incoming {plugin-uc} connections and to index into Elasticsearch.
 
-[source,logstash]
+["source","sh",subs="attributes"]
 -----
 
 input {
