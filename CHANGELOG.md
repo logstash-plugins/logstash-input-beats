@@ -1,3 +1,6 @@
+## 6.1.2
+ - [DOC] Added naming attribute to control plugin name that appears in docs, and set up framework to make attributes viable in code sample
+
 ## 6.1.1
  - [DOC] Enhanced ECS compatibility information for ease of use and readability
  [#413](https://github.com/logstash-plugins/logstash-input-beats/pull/413)
