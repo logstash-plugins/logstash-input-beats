@@ -1,6 +1,7 @@
 :plugin: beats
 :type: input
 :default_codec: plain
+:plugin-uc: Beats
 
 ///////////////////////////////////////////
 START - GENERATED VARIABLES, DO NOT EDIT!
@@ -15,7 +16,7 @@ END - GENERATED VARIABLES, DO NOT EDIT!
 
 [id="plugins-{type}s-{plugin}"]
 
-=== Beats input plugin
+=== {plugin-uc} input plugin
 
 include::{include_path}/plugin_header.asciidoc[]
 
@@ -25,9 +26,9 @@ This input plugin enables Logstash to receive events from the
 https://www.elastic.co/products/beats[Elastic Beats] framework.
 
 The following example shows how to configure Logstash to listen on port
-5044 for incoming Beats connections and to index into Elasticsearch.
+5044 for incoming {plugin-uc} connections and to index into Elasticsearch.
 
-[source,logstash]
+["source","sh",subs="attributes"]
 -----
 
 input {
@@ -45,16 +46,16 @@ output {
 -----
 <1> `%{[@metadata][beat]}` sets the first part of the index name to the value
 of the `beat` metadata field and `%{[@metadata][version]}` sets the second part to
-the Beat's version. For example:
+the {plugin-uc}'s version. For example:
 metricbeat-7.4.0.
 
 Events indexed into Elasticsearch with the Logstash configuration shown here
-will be similar to events directly indexed by Beats into Elasticsearch.
+will be similar to events directly indexed by {plugin-uc} into Elasticsearch.
 
 NOTE: If ILM is not being used, set `index` to
 `%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}` instead so
 Logstash creates an index per day, based on the `@timestamp` value of the events
-coming from Beats.
+coming from {plugin-uc}.
 
 IMPORTANT: If you are shipping events that span multiple lines, you need to use
 the {filebeat-ref}/multiline-examples.html[configuration options available in
@@ -64,7 +65,7 @@ plugin] to handle multiline events. Doing so will result in the failure to start
 Logstash.
 
 [id="plugins-{type}s-{plugin}-versioned-indexes"]
-==== Versioned Beats Indices
+==== Versioned indices
 
 To minimize the impact of future schema changes on your existing indices and
 mappings in Elasticsearch, configure the Elasticsearch output to write to
@@ -89,10 +90,14 @@ This configuration results in daily index names like
 
 [id="plugins-{type}s-{plugin}-ecs_metadata"]
 ==== Event Metadata and the Elastic Common Schema (ECS)
-When decoding `beats` events, this plugin adds two fields related to the event: the deprecated `host`
-which contains the `hostname` provided by beats and the `ip_address` containing the remote address
-of the client's connection. When <<plugins-{type}s-{plugin}-ecs_compatibility,ECS compatibility mode>> is
-enabled these are now moved in ECS compatible namespace. Here's how <<plugins-{type}s-{plugin}-ecs_compatibility,ECS compatibility mode>> affects output.  
+
+When decoding {plugin-uc} events, this plugin adds two fields related to the event:
+the deprecated `host` which contains the `hostname` provided by {plugin-uc} and the
+`ip_address` containing the remote address of the client's connection. When
+<<plugins-{type}s-{plugin}-ecs_compatibility,ECS compatibility mode>> is enabled
+these are now moved in ECS compatible namespace. Here's how
+<<plugins-{type}s-{plugin}-ecs_compatibility,ECS compatibility mode>> affects
+output.  
 
 [cols="<l,<l,e,<e"]
 |=======================================================================
@@ -107,7 +112,7 @@ enabled these are now moved in ECS compatible namespace. Here's how <<plugins-{t
 |=======================================================================
 
 [id="plugins-{type}s-{plugin}-options"]
-==== Beats Input Configuration Options
+==== {plugin-uc} Input Configuration Options
 
 This plugin supports the following configuration options plus the <<plugins-{type}s-{plugin}-common-options>> described later.
 
