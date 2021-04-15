@@ -32,7 +32,7 @@ The following example shows how to configure Logstash to listen on port
 -----
 
 input {
-  beats {
+  {plugin} {
     port => 5044
   }
 }
