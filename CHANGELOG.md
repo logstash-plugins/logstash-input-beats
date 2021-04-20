@@ -1,5 +1,6 @@
 ## 6.1.3
  - Fix: safe-guard byte buf allocation [#420](https://github.com/logstash-plugins/logstash-input-beats/pull/420) 
+ - Updated Jackson dependencies
 
 ## 6.1.2
  - [DOC] Added naming attribute to control plugin name that appears in docs, and set up framework to make attributes viable in code sample
