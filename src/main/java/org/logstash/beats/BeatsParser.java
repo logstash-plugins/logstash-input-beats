@@ -47,7 +47,7 @@ public class BeatsParser extends ByteToMessageDecoder {
     private boolean decodingCompressedBuffer = false;
 
     @Override
-    protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+    protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws InvalidFrameProtocolException, IOException {
         if(!hasEnoughBytes(in)) {
             if (decodingCompressedBuffer){
                 throw new InvalidFrameProtocolException("Insufficient bytes in compressed content to decode: " + currentState);
@@ -124,7 +124,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                 int fieldsCount = (int) in.readUnsignedInt();
                 int count = 0;
 
-                if(fieldsCount <= 0) {
+                if (fieldsCount <= 0) {
                     throw new InvalidFrameProtocolException("Invalid number of fields, received: " + fieldsCount);
                 }
 
@@ -178,20 +178,19 @@ public class BeatsParser extends ByteToMessageDecoder {
 
             case READ_COMPRESSED_FRAME: {
                 logger.trace("Running: READ_COMPRESSED_FRAME");
-                // Use the compressed size as the safe start for the buffer.
-                ByteBuf buffer = inflateCompressedFrame(ctx, in);
-                transition(States.READ_HEADER);
-
-                decodingCompressedBuffer = true;
-                try {
-                    while (buffer.readableBytes() > 0) {
-                        decode(ctx, buffer, out);
-                    }
-                } finally {
-                    decodingCompressedBuffer = false;
-                    buffer.release();
+                inflateCompressedFrame(ctx, in, (buffer) -> {
                     transition(States.READ_HEADER);
-                }
+
+                    decodingCompressedBuffer = true;
+                    try {
+                        while (buffer.readableBytes() > 0) {
+                            decode(ctx, buffer, out);
+                        }
+                    } finally {
+                        decodingCompressedBuffer = false;
+                        transition(States.READ_HEADER);
+                    }
+                });
                 break;
             }
             case READ_JSON: {
@@ -211,18 +210,28 @@ public class BeatsParser extends ByteToMessageDecoder {
         }
     }
 
-    private ByteBuf inflateCompressedFrame(final ChannelHandlerContext ctx, final ByteBuf in) throws IOException {
+    private void inflateCompressedFrame(final ChannelHandlerContext ctx, final ByteBuf in, final CheckedConsumer<ByteBuf> fn)
+        throws IOException {
+        // Use the compressed size as the safe start for the buffer.
         ByteBuf buffer = ctx.alloc().buffer(requiredBytes);
+        try {
+            decompressImpl(in, buffer);
+            fn.accept(buffer);
+        } finally {
+            buffer.release();
+        }
+    }
+
+    private void decompressImpl(final ByteBuf in, final ByteBuf out) throws IOException {
         Inflater inflater = new Inflater();
         try (
-                ByteBufOutputStream buffOutput = new ByteBufOutputStream(buffer);
+                ByteBufOutputStream buffOutput = new ByteBufOutputStream(out);
                 InflaterOutputStream inflaterStream = new InflaterOutputStream(buffOutput, inflater)
         ) {
             in.readBytes(inflaterStream, requiredBytes);
-        }finally{
+        } finally {
             inflater.end();
         }
-        return buffer;
     }
 
     private boolean hasEnoughBytes(ByteBuf in) {
@@ -234,7 +243,7 @@ public class BeatsParser extends ByteToMessageDecoder {
     }
 
     private void transition(States nextState, int requiredBytes) {
-        if(logger.isTraceEnabled()) {
+        if (logger.isTraceEnabled()) {
             logger.trace("Transition, from: " + currentState + ", to: " + nextState + ", requiring " + requiredBytes + " bytes");
         }
         this.currentState = nextState;
@@ -245,6 +254,11 @@ public class BeatsParser extends ByteToMessageDecoder {
         requiredBytes = 0;
         sequence = 0;
         batch = null;
+    }
+
+    @FunctionalInterface
+    private interface CheckedConsumer<T> {
+        void accept(T t) throws IOException;
     }
 
 }
