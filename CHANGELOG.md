@@ -1,3 +1,6 @@
+## 6.1.3
+ - Fix: safe-guard byte buf allocation [#420](https://github.com/logstash-plugins/logstash-input-beats/pull/420) 
+
 ## 6.1.2
  - [DOC] Added naming attribute to control plugin name that appears in docs, and set up framework to make attributes viable in code sample
 
@@ -10,7 +13,7 @@
    `host` and `@metadata.ip_address` event fields. [#404](https://github.com/logstash-plugins/logstash-input-beats/pull/404)
 
 ## 6.0.14
-- Feat: log + unwrap generic SSL context exceptions [#405](https://github.com/logstash-plugins/logstash-input-beats/pull/405)
+ - Feat: log + unwrap generic SSL context exceptions [#405](https://github.com/logstash-plugins/logstash-input-beats/pull/405)
 
 ## 6.0.13
  - [DOC] Update links to use shared attributes
