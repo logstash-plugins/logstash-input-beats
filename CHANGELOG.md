@@ -1,3 +1,6 @@
+## Unreleased
+ - Updated Jackson dependencies
+
 ## 6.1.2
  - [DOC] Added naming attribute to control plugin name that appears in docs, and set up framework to make attributes viable in code sample
 
