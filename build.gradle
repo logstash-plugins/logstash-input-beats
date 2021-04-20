@@ -14,7 +14,7 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 String jacksonVersion = '2.9.10'
-String jacksonDatabindVersion = '2.9.10.4'
+String jacksonDatabindVersion = '2.9.10.8'
 
 repositories {
     mavenCentral()
