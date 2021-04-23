@@ -79,12 +79,27 @@ describe "Filebeat", :integration => true do
   # Actuals tests
   context "Plain TCP" do
     include_examples "send events"
+
+    context "with large batches" do
+      let(:number_of_events) { 10_000 }
+      include_examples "send events"
+    end
+
+    context "without pipelining" do
+      let(:filebeat_config) { config = super(); config["output"]["logstash"]["pipelining"] = 0; config }
+      include_examples "send events"
+
+      context "with large batches" do
+        let(:number_of_events) { 10_000 }
+        include_examples "send events"
+      end
+    end
   end
 
   context "TLS" do
     context "Server verification" do
       let(:filebeat_config) do
-        super.merge({
+        super().merge({
           "output" => {
             "logstash" => {
               "hosts" => ["#{host}:#{port}"],
@@ -96,7 +111,7 @@ describe "Filebeat", :integration => true do
       end
 
       let(:input_config) do
-        super.merge({
+        super().merge({
           "ssl" => true,
           "ssl_certificate" => certificate_file,
           "ssl_key" => certificate_key_file
@@ -114,7 +129,7 @@ describe "Filebeat", :integration => true do
 
         context "when specifying a cipher" do
           let(:filebeat_config) do
-            super.merge({
+            super().merge({
               "output" => {
                 "logstash" => {
                   "hosts" => ["#{host}:#{port}"],
@@ -130,7 +145,7 @@ describe "Filebeat", :integration => true do
           end
 
           let(:input_config) {
-            super.merge({
+            super().merge({
               "cipher_suites" => [logstash_cipher],
               "tls_min_version" => "1.2"
             })
@@ -151,8 +166,8 @@ describe "Filebeat", :integration => true do
             end
 
             context "when the cipher is not supported" do
-              let(:beats_cipher) { "ECDHE-RSA-AES-128-GCM-SHA256" }
-              let(:logstash_cipher) { "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"}
+              let(:beats_cipher) { "ECDHE-RSA-AES-256-GCM-SHA384" }
+              let(:logstash_cipher) { "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"}
 
               include_examples "doesn't send events"
             end
@@ -179,7 +194,7 @@ describe "Filebeat", :integration => true do
             LogStash::Inputs::Beats.new(input_config)
           }
           let(:input_config) {
-            super.merge({
+            super().merge({
             "ssl_key_passphrase" => passphrase,
             "ssl_key" => certificate_key_file_pkcs8
           })}
@@ -214,7 +229,7 @@ describe "Filebeat", :integration => true do
 
       context "Client verification / Mutual validation" do
         let(:filebeat_config) do
-          super.merge({
+          super().merge({
             "output" => {
               "logstash" => {
                 "hosts" => ["#{host}:#{port}"],
@@ -230,7 +245,7 @@ describe "Filebeat", :integration => true do
         end
 
         let(:input_config) do
-          super.merge({
+          super().merge({
             "ssl" => true,
             "ssl_certificate_authorities" => certificate_authorities,
             "ssl_certificate" => server_certificate_file,
@@ -312,7 +327,7 @@ describe "Filebeat", :integration => true do
 
               context "client from secondary CA" do
                 let(:filebeat_config) do
-                  super.merge({
+                  super().merge({
                     "output" => {
                       "logstash" => {
                         "hosts" => ["#{host}:#{port}"],

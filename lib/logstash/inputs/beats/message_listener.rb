@@ -31,7 +31,9 @@ module LogStash module Inputs class Beats
       hash = message.getData
       ip_address = ip_address(ctx)
 
-      hash['@metadata']['ip_address'] = ip_address unless ip_address.nil? || hash['@metadata'].nil?
+      unless ip_address.nil? || hash['@metadata'].nil?
+        set_nested(hash, @input.field_hostip, ip_address)
+      end
       target_field = extract_target_field(hash)
 
       extract_tls_peer(hash, ctx)
@@ -140,11 +142,12 @@ module LogStash module Inputs class Beats
         end
 
         if tls_verified
+          set_nested(hash, @field_tls_protocol_version, tls_session.getProtocol())
+          set_nested(hash, @field_tls_peer_subject, tls_session.getPeerPrincipal().getName())
+          set_nested(hash, @field_tls_cipher, tls_session.getCipherSuite())
+
           hash['@metadata']['tls_peer'] = {
-            :status       => "verified",
-            :protocol     => tls_session.getProtocol(),
-            :subject      => tls_session.getPeerPrincipal().getName(),
-            :cipher_suite => tls_session.getCipherSuite()
+            :status       => "verified"
           }
         else
           hash['@metadata']['tls_peer'] = {
@@ -154,6 +157,28 @@ module LogStash module Inputs class Beats
       end
     end
 
+    # set the value for field_name into the hash, nesting into sub-hashes and creating hashes where necessary
+    public #only to make it testable
+    def set_nested(hash, field_name, value)
+      field_ref = Java::OrgLogstash::FieldReference.from(field_name)
+      # create @metadata sub-hash if needed
+      if field_ref.type == Java::OrgLogstash::FieldReference::META_CHILD
+        unless hash.key?("@metadata")
+          hash["@metadata"] = {}
+        end
+        nesting_hash = hash["@metadata"]
+      else
+        nesting_hash = hash
+      end
+
+      field_ref.path.each do |token|
+        nesting_hash[token] = {} unless nesting_hash.key?(token)
+        nesting_hash = nesting_hash[token]
+      end
+      nesting_hash[field_ref.key] = value
+    end
+
+    private
     def extract_target_field(hash)
       if from_filebeat?(hash)
         hash.delete(FILEBEAT_LOG_LINE_FIELD).to_s

@@ -52,10 +52,73 @@ class DummyCodec < LogStash::Codecs::Base
   end
 end
 
+shared_examples "when the message is from any libbeat" do |ecs_compatibility, host_field_name|
+  let(:input) do
+    input = LogStash::Inputs::Beats.new({ "port" => 5555, "codec" => codec, "ecs_compatibility" => "#{ecs_compatibility}" })
+    input.register
+    input
+  end
+
+  #Requires data modeled as Java, not Ruby since the actual code pulls from Java backed (Netty) object
+  let(:data) do
+    d = HashMap.new
+    d.put('@metadata', HashMap.new)
+    d.put('metric',  1)
+    d.put('name', "super-stats")
+    d
+  end
+
+  let(:message) { MockMessage.new("abc",  data)}
+
+  it "extract the event" do
+    subject.onNewMessage(ctx, message)
+    event = queue.pop
+    expect(event.get("message")).to be_nil
+    expect(event.get("metric")).to eq(1)
+    expect(event.get("name")).to eq("super-stats")
+    expect(event.get(host_field_name)).to eq(ip_address)
+  end
+
+  context 'when the remote address is nil' do
+    let(:ctx) { OngoingMethodMock.new("remoteAddress", nil)}
+
+    it 'extracts the event' do
+      subject.onNewMessage(ctx, message)
+      event = queue.pop
+      expect(event.get("message")).to be_nil
+      expect(event.get("metric")).to eq(1)
+      expect(event.get("name")).to eq("super-stats")
+      expect(event.get(host_field_name)).to eq(nil)
+    end
+  end
+
+  context 'when getting the remote address raises' do
+    let(:raising_ctx) { double("context")}
+
+    before  do
+      allow(raising_ctx).to receive(:channel).and_raise("nope")
+      subject.onNewConnection(raising_ctx)
+    end
+
+    it 'extracts the event' do
+      subject.onNewMessage(raising_ctx, message)
+      event = queue.pop
+      expect(event.get("message")).to be_nil
+      expect(event.get("metric")).to eq(1)
+      expect(event.get("name")).to eq("super-stats")
+      expect(event.get(host_field_name)).to eq(nil)
+    end
+  end
+end
+
 describe LogStash::Inputs::Beats::MessageListener do
   let(:queue)  { Queue.new }
   let(:codec) { DummyCodec.new }
-  let(:input) { LogStash::Inputs::Beats.new({ "port" => 5555, "codec" => codec }) }
+  let(:input) do
+    input = LogStash::Inputs::Beats.new({ "port" => 5555, "codec" => codec })
+    input.register
+    input
+  end
 
   let(:ip_address) { "10.0.0.1" }
   let(:remote_address) { OngoingMethodMock.new("getHostAddress", ip_address) }
@@ -146,59 +209,8 @@ describe LogStash::Inputs::Beats::MessageListener do
       end
     end
 
-    context "when the message is from any libbeat" do
-      #Requires data modeled as Java, not Ruby since the actual code pulls from Java backed (Netty) object
-      let(:data) do
-        d = HashMap.new
-        d.put('@metadata', HashMap.new)
-        d.put('metric',  1)
-        d.put('name', "super-stats")
-        d
-      end
-
-      let(:message) { MockMessage.new("abc",  data)}
-
-      it "extract the event" do
-        subject.onNewMessage(ctx, message)
-        event = queue.pop
-        expect(event.get("message")).to be_nil
-        expect(event.get("metric")).to eq(1)
-        expect(event.get("name")).to eq("super-stats")
-        expect(event.get("[@metadata][ip_address]")).to eq(ip_address)
-      end
-
-      context 'when the remote address is nil' do
-        let(:ctx) { OngoingMethodMock.new("remoteAddress", nil)}
-
-        it 'extracts the event' do
-          subject.onNewMessage(ctx, message)
-          event = queue.pop
-          expect(event.get("message")).to be_nil
-          expect(event.get("metric")).to eq(1)
-          expect(event.get("name")).to eq("super-stats")
-          expect(event.get("[@metadata][ip_address]")).to eq(nil)
-        end
-      end
-
-      context 'when getting the remote address raises' do
-        let(:raising_ctx) { double("context")}
-
-        before  do
-          allow(raising_ctx).to receive(:channel).and_raise("nope")
-          subject.onNewConnection(raising_ctx)
-        end
-
-        it 'extracts the event' do
-          subject.onNewMessage(raising_ctx, message)
-          event = queue.pop
-          expect(event.get("message")).to be_nil
-          expect(event.get("metric")).to eq(1)
-          expect(event.get("name")).to eq("super-stats")
-          expect(event.get("[@metadata][ip_address]")).to eq(nil)
-        end
-      end
-
-    end
+    it_behaves_like "when the message is from any libbeat", :disabled, "[@metadata][ip_address]"
+    it_behaves_like "when the message is from any libbeat", :v1, "[@metadata][input][beats][host][ip]"
   end
 
   context "onException" do
@@ -220,6 +232,22 @@ describe LogStash::Inputs::Beats::MessageListener do
     it "calls flush on codec" do
       subject.onConnectionClose(ctx)
       expect(queue).not_to be_empty
+    end
+  end
+
+  context "set_nested" do
+    let(:hash) {{}}
+
+    it "creates correctly the nested maps" do
+      subject.set_nested(hash, "[root][inner][leaf]", 5)
+      expect(hash["root"]["inner"]["leaf"]).to eq(5)
+    end
+
+    it "doesn't overwrite existing the nested maps" do
+      hash = {"root" => {"foo" => {"bar" => "Hello"}}}
+      subject.set_nested(hash, "[root][inner][leaf]", 5)
+      expect(hash["root"]["inner"]["leaf"]).to eq(5)
+      expect(hash["root"]["foo"]["bar"]).to eq("Hello")
     end
   end
 end

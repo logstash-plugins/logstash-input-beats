@@ -1,3 +1,66 @@
+## 6.1.3
+ - Fix: safe-guard byte buf allocation [#420](https://github.com/logstash-plugins/logstash-input-beats/pull/420) 
+ - Updated Jackson dependencies
+
+## 6.1.2
+ - [DOC] Added naming attribute to control plugin name that appears in docs, and set up framework to make attributes viable in code sample
+
+## 6.1.1
+ - [DOC] Enhanced ECS compatibility information for ease of use and readability
+ [#413](https://github.com/logstash-plugins/logstash-input-beats/pull/413)
+
+## 6.1.0
+ - ECS compatibility enablement. Adds `ecs_compatibility` setting to declare the level of ECS compatibility (`disabled` or `v1`) at plugin level. When `disabled`, the plugin behaves like before, while `v1` does a rename of
+   `host` and `@metadata.ip_address` event fields. [#404](https://github.com/logstash-plugins/logstash-input-beats/pull/404)
+
+## 6.0.14
+ - Feat: log + unwrap generic SSL context exceptions [#405](https://github.com/logstash-plugins/logstash-input-beats/pull/405)
+
+## 6.0.13
+ - [DOC] Update links to use shared attributes
+
+## 6.0.12
+ - Fix: log error when SSL context building fails [#402](https://github.com/logstash-plugins/logstash-input-beats/pull/402).
+   We've also made sure to log messages on configuration errors as LS 7.8/7.9 only prints details when level set to debug.
+
+## 6.0.11
+ - Updated jackson databind and Netty dependencies. Additionally, this release removes the dependency on `tcnative` +
+      `boringssl`, using JVM supplied ciphers instead. This may result in fewer ciphers being available if the JCE
+      unlimited strength jurisdiction policy is not installed. (This policy is installed by default on versions of the
+      JDK from u161 onwards)[#393](https://github.com/logstash-plugins/logstash-input-beats/pull/393)
+
+## 6.0.10
+ - Added error handling to detect if ssl certificate or key files can't be read [#394](https://github.com/logstash-plugins/logstash-input-beats/pull/394)
+
+## 6.0.9
+ - Fixed issue where calling `java_import` on `org.logstash.netty.SslContextBuilder` was causing the TCP input to pick up the wrong SslContextBuilder class
+   potentially causing pipeline creation to fail [#388](https://github.com/logstash-plugins/logstash-input-beats/pull/388)
+
+## 6.0.8
+ - Fixed issue where an SslContext was unnecessarily being created for each connection [#383](https://github.com/logstash-plugins/logstash-input-beats/pull/383)
+ - Fixed issue where `end` was not being called when an Inflater was closed [#383](https://github.com/logstash-plugins/logstash-input-beats/pull/383)
+
+## 6.0.7
+ - Reverted changes to netty and tcnative dependencies and removal of CBC ciphers to preserve compatibility with Lumberjack output [#381](https://github.com/logstash-plugins/logstash-input-beats/pull/381)
+
+## 6.0.6
+ - Downgraded netty to 4.1.34 due to an issue in IdleStateHandler [#380](https://github.com/logstash-plugins/logstash-input-beats/pull/380)
+
+## 6.0.5
+ - Security: update netty deps - avoid CBC ciphers [#376](https://github.com/logstash-plugins/logstash-input-beats/pull/376)
+
+## 6.0.4
+ - Updated Jackson dependencies
+
+## 6.0.3
+ - Fixed configuration example in doc [#371](https://github.com/logstash-plugins/logstash-input-beats/pull/371)
+
+## 6.0.2
+ - Improved handling of invalid compressed content [#368](https://github.com/logstash-plugins/logstash-input-beats/pull/368)
+
+## 6.0.1
+ - Updated Jackson dependencies [#366](https://github.com/logstash-plugins/logstash-input-beats/pull/366)
+
 ## 6.0.0
  - Removed obsolete setting congestion_threshold and target_field_for_codec
  - Changed default value of `add_hostname` to false

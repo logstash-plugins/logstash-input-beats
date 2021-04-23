@@ -1,5 +1,6 @@
 package org.logstash.beats;
 
+
 /**
  * Created by ph on 2016-05-16.
  */
@@ -11,6 +12,15 @@ public class Protocol {
     public static final byte CODE_JSON_FRAME = 'J';
     public static final byte CODE_COMPRESSED_FRAME = 'C';
     public static final byte CODE_FRAME = 'D';
+
+    public static int version(byte versionRead) throws InvalidFrameProtocolException{
+        if(Protocol.VERSION_2 == versionRead){
+            return 2;
+        } else if (Protocol.VERSION_1 == versionRead){
+            return 1;
+        }
+        throw new InvalidFrameProtocolException("Invalid version of beats protocol: " + versionRead);
+    }
 
     public static boolean isVersion2(byte versionRead) {
         if(Protocol.VERSION_2 == versionRead){
