@@ -26,7 +26,7 @@ include::{include_path}/plugin_header.asciidoc[]
 ==== Description
 
 This input plugin enables Logstash to receive events from the
-https://www.elastic.co/products/beats[Elastic Beats] framework.
+{plugin-uc} framework.
 
 The following example shows how to configure Logstash to listen on port
 5044 for incoming {plugin-uc} connections and to index into Elasticsearch.
@@ -107,7 +107,7 @@ output.
 |ECS disabled |ECS v1 |Availability |Description
 
 |[host]                  |[@metadata][input][beats][host][name]   |Always       |Name or address of the beat host
-|[@metadata][ip_address] |[@metadata][input][beats][host][ip]     |Always       |IP address of the Beats client
+|[@metadata][ip_address] |[@metadata][input][beats][host][ip]     |Always       |IP address of the {plugin-uc} client
 |[@metadata][tls_peer][status] | [@metadata][tls_peer][status] | When SSL related fields are populated | Contains "verified"/"unverified" labels in `disabled`, `true`/`false` in `v1`
 |[@metadata][tls_peer][protocol] | [@metadata][input][beats][tls][version_protocol] | When SSL status is "verified" | Contains the TLS version used (e.g. `TLSv1.2`)
 |[@metadata][tls_peer][subject] | [@metadata][input][beats][tls][client][subject] | When SSL status is "verified" | Contains the identity name of the remote end (e.g. `CN=artifacts-no-kpi.elastic.co`)
