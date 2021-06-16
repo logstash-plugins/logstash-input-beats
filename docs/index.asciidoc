@@ -2,6 +2,7 @@
 :type: input
 :default_codec: plain
 :plugin-uc: Beats
+:plugin-singular: Beat
 
 ///////////////////////////////////////////
 START - GENERATED VARIABLES, DO NOT EDIT!
@@ -19,7 +20,8 @@ END - GENERATED VARIABLES, DO NOT EDIT!
 === {plugin-uc} input plugin
 
 NOTE: The `input-elastic_agent` plugin is the next generation of the
-`input-beats` plugin. They currently share a common codebase.
+`input-beats` plugin. 
+They currently share code and a https://github.com/logstash-plugins/logstash-input-beats[common codebase].
 
 include::{include_path}/plugin_header.asciidoc[]
 
@@ -48,9 +50,9 @@ output {
 }
 -----
 <1> `%{[@metadata][beat]}` sets the first part of the index name to the value
-of the `beat` metadata field and `%{[@metadata][version]}` sets the second part to
-the {plugin-uc} version. For example:
-metricbeat-7.4.0.
+of the metadata field and `%{[@metadata][version]}` sets the second part to
+the {plugin-singular} version. For example:
+metricbeat-7.4.0. or elastic_agent-7.14.0.
 
 Events indexed into Elasticsearch with the Logstash configuration shown here
 will be similar to events directly indexed by {plugin-uc} into Elasticsearch.
@@ -60,12 +62,18 @@ NOTE: If ILM is not being used, set `index` to
 Logstash creates an index per day, based on the `@timestamp` value of the events
 coming from {plugin-uc}.
 
-IMPORTANT: If you are shipping events that span multiple lines, you need to use
+[id="plugins-{type}s-{plugin}-multiline"]
+===== Multi-line events
+
+**Beats.** If you are shipping events that span multiple lines, you need to use
 the {filebeat-ref}/multiline-examples.html[configuration options available in
 Filebeat] to handle multiline events before sending the event data to Logstash.
 You cannot use the {logstash-ref}/plugins-codecs-multiline.html[Multiline codec
 plugin] to handle multiline events. Doing so will result in the failure to start
 Logstash.
+
+**Elastic Agent.** Early releases of Elastic Agent and Fleet have some limitations, including support for advanced Beats settings like multiline, processors, and so forth. 
+For more information, see {fleet-guide}/fleet-limitations.html[Limitations of this release]. 
 
 [id="plugins-{type}s-{plugin}-versioned-indexes"]
 ==== Versioned indices
@@ -106,7 +114,7 @@ output.
 |=======================================================================
 |ECS disabled |ECS v1 |Availability |Description
 
-|[host]                  |[@metadata][input][beats][host][name]   |Always       |Name or address of the beat host
+|[host]                  |[@metadata][input][beats][host][name]   |Always       |Name or address of the {plugin-singular} host
 |[@metadata][ip_address] |[@metadata][input][beats][host][ip]     |Always       |IP address of the {plugin-uc} client
 |[@metadata][tls_peer][status] | [@metadata][tls_peer][status] | When SSL related fields are populated | Contains "verified"/"unverified" labels in `disabled`, `true`/`false` in `v1`
 |[@metadata][tls_peer][protocol] | [@metadata][input][beats][tls][version_protocol] | When SSL status is "verified" | Contains the TLS version used (e.g. `TLSv1.2`)
@@ -154,7 +162,7 @@ input plugins.
   * Value type is <<boolean,boolean>>
   * Default value is `false`
 
-Flag to determine whether to add `host` field to event using the value supplied by the beat in the `hostname` field.
+Flag to determine whether to add `host` field to event using the value supplied by the {plugin-singular} in the `hostname` field.
 
 
 [id="plugins-{type}s-{plugin}-cipher_suites"]
