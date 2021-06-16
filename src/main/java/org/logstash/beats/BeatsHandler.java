@@ -83,7 +83,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
             }
             if (silentException(cause)) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug(format("closing"), cause);
+                    logger.info(format("closing"), cause);
                 } else {
                     logger.info(format("closing (" + cause.getMessage() + ")"));
                 }
