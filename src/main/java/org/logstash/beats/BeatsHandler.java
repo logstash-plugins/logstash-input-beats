@@ -2,10 +2,10 @@ package org.logstash.beats;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.util.AttributeKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import javax.net.ssl.SSLHandshakeException;
 
@@ -40,7 +40,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
 
 
     @Override
-    public void channelRead0(ChannelHandlerContext ctx, Batch batch) throws Exception {
+    public void channelRead0(ChannelHandlerContext ctx, Batch batch) {
         if(logger.isDebugEnabled()) {
             logger.debug(format("Received a new payload"));
         }
@@ -81,17 +81,35 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
             if (!(cause instanceof SSLHandshakeException)) {
                 messageListener.onException(ctx, cause);
             }
-            final Throwable realCause = extractCause(cause, 0);
-            if (logger.isDebugEnabled()){
-                logger.debug(format("Handling exception: " + cause + " (caused by: " + realCause + ")"), cause);
+            if (isNoisyException(cause)) {
+                if (logger.isDebugEnabled()) {
+                    logger.info(format("closing"), cause);
+                } else {
+                    logger.info(format("closing (" + cause.getMessage() + ")"));
+                }
             } else {
-                logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"));
+                final Throwable realCause = extractCause(cause, 0);
+                if (logger.isDebugEnabled()){
+                    logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"), cause);
+                } else {
+                    logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"));
+                }
+                super.exceptionCaught(ctx, cause);
             }
-        } finally{
-            super.exceptionCaught(ctx, cause);
+        } finally {
             ctx.flush();
             ctx.close();
         }
+    }
+
+    private boolean isNoisyException(final Throwable ex) {
+        if (ex instanceof IOException) {
+            final String message = ex.getMessage();
+            if ("Connection reset by peer".equals(message)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean needAck(Message message) {

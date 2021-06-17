@@ -1,3 +1,6 @@
+## 6.1.4
+ - Fix: reduce error logging on connection resets [#424](https://github.com/logstash-plugins/logstash-input-beats/pull/424)
+
 ## 6.1.3
  - Fix: safe-guard byte buf allocation [#420](https://github.com/logstash-plugins/logstash-input-beats/pull/420) 
  - Updated Jackson dependencies
