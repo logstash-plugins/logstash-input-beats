@@ -81,7 +81,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
             if (!(cause instanceof SSLHandshakeException)) {
                 messageListener.onException(ctx, cause);
             }
-            if (silentException(cause)) {
+            if (isNoisyException(cause)) {
                 if (logger.isDebugEnabled()) {
                     logger.info(format("closing"), cause);
                 } else {
@@ -90,7 +90,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
             } else {
                 final Throwable realCause = extractCause(cause, 0);
                 if (logger.isDebugEnabled()){
-                    logger.debug(format("Handling exception: " + cause + " (caused by: " + realCause + ")"), cause);
+                    logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"), cause);
                 } else {
                     logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"));
                 }
@@ -102,7 +102,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         }
     }
 
-    private boolean silentException(final Throwable ex) {
+    private boolean isNoisyException(final Throwable ex) {
         if (ex instanceof IOException) {
             final String message = ex.getMessage();
             if ("Connection reset by peer".equals(message)) {
