@@ -1,3 +1,6 @@
+## 6.1.5
+ - Changed jar dependencies to reflect newer versions [#425](https://github.com/logstash-plugins/logstash-input-http/pull/425)
+
 ## 6.1.4
  - Fix: reduce error logging on connection resets [#424](https://github.com/logstash-plugins/logstash-input-beats/pull/424)
 
