@@ -1,5 +1,5 @@
 ## 6.1.6
- - [DOC] Applied more attributes to manage plugin name in doc content [#423](https://github.com/logstash-plugins/logstash-input-http/pull/423)
+ - [DOC] Applied more attributes to manage plugin name in doc content, and implemented conditional text processing. [#423](https://github.com/logstash-plugins/logstash-input-http/pull/423)
 
 ## 6.1.5
  - Changed jar dependencies to reflect newer versions [#425](https://github.com/logstash-plugins/logstash-input-http/pull/425)

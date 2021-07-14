@@ -33,6 +33,8 @@ This input plugin enables Logstash to receive events from the
 The following example shows how to configure Logstash to listen on port
 5044 for incoming {plugin-uc} connections and to index into Elasticsearch.
 
+//Example for Beats
+ifeval::["{plugin}"=="beats"]
 ["source","sh",subs="attributes"]
 -----
 
@@ -51,8 +53,7 @@ output {
 -----
 <1> `%{[@metadata][beat]}` sets the first part of the index name to the value
 of the metadata field and `%{[@metadata][version]}` sets the second part to
-the {plugin-singular} version. For example:
-metricbeat-7.4.0. or elastic_agent-7.14.0.
+the {plugin-singular} version. For example: metricbeat-7.4.0.
 
 Events indexed into Elasticsearch with the Logstash configuration shown here
 will be similar to events directly indexed by {plugin-uc} into Elasticsearch.
@@ -61,20 +62,52 @@ NOTE: If ILM is not being used, set `index` to
 `%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}` instead so
 Logstash creates an index per day, based on the `@timestamp` value of the events
 coming from {plugin-uc}.
+endif::[]
+
+//Example for Elastic Agent
+ifeval::["{plugin}"!="beats"]
+["source","sh",subs="attributes"]
+-----
+
+input {
+  {plugin} {
+    port => 5044
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["http://localhost:9200"]
+    data_stream => "true"
+  }
+}
+-----
+
+Events indexed into Elasticsearch with the Logstash configuration shown here
+will be similar to events directly indexed by {plugin-uc} into Elasticsearch.
+endif::[]
 
 [id="plugins-{type}s-{plugin}-multiline"]
 ===== Multi-line events
 
-**Beats.** If you are shipping events that span multiple lines, you need to use
+//Content for Beats
+ifeval::["{plugin}"=="beats"]
+If you are shipping events that span multiple lines, you need to use
 the {filebeat-ref}/multiline-examples.html[configuration options available in
 Filebeat] to handle multiline events before sending the event data to Logstash.
 You cannot use the {logstash-ref}/plugins-codecs-multiline.html[Multiline codec
 plugin] to handle multiline events. Doing so will result in the failure to start
 Logstash.
+endif::[]
 
-**Elastic Agent.** Early releases of Elastic Agent and Fleet have some limitations, including support for advanced Beats settings like multiline, processors, and so forth. 
+//Content for Elastic Agent
+ifeval::["{plugin}"!="beats"]
+Early releases of Elastic Agent and Fleet have some limitations, including support for advanced Beats settings like multiline, processors, and so forth. 
 For more information, see {fleet-guide}/fleet-limitations.html[Limitations of this release]. 
+endif::[]
 
+//Content for Beats
+ifeval::["{plugin}"=="beats"]
 [id="plugins-{type}s-{plugin}-versioned-indexes"]
 ==== Versioned indices
 
@@ -97,6 +130,7 @@ Logstash `@timestamp` field.
 
 This configuration results in daily index names like
 +filebeat-{logstash_version}-{localdate}+.
+endif::[]
 
 
 [id="plugins-{type}s-{plugin}-ecs_metadata"]
@@ -123,7 +157,7 @@ output.
 |=======================================================================
 
 [id="plugins-{type}s-{plugin}-options"]
-==== {plugin-uc} Input Configuration Options
+==== {plugin-uc} input configuration options
 
 This plugin supports the following configuration options plus the <<plugins-{type}s-{plugin}-common-options>> described later.
 
