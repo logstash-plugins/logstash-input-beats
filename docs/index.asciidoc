@@ -53,7 +53,7 @@ output {
 -----
 <1> `%{[@metadata][beat]}` sets the first part of the index name to the value
 of the metadata field and `%{[@metadata][version]}` sets the second part to
-the {plugin-singular} version. For example: metricbeat-7.4.0.
+the {plugin-singular} version. For example: metricbeat-6.1.6.
 
 Events indexed into Elasticsearch with the Logstash configuration shown here
 will be similar to events directly indexed by {plugin-uc} into Elasticsearch.
