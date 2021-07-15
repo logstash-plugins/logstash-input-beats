@@ -87,11 +87,12 @@ Events indexed into Elasticsearch with the Logstash configuration shown here
 will be similar to events directly indexed by {plugin-uc} into Elasticsearch.
 endif::[]
 
-[id="plugins-{type}s-{plugin}-multiline"]
-===== Multi-line events
 
 //Content for Beats
 ifeval::["{plugin}"=="beats"]
+[id="plugins-{type}s-{plugin}-multiline"]
+===== Multi-line events
+
 If you are shipping events that span multiple lines, you need to use
 the {filebeat-ref}/multiline-examples.html[configuration options available in
 Filebeat] to handle multiline events before sending the event data to Logstash.
@@ -102,6 +103,9 @@ endif::[]
 
 //Content for Elastic Agent
 ifeval::["{plugin}"!="beats"]
+[id="plugins-{type}s-{plugin}-limitations"]
+===== Elastic Agent and Fleet limitations
+
 Early releases of Elastic Agent and Fleet have some limitations, including support for advanced Beats settings like multiline, processors, and so forth. 
 For more information, see {fleet-guide}/fleet-limitations.html[Limitations of this release]. 
 endif::[]
