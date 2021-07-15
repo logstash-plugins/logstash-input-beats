@@ -2,6 +2,7 @@
 :type: input
 :default_codec: plain
 :plugin-uc: Beats
+:plugin-singular: Beat
 
 ///////////////////////////////////////////
 START - GENERATED VARIABLES, DO NOT EDIT!
@@ -19,18 +20,21 @@ END - GENERATED VARIABLES, DO NOT EDIT!
 === {plugin-uc} input plugin
 
 NOTE: The `input-elastic_agent` plugin is the next generation of the
-`input-beats` plugin. They currently share a common codebase.
+`input-beats` plugin. 
+They currently share code and a https://github.com/logstash-plugins/logstash-input-beats[common codebase].
 
 include::{include_path}/plugin_header.asciidoc[]
 
 ==== Description
 
 This input plugin enables Logstash to receive events from the
-https://www.elastic.co/products/beats[Elastic Beats] framework.
+{plugin-uc} framework.
 
 The following example shows how to configure Logstash to listen on port
 5044 for incoming {plugin-uc} connections and to index into Elasticsearch.
 
+//Example for Beats
+ifeval::["{plugin}"=="beats"]
 ["source","sh",subs="attributes"]
 -----
 
@@ -48,9 +52,8 @@ output {
 }
 -----
 <1> `%{[@metadata][beat]}` sets the first part of the index name to the value
-of the `beat` metadata field and `%{[@metadata][version]}` sets the second part to
-the {plugin-uc} version. For example:
-metricbeat-7.4.0.
+of the metadata field and `%{[@metadata][version]}` sets the second part to
+the {plugin-singular} version. For example: metricbeat-6.1.6.
 
 Events indexed into Elasticsearch with the Logstash configuration shown here
 will be similar to events directly indexed by {plugin-uc} into Elasticsearch.
@@ -59,14 +62,56 @@ NOTE: If ILM is not being used, set `index` to
 `%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}` instead so
 Logstash creates an index per day, based on the `@timestamp` value of the events
 coming from {plugin-uc}.
+endif::[]
 
-IMPORTANT: If you are shipping events that span multiple lines, you need to use
+//Example for Elastic Agent
+ifeval::["{plugin}"!="beats"]
+["source","sh",subs="attributes"]
+-----
+
+input {
+  {plugin} {
+    port => 5044
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["http://localhost:9200"]
+    data_stream => "true"
+  }
+}
+-----
+
+Events indexed into Elasticsearch with the Logstash configuration shown here
+will be similar to events directly indexed by {plugin-uc} into Elasticsearch.
+endif::[]
+
+
+//Content for Beats
+ifeval::["{plugin}"=="beats"]
+[id="plugins-{type}s-{plugin}-multiline"]
+===== Multi-line events
+
+If you are shipping events that span multiple lines, you need to use
 the {filebeat-ref}/multiline-examples.html[configuration options available in
 Filebeat] to handle multiline events before sending the event data to Logstash.
 You cannot use the {logstash-ref}/plugins-codecs-multiline.html[Multiline codec
 plugin] to handle multiline events. Doing so will result in the failure to start
 Logstash.
+endif::[]
 
+//Content for Elastic Agent
+ifeval::["{plugin}"!="beats"]
+[id="plugins-{type}s-{plugin}-limitations"]
+===== Elastic Agent and Fleet limitations
+
+Early releases of Elastic Agent and Fleet have some limitations, including support for advanced Beats settings like multiline, processors, and so forth. 
+For more information, see {fleet-guide}/fleet-limitations.html[Limitations of this release]. 
+endif::[]
+
+//Content for Beats
+ifeval::["{plugin}"=="beats"]
 [id="plugins-{type}s-{plugin}-versioned-indexes"]
 ==== Versioned indices
 
@@ -89,6 +134,7 @@ Logstash `@timestamp` field.
 
 This configuration results in daily index names like
 +filebeat-{logstash_version}-{localdate}+.
+endif::[]
 
 
 [id="plugins-{type}s-{plugin}-ecs_metadata"]
@@ -106,8 +152,8 @@ output.
 |=======================================================================
 |ECS disabled |ECS v1 |Availability |Description
 
-|[host]                  |[@metadata][input][beats][host][name]   |Always       |Name or address of the beat host
-|[@metadata][ip_address] |[@metadata][input][beats][host][ip]     |Always       |IP address of the Beats client
+|[host]                  |[@metadata][input][beats][host][name]   |Always       |Name or address of the {plugin-singular} host
+|[@metadata][ip_address] |[@metadata][input][beats][host][ip]     |Always       |IP address of the {plugin-uc} client
 |[@metadata][tls_peer][status] | [@metadata][tls_peer][status] | When SSL related fields are populated | Contains "verified"/"unverified" labels in `disabled`, `true`/`false` in `v1`
 |[@metadata][tls_peer][protocol] | [@metadata][input][beats][tls][version_protocol] | When SSL status is "verified" | Contains the TLS version used (e.g. `TLSv1.2`)
 |[@metadata][tls_peer][subject] | [@metadata][input][beats][tls][client][subject] | When SSL status is "verified" | Contains the identity name of the remote end (e.g. `CN=artifacts-no-kpi.elastic.co`)
@@ -115,7 +161,7 @@ output.
 |=======================================================================
 
 [id="plugins-{type}s-{plugin}-options"]
-==== {plugin-uc} Input Configuration Options
+==== {plugin-uc} input configuration options
 
 This plugin supports the following configuration options plus the <<plugins-{type}s-{plugin}-common-options>> described later.
 
@@ -154,7 +200,7 @@ input plugins.
   * Value type is <<boolean,boolean>>
   * Default value is `false`
 
-Flag to determine whether to add `host` field to event using the value supplied by the beat in the `hostname` field.
+Flag to determine whether to add `host` field to event using the value supplied by the {plugin-singular} in the `hostname` field.
 
 
 [id="plugins-{type}s-{plugin}-cipher_suites"]
