@@ -20,48 +20,49 @@ public class V2BatchTest {
 
     @Test
     public void testIsEmpty() {
-        V2Batch batch = new V2Batch();
-        assertTrue(batch.isEmpty());
-        ByteBuf content = messageContents();
-        batch.addMessage(1, content, content.readableBytes());
-        assertFalse(batch.isEmpty());
+        try (V2Batch batch = new V2Batch()){
+            assertTrue(batch.isEmpty());
+            ByteBuf content = messageContents();
+            batch.addMessage(1, content, content.readableBytes());
+            assertFalse(batch.isEmpty());
+        }
     }
 
     @Test
     public void testSize() {
-        V2Batch batch = new V2Batch();
-        assertEquals(0, batch.size());
-        ByteBuf content = messageContents();
-        batch.addMessage(1, content, content.readableBytes());
-        assertEquals(1, batch.size());
-    }
-
-    @Test
-    public void TestGetProtocol() {
-        assertEquals(Protocol.VERSION_2, new V2Batch().getProtocol());
-    }
-
-    @Test
-    public void TestCompleteReturnTrueWhenIReceiveTheSameAmountOfEvent() {
-        V2Batch batch = new V2Batch();
-        int numberOfEvent = 2;
-
-        batch.setBatchSize(numberOfEvent);
-
-        for(int i = 1; i <= numberOfEvent; i++) {
+        try (V2Batch batch = new V2Batch()) {
+            assertEquals(0, batch.size());
             ByteBuf content = messageContents();
-            batch.addMessage(i, content, content.readableBytes());
+            batch.addMessage(1, content, content.readableBytes());
+            assertEquals(1, batch.size());
         }
+    }
 
-        assertTrue(batch.isComplete());
+    @Test
+    public void testGetProtocol() {
+        try (V2Batch batch = new V2Batch()) {
+            assertEquals(Protocol.VERSION_2, batch.getProtocol());
+        }
+    }
+
+    @Test
+    public void testCompleteReturnTrueWhenIReceiveTheSameAmountOfEvent() {
+        try (V2Batch batch = new V2Batch()) {
+            int numberOfEvent = 2;
+            batch.setBatchSize(numberOfEvent);
+            for (int i = 1; i <= numberOfEvent; i++) {
+                ByteBuf content = messageContents();
+                batch.addMessage(i, content, content.readableBytes());
+            }
+            assertTrue(batch.isComplete());
+        }
     }
 
     @Test
     public void testBigBatch() {
-        V2Batch batch = new V2Batch();
-        int size = 4096;
-        assertEquals(0, batch.size());
-        try {
+        try (V2Batch batch = new V2Batch()) {
+            int size = 4096;
+            assertEquals(0, batch.size());
             ByteBuf content = messageContents();
             for (int i = 0; i < size; i++) {
                 batch.addMessage(i, content, content.readableBytes());
@@ -71,8 +72,6 @@ public class V2BatchTest {
             for (Message message : batch) {
                 assertEquals(message.getSequence(), i++);
             }
-        }finally {
-            batch.release();
         }
     }
 
@@ -91,17 +90,15 @@ public class V2BatchTest {
         assertEquals(startSequenceNumber + numberOfEvent, batch.getHighestSequence());
     }
 
-
     @Test
-    public void TestCompleteReturnWhenTheNumberOfEventDoesntMatchBatchSize() {
-        V2Batch batch = new V2Batch();
-        int numberOfEvent = 2;
-
-        batch.setBatchSize(numberOfEvent);
-        ByteBuf content = messageContents();
-        batch.addMessage(1, content, content.readableBytes());
-
-        assertFalse(batch.isComplete());
+    public void testCompleteReturnWhenTheNumberOfEventDoesntMatchBatchSize() {
+        try (V2Batch batch = new V2Batch()) {
+            int numberOfEvent = 2;
+            batch.setBatchSize(numberOfEvent);
+            ByteBuf content = messageContents();
+            batch.addMessage(1, content, content.readableBytes());
+            assertFalse(batch.isComplete());
+        }
     }
 
     public static ByteBuf messageContents() {
