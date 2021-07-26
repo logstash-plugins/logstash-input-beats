@@ -1,3 +1,6 @@
+## 6.1.7
+ - [DOC] Remove limitations topic and link [#428](https://github.com/logstash-plugins/logstash-input-http/pull/428)
+
 ## 6.1.6
  - [DOC] Applied more attributes to manage plugin name in doc content, and implemented conditional text processing. [#423](https://github.com/logstash-plugins/logstash-input-http/pull/423)
 
