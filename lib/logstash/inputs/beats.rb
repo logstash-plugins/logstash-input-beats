@@ -51,7 +51,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   require "logstash/inputs/beats/tls"
 
   # adds ecs_compatibility config which could be :disabled or :v1
-  include LogStash::PluginMixins::ECSCompatibilitySupport(:disabled,:v1)
+  include LogStash::PluginMixins::ECSCompatibilitySupport(:disabled,:v1, :v8 => :v1)
 
   config_name "beats"
 

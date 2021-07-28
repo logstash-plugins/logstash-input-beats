@@ -9,4 +9,5 @@ describe LogStash::Inputs::Beats::EventTransformCommon do
 
   include_examples "Common Event Transformation", :disabled, "host"
   include_examples "Common Event Transformation", :v1, "[@metadata][input][beats][host][name]"
+  include_examples "Common Event Transformation", :v8, "[@metadata][input][beats][host][name]"
 end

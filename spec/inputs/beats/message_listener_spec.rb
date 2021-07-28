@@ -211,6 +211,7 @@ describe LogStash::Inputs::Beats::MessageListener do
 
     it_behaves_like "when the message is from any libbeat", :disabled, "[@metadata][ip_address]"
     it_behaves_like "when the message is from any libbeat", :v1, "[@metadata][input][beats][host][ip]"
+    it_behaves_like "when the message is from any libbeat", :v8, "[@metadata][input][beats][host][ip]"
   end
 
   context "onException" do

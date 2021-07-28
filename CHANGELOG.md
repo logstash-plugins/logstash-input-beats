@@ -1,3 +1,6 @@
+## 6.2.0
+ - ECS compatibility enablement: Adds alias to support upcoming ECS v8 with the existing ECS v1 implementation
+
 ## 6.1.7
  - [DOC] Remove limitations topic and link [#428](https://github.com/logstash-plugins/logstash-input-http/pull/428)
 
