@@ -15,6 +15,8 @@ module LogStash module Inputs class Beats
 
     attr_reader :logger, :input, :connections_list
 
+    attr_reader :event_factory
+
     def initialize(queue, input)
       @connections_list = ThreadSafe::Hash.new
       @queue = queue
@@ -25,6 +27,7 @@ module LogStash module Inputs class Beats
 
       @nocodec_transformer = RawEventTransform.new(@input)
       @codec_transformer = DecodedEventTransform.new(@input)
+      @event_factory = input.event_factory
     end
 
     def onNewMessage(ctx, message)
@@ -39,7 +42,7 @@ module LogStash module Inputs class Beats
       extract_tls_peer(hash, ctx)
 
       if target_field.nil?
-        event = LogStash::Event.new(hash)
+        event = event_factory.new_event(hash)
         @nocodec_transformer.transform(event)
         @queue << event
       else
