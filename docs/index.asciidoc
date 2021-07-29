@@ -162,16 +162,8 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-add_hostname>> |<<boolean,boolean>>|No
 | <<plugins-{type}s-{plugin}-cipher_suites>> |<<array,array>>|No
 | <<plugins-{type}s-{plugin}-client_inactivity_timeout>> |<<number,number>>|No
-<<<<<<< HEAD
-<<<<<<< HEAD
-| <<plugins-{type}s-{plugin}-ecs_compatibility>> | <<string,string>>|No
-=======
-| <<plugins-{type}s-{plugin}-executor_threads>> |<<number,number>>|No
->>>>>>> added documentation for executor_threads
-=======
 | <<plugins-{type}s-{plugin}-ecs_compatibility>> | <<string,string>>|No
 | <<plugins-{type}s-{plugin}-executor_threads>> |<<number,number>>|No
->>>>>>> Put the description in correct order plus little extension to the description
 | <<plugins-{type}s-{plugin}-host>> |<<string,string>>|No
 | <<plugins-{type}s-{plugin}-include_codec_tag>> |<<boolean,boolean>>|No
 | <<plugins-{type}s-{plugin}-port>> |<<number,number>>|Yes
@@ -219,10 +211,6 @@ The list of ciphers suite to use, listed by priorities.
 
 Close Idle clients after X seconds of inactivity.
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> Put the description in correct order plus little extension to the description
 [id="plugins-{type}s-{plugin}-ecs_compatibility"]
 ===== `ecs_compatibility`
 
@@ -236,15 +224,6 @@ Close Idle clients after X seconds of inactivity.
 ** Otherwise, the default value is `disabled`.
 
 Refer to <<plugins-{type}s-{plugin}-ecs_metadata,ECS mapping>> for detailed information.
-=======
-[id="plugins-{type}s-{plugin}-executor_threads"]
-===== `executor_threads`
-
-  * Value type is <<number,number>>
-  * Default value is 1 executor thread per CPU core
-
-The number of parallel executor threads.
->>>>>>> added documentation for executor_threads
 
 [id="plugins-{type}s-{plugin}-executor_threads"]
 ===== `executor_threads`
@@ -385,3 +364,4 @@ The minimum TLS version allowed for the encrypted connections. The value must be
 include::{include_path}/{type}.asciidoc[]
 
 :default_codec!:
+
