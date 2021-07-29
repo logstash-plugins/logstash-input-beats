@@ -231,7 +231,17 @@ Refer to <<plugins-{type}s-{plugin}-ecs_metadata,ECS mapping>> for detailed info
   * Value type is <<number,number>>
   * Default value is 1 executor thread per CPU core
 
-The number of parallel executor threads to be used to process incoming beats requests.
+The number of threads to be used to process incoming beats requests.
+By default Beats input will create a number of threads equals to 2*CPU cores to handle incoming connections,
+reading from the established sockets and execute most of the tasks related to network connection managements, 
+except the parsing of Lumberjack protocol that's offloaded to a dedicated thread pool.
+
+Generally you don't need to touch this setting.
+In case you are sending very large events and observing "OutOfDirectMemory" exceptions,
+you may want to reduce this number to half or 1/4 of the CPU cores.
+This will reduce the number of threads decompressing batches of data into direct memory.
+However, this will only be a mitigating tweak, as the proper solution may require resizing your Logstash deployment,
+either by increasing number of Logstash nodes or increasing the JVM's Direct Memory.
 
 [id="plugins-{type}s-{plugin}-host"]
 ===== `host`
