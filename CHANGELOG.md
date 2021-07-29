@@ -1,4 +1,6 @@
-<<<<<<< HEAD
+## x.y.z
+ - [DOC] described `executor_threads` configuration parameter [#421](https://github.com/logstash-plugins/logstash-input-beats/pull/421)
+
 ## 6.1.7
  - [DOC] Remove limitations topic and link [#428](https://github.com/logstash-plugins/logstash-input-http/pull/428)
 
@@ -10,10 +12,6 @@
 
 ## 6.1.4
  - Fix: reduce error logging on connection resets [#424](https://github.com/logstash-plugins/logstash-input-beats/pull/424)
-=======
-## x.y.z
- - [DOC] described `executor_threads` configuration parameter [#421](https://github.com/logstash-plugins/logstash-input-beats/pull/421)
->>>>>>> Put the description in correct order plus little extension to the description
 
 ## 6.1.3
  - Fix: safe-guard byte buf allocation [#420](https://github.com/logstash-plugins/logstash-input-beats/pull/420) 
