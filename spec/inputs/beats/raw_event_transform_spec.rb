@@ -20,6 +20,7 @@ describe LogStash::Inputs::Beats::RawEventTransform do
 
   include_examples "Common Event Transformation", :disabled, "host"
   include_examples "Common Event Transformation", :v1, "[@metadata][input][beats][host][name]"
+  include_examples "Common Event Transformation", :v8, "[@metadata][input][beats][host][name]"
 
   it "tags the event" do
     expect(subject.get("tags")).to include("beats_input_raw_event")

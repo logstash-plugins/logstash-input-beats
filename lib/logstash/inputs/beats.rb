@@ -6,6 +6,7 @@ require "logstash/codecs/multiline"
 require "logstash/util"
 require "logstash-input-beats_jars"
 require "logstash/plugin_mixins/ecs_compatibility_support"
+require 'logstash/plugin_mixins/event_support/event_factory_adapter'
 require_relative "beats/patch"
 
 # This input plugin enables Logstash to receive events from the
@@ -51,7 +52,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   require "logstash/inputs/beats/tls"
 
   # adds ecs_compatibility config which could be :disabled or :v1
-  include LogStash::PluginMixins::ECSCompatibilitySupport(:disabled,:v1)
+  include LogStash::PluginMixins::ECSCompatibilitySupport(:disabled,:v1, :v8 => :v1)
+
+  include LogStash::PluginMixins::EventSupport::EventFactoryAdapter
 
   config_name "beats"
 
