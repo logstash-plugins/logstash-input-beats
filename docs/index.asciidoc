@@ -163,6 +163,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-cipher_suites>> |<<array,array>>|No
 | <<plugins-{type}s-{plugin}-client_inactivity_timeout>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-ecs_compatibility>> | <<string,string>>|No
+| <<plugins-{type}s-{plugin}-executor_threads>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-host>> |<<string,string>>|No
 | <<plugins-{type}s-{plugin}-include_codec_tag>> |<<boolean,boolean>>|No
 | <<plugins-{type}s-{plugin}-port>> |<<number,number>>|Yes
@@ -223,6 +224,24 @@ Close Idle clients after X seconds of inactivity.
 ** Otherwise, the default value is `disabled`.
 
 Refer to <<plugins-{type}s-{plugin}-ecs_metadata,ECS mapping>> for detailed information.
+
+[id="plugins-{type}s-{plugin}-executor_threads"]
+===== `executor_threads`
+
+  * Value type is <<number,number>>
+  * Default value is 1 executor thread per CPU core
+
+The number of threads to be used to process incoming beats requests.
+By default Beats input will create a number of threads equals to 2*CPU cores to handle incoming connections,
+reading from the established sockets and execute most of the tasks related to network connection managements, 
+except the parsing of Lumberjack protocol that's offloaded to a dedicated thread pool.
+
+Generally you don't need to touch this setting.
+In case you are sending very large events and observing "OutOfDirectMemory" exceptions,
+you may want to reduce this number to half or 1/4 of the CPU cores.
+This will reduce the number of threads decompressing batches of data into direct memory.
+However, this will only be a mitigating tweak, as the proper solution may require resizing your Logstash deployment,
+either by increasing number of Logstash nodes or increasing the JVM's Direct Memory.
 
 [id="plugins-{type}s-{plugin}-host"]
 ===== `host`
@@ -355,3 +374,4 @@ The minimum TLS version allowed for the encrypted connections. The value must be
 include::{include_path}/{type}.asciidoc[]
 
 :default_codec!:
+
