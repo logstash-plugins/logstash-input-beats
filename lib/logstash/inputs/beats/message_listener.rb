@@ -144,18 +144,16 @@ module LogStash module Inputs class Beats
           end
         end
 
+        meta_data = hash['@metadata'] ||= {}
+
         if tls_verified
+          meta_data['tls_peer'] = { :status => "verified" }
+
           set_nested(hash, input.field_tls_protocol_version, tls_session.getProtocol())
           set_nested(hash, input.field_tls_peer_subject, tls_session.getPeerPrincipal().getName())
           set_nested(hash, input.field_tls_cipher, tls_session.getCipherSuite())
-
-          hash['@metadata']['tls_peer'] = {
-            :status       => "verified"
-          }
         else
-          hash['@metadata']['tls_peer'] = {
-            :status     => "unverified"
-          }
+          meta_data['tls_peer'] = { :status => "unverified" }
         end
       end
     end
@@ -166,9 +164,6 @@ module LogStash module Inputs class Beats
       field_ref = Java::OrgLogstash::FieldReference.from(field_name)
       # create @metadata sub-hash if needed
       if field_ref.type == Java::OrgLogstash::FieldReference::META_CHILD
-        unless hash.key?("@metadata")
-          hash["@metadata"] = {}
-        end
         nesting_hash = hash["@metadata"]
       else
         nesting_hash = hash
