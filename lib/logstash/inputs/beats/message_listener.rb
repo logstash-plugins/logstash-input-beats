@@ -145,9 +145,9 @@ module LogStash module Inputs class Beats
         end
 
         if tls_verified
-          set_nested(hash, @field_tls_protocol_version, tls_session.getProtocol())
-          set_nested(hash, @field_tls_peer_subject, tls_session.getPeerPrincipal().getName())
-          set_nested(hash, @field_tls_cipher, tls_session.getCipherSuite())
+          set_nested(hash, input.field_tls_protocol_version, tls_session.getProtocol())
+          set_nested(hash, input.field_tls_peer_subject, tls_session.getPeerPrincipal().getName())
+          set_nested(hash, input.field_tls_cipher, tls_session.getCipherSuite())
 
           hash['@metadata']['tls_peer'] = {
             :status       => "verified"
