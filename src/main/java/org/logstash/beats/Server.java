@@ -85,6 +85,14 @@ public class Server {
         }
     }
 
+    /**
+     * @note used in tests
+     * @return the message listener
+     */
+    public IMessageListener getMessageListener() {
+        return messageListener;
+    }
+
     public void setMessageListener(IMessageListener listener) {
         messageListener = listener;
     }
