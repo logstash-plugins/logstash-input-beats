@@ -132,7 +132,7 @@ module LogStash module Inputs class Beats
         tls_session = ctx.channel().pipeline().get("ssl-handler").engine().getSession()
         tls_verified = true
 
-        if not @input.client_authentication_required?
+        unless @input.client_authentication_required?
           # throws SSLPeerUnverifiedException if unverified
           begin
             tls_session.getPeerCertificates()
