@@ -132,7 +132,7 @@ module LogStash module Inputs class Beats
         tls_session = ctx.channel().pipeline().get("ssl-handler").engine().getSession()
         tls_verified = true
 
-        if not @input.client_authentication_required?
+        unless @input.client_authentication_required?
           # throws SSLPeerUnverifiedException if unverified
           begin
             tls_session.getPeerCertificates()
@@ -144,18 +144,16 @@ module LogStash module Inputs class Beats
           end
         end
 
-        if tls_verified
-          set_nested(hash, @field_tls_protocol_version, tls_session.getProtocol())
-          set_nested(hash, @field_tls_peer_subject, tls_session.getPeerPrincipal().getName())
-          set_nested(hash, @field_tls_cipher, tls_session.getCipherSuite())
+        meta_data = hash['@metadata'] ||= {}
 
-          hash['@metadata']['tls_peer'] = {
-            :status       => "verified"
-          }
+        if tls_verified
+          meta_data['tls_peer'] = { :status => "verified" }
+
+          set_nested(hash, input.field_tls_protocol_version, tls_session.getProtocol())
+          set_nested(hash, input.field_tls_peer_subject, tls_session.getPeerPrincipal().getName())
+          set_nested(hash, input.field_tls_cipher, tls_session.getCipherSuite())
         else
-          hash['@metadata']['tls_peer'] = {
-            :status     => "unverified"
-          }
+          meta_data['tls_peer'] = { :status => "unverified" }
         end
       end
     end
@@ -166,9 +164,6 @@ module LogStash module Inputs class Beats
       field_ref = Java::OrgLogstash::FieldReference.from(field_name)
       # create @metadata sub-hash if needed
       if field_ref.type == Java::OrgLogstash::FieldReference::META_CHILD
-        unless hash.key?("@metadata")
-          hash["@metadata"] = {}
-        end
         nesting_hash = hash["@metadata"]
       else
         nesting_hash = hash

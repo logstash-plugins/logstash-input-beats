@@ -12,26 +12,28 @@ describe LogStash::Inputs::Beats do
   let(:connection) { double("connection") }
   let(:certificate) { BeatsInputTest.certificate }
   let(:port) { BeatsInputTest.random_port }
+  let(:client_inactivity_timeout) { 400 }
+  let(:threads) { 1 + rand(9) }
   let(:queue)  { Queue.new }
   let(:config)   do
     {
-        "port" => 0,
+        "port" => port,
         "ssl_certificate" => certificate.ssl_cert,
         "ssl_key" => certificate.ssl_key,
+        "client_inactivity_timeout" => client_inactivity_timeout,
+        "executor_threads" => threads,
         "type" => "example",
         "tags" => "beats"
     }
   end
 
+  subject(:plugin) { LogStash::Inputs::Beats.new(config) }
+
   context "#register" do
     context "host related configuration" do
-      let(:config) { super().merge("host" => host, "port" => port, "client_inactivity_timeout" => client_inactivity_timeout, "executor_threads" => threads) }
+      let(:config) { super().merge("host" => host, "port" => port) }
       let(:host) { "192.168.1.20" }
-      let(:port) { 9000 }
-      let(:client_inactivity_timeout) { 400 }
-      let(:threads) { 10 }
-
-      subject(:plugin) { LogStash::Inputs::Beats.new(config) }
+      let(:port) { 9001 }
 
       it "sends the required options to the server" do
         expect(org.logstash.beats.Server).to receive(:new).with(host, port, client_inactivity_timeout, threads)
@@ -158,8 +160,79 @@ describe LogStash::Inputs::Beats do
 
       it "raise a ConfigurationError when multiline codec is set" do
         plugin = LogStash::Inputs::Beats.new(config)
-        expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "Multiline codec with beats input is not supported. Please refer to the beats documentation for how to best manage multiline data. See https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html")
+        expect { plugin.register }.to raise_error(LogStash::ConfigurationError, "Multiline codec with beats input is not supported. Please refer to the beats documentation for how to best manage multiline data. See https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html")
       end
+    end
+  end
+
+  context "tls meta-data" do
+    let(:config) { super().merge("host" => host, "ssl_peer_metadata" => true, "ssl_certificate_authorities" => [ certificate.ssl_cert ]) }
+    let(:host) { "192.168.1.20" }
+    let(:port) { 9002 }
+
+    let(:queue) { Queue.new }
+    let(:event) { LogStash::Event.new }
+
+    subject(:plugin) { LogStash::Inputs::Beats.new(config) }
+
+    before do
+      @server = org.logstash.beats.Server.new(host, port, client_inactivity_timeout, threads)
+      expect( org.logstash.beats.Server ).to receive(:new).with(host, port, client_inactivity_timeout, threads).and_return @server
+      expect( @server ).to receive(:listen)
+
+      subject.register
+      subject.run(queue) # listen does nothing
+      @message_listener = @server.getMessageListener
+
+      allow( ssl_engine = double('ssl_engine') ).to receive(:getSession).and_return ssl_session
+      allow( ssl_handler = double('ssl-handler') ).to receive(:engine).and_return ssl_engine
+      allow( pipeline = double('pipeline') ).to receive(:get).and_return ssl_handler
+      allow( @channel = double('channel') ).to receive(:pipeline).and_return pipeline
+    end
+
+    let(:ctx) do
+      Java::io.netty.channel.ChannelHandlerContext.impl do |method, *args|
+        fail("unexpected #{method}( #{args} )") unless method.eql?(:channel)
+        @channel
+      end
+    end
+
+    let(:ssl_session) do
+      Java::javax.net.ssl.SSLSession.impl do |method, *args|
+        case method
+        when :getPeerCertificates
+          [].to_java(java.security.cert.Certificate)
+        when :getProtocol
+          'TLS-Mock'
+        when :getCipherSuite
+          'SSL_NULL_WITH_TEST_SPEC'
+        when :getPeerPrincipal
+          javax.security.auth.x500.X500Principal.new('CN=TEST, OU=RSpec, O=Logstash, C=NL', {})
+        else
+          fail("unexpected #{method}( #{args} )")
+        end
+      end
+    end
+
+    let(:ssl_session_peer_principal) do
+      javax.security.auth.x500.X500Principal
+    end
+
+    let(:message) do
+      org.logstash.beats.Message.new(0, java.util.HashMap.new('foo' => 'bar'))
+    end
+
+    it 'sets tls fields' do
+      @message_listener.onNewMessage(ctx, message)
+
+      expect( queue.size ).to be 1
+      expect( event = queue.pop ).to be_a LogStash::Event
+
+      expect( event.get('[@metadata][tls_peer][status]') ).to eql 'verified'
+
+      expect( event.get('[@metadata][tls_peer][protocol]') ).to eql 'TLS-Mock'
+      expect( event.get('[@metadata][tls_peer][cipher_suite]') ).to eql 'SSL_NULL_WITH_TEST_SPEC'
+      expect( event.get('[@metadata][tls_peer][subject]') ).to eql 'CN=TEST,OU=RSpec,O=Logstash,C=NL'
     end
   end
 

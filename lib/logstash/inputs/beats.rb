@@ -129,6 +129,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   config :executor_threads, :validate => :number, :default => LogStash::Config::CpuCoreStrategy.maximum
 
   attr_reader :field_hostname, :field_hostip
+  attr_reader :field_tls_protocol_version, :field_tls_peer_subject, :field_tls_cipher
 
   def register
     # For Logstash 2.4 we need to make sure that the logger is correctly set for the
@@ -167,10 +168,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
     # define ecs name mapping
     @field_hostname = ecs_select[disabled: "host", v1: "[@metadata][input][beats][host][name]"]
-    @field_hostip   = ecs_select[disabled: "[@metadata][ip_address]", v1: "[@metadata][input][beats][host][ip]"]
-    @field_tls_protocol_version   = ecs_select[disabled: "[@metadata][tls_peer][protocol]", v1: "[@metadata][input][beats][tls][version_protocol]"]
-    @field_tls_peer_subject   = ecs_select[disabled: "[@metadata][tls_peer][subject]", v1: "[@metadata][input][beats][tls][client][subject]"]
-    @field_tls_cipher   = ecs_select[disabled: "[@metadata][tls_peer][cipher_suite]", v1: "[@metadata][input][beats][tls][cipher]"]
+    @field_hostip = ecs_select[disabled: "[@metadata][ip_address]", v1: "[@metadata][input][beats][host][ip]"]
+    @field_tls_protocol_version = ecs_select[disabled: "[@metadata][tls_peer][protocol]", v1: "[@metadata][input][beats][tls][version_protocol]"]
+    @field_tls_peer_subject = ecs_select[disabled: "[@metadata][tls_peer][subject]", v1: "[@metadata][input][beats][tls][client][subject]"]
+    @field_tls_cipher = ecs_select[disabled: "[@metadata][tls_peer][cipher_suite]", v1: "[@metadata][input][beats][tls][cipher]"]
 
     @logger.info("Starting input listener", :address => "#{@host}:#{@port}")
 
