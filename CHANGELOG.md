@@ -1,5 +1,6 @@
-## Unreleased
+## 6.2.2
  - Fix: update to Gradle 7 [#432](https://github.com/logstash-plugins/logstash-input-beats/pull/432)
+ - [DOC] Edit documentation for `executor_threads` [#435](https://github.com/logstash-plugins/logstash-input-beats/pull/435)
 
 ## 6.2.1
  - Fix: LS failing with `ssl_peer_metadata => true` [#431](https://github.com/logstash-plugins/logstash-input-beats/pull/431)
