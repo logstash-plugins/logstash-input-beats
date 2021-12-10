@@ -1,3 +1,6 @@
+## 6.2.3
+ - Updated log4j dependency to 2.15.0
+
 ## 6.2.2
  - Fix: update to Gradle 7 [#432](https://github.com/logstash-plugins/logstash-input-beats/pull/432)
  - [DOC] Edit documentation for `executor_threads` [#435](https://github.com/logstash-plugins/logstash-input-beats/pull/435)
