@@ -1,3 +1,6 @@
+## 5.1.10
+ - Update log4j dependency to 2.17.0
+
 ## 5.1.9
  - Backport [#366](https://github.com/logstash-plugins/logstash-input-beats/pull/366) and [#368](https://github.com/logstash-plugins/logstash-input-beats/pull/368) from 6.x
 
