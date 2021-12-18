@@ -1,5 +1,5 @@
 ## 6.2.4
- - Updated log4j dependency to 2.16.0
+ - Updated log4j dependency to 2.17.0
 
 ## 6.2.3
  - Updated log4j dependency to 2.15.0
