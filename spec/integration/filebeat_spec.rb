@@ -184,10 +184,10 @@ describe "Filebeat", :integration => true do
             FileUtils.mkdir_p temporary_directory = Stud::Temporary.pathname
 
             cert_key = ::File.join(temporary_directory, "certificate.key")
-            cert_pub = ::File.join(temporary_directory, "certificate.crt")
+            @cert_pub = ::File.join(temporary_directory, "certificate.crt")
             @cert_key_pkcs8 = ::File.join(temporary_directory, "certificate.key.pkcs8")
 
-            cmd = "openssl req -x509  -batch -newkey rsa:2048 -keyout #{cert_key} -out #{cert_pub} -passout pass:#{@passphrase} -subj \"/C=EU/O=Logstash/CN=localhost\""
+            cmd = "openssl req -x509  -batch -newkey rsa:2048 -keyout #{cert_key} -out #{@cert_pub} -passout pass:#{@passphrase} -subj \"/C=EU/O=Logstash/CN=localhost\""
             unless system(cmd)
               fail "failed to run openssl command: #{$?} \n#{cmd}"
             end
@@ -198,7 +198,11 @@ describe "Filebeat", :integration => true do
             end
           end
 
-          let(:input_config) { super().merge("ssl_key_passphrase" => @passphrase, "ssl_key" => @cert_key_pkcs8) }
+          let(:certificate_authorities) { [ @cert_pub ] }
+
+          let(:input_config) do
+            super().merge("ssl_key_passphrase" => @passphrase, "ssl_key" => @cert_key_pkcs8, "ssl_certificate" => @cert_pub)
+          end
 
           include_examples "send events"
         end
