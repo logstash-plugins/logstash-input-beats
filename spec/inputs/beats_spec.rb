@@ -166,7 +166,14 @@ describe LogStash::Inputs::Beats do
   end
 
   context "tls meta-data" do
-    let(:config) { super().merge("host" => host, "ssl_peer_metadata" => true, "ssl_certificate_authorities" => [ certificate.ssl_cert ]) }
+    let(:config) do
+      super().merge(
+          "host" => host,
+          "ssl_peer_metadata" => true,
+          "ssl_certificate_authorities" => [ certificate.ssl_cert ],
+          "ecs_compatibility" => 'disabled'
+      )
+    end
     let(:host) { "192.168.1.20" }
     let(:port) { 9002 }
 
