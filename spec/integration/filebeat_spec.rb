@@ -182,22 +182,23 @@ describe "Filebeat", :integration => true do
           let(:certificate_key_file_pkcs8) { ::File.join(temporary_directory, "certificate.pkcs8.key") }
           let(:certificate_file) { ::File.join(temporary_directory, "certificate.crt") }
           let(:passphrase) { "foobar" }
-          let(:beats) {
-            # Since we are using a shared context, this not obvious to make sure the openssl command
-            # is run before starting beats so we do it just before initializing it.
-            FileUtils.mkdir_p(temporary_directory)
-            openssl_cmd = "openssl req -x509  -batch -newkey rsa:2048 -keyout #{temporary_directory}/certificate.key -out #{temporary_directory}/certificate.crt -subj /CN=localhost -passout pass:#{passphrase}"
-            system(openssl_cmd)
-            convert_key_cmd = "openssl pkcs8 -topk8 -in #{temporary_directory}/certificate.key -out #{certificate_key_file_pkcs8} -passin pass:#{passphrase} -passout pass:#{passphrase}"
-            system(convert_key_cmd)
+          let(:input_config) { super().merge("ssl_key_passphrase" => passphrase, "ssl_key" => certificate_key_file_pkcs8) }
 
-            LogStash::Inputs::Beats.new(input_config)
-          }
-          let(:input_config) {
-            super().merge({
-            "ssl_key_passphrase" => passphrase,
-            "ssl_key" => certificate_key_file_pkcs8
-          })}
+          let(:beats) { LogStash::Inputs::Beats.new(input_config) }
+
+          before do
+            FileUtils.mkdir_p(temporary_directory)
+
+            cmd = "openssl req -x509  -batch -newkey rsa:2048 -keyout #{temporary_directory}/certificate.key -out #{temporary_directory}/certificate.crt -subj /CN=localhost -passout pass:#{passphrase}"
+            unless system(cmd)
+              fail "failed to run openssl command: #{$?} \n#{cmd}"
+            end
+
+            cmd = "openssl pkcs8 -topk8 -in #{temporary_directory}/certificate.key -out #{certificate_key_file_pkcs8} -passin pass:#{passphrase} -passout pass:#{passphrase}"
+            unless system(cmd)
+              fail "failed to run openssl command: #{$?} \n#{cmd}"
+            end
+          end
 
           include_examples "send events"
         end
