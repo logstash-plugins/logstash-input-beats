@@ -5,7 +5,7 @@ env
 
 set -ex
 
-jruby -rbundler/setup -S rspec -fd
+#jruby -rbundler/setup -S rspec -fd
 
 jruby -rbundler/setup -S rake test:integration:setup
-jruby -rbundler/setup -S rspec spec --tag integration  -fd
+jruby -rbundler/setup -S rspec spec --tag integration  -fd -e passphrase
