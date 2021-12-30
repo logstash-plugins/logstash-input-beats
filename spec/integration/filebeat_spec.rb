@@ -187,7 +187,7 @@ describe "Filebeat", :integration => true do
             cert_pub = ::File.join(temporary_directory, "certificate.crt")
             @cert_key_pkcs8 = ::File.join(temporary_directory, "certificate.key.pkcs8")
 
-            cmd = "openssl req -x509  -batch -newkey rsa:2048 -keyout #{cert_key} -out #{cert_pub} -passout pass:#{@passphrase} -subj /CN=localhost/"
+            cmd = "openssl req -x509  -batch -newkey rsa:2048 -keyout #{cert_key} -out #{cert_pub} -passout pass:#{@passphrase} -subj \"/C=EU/O=Logstash/CN=localhost\""
             unless system(cmd)
               fail "failed to run openssl command: #{$?} \n#{cmd}"
             end
