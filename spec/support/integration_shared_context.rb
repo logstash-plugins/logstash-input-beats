@@ -50,6 +50,7 @@ shared_context "beats configuration" do
       begin
         beats.run(queue)
       rescue => e
+        warn e.inspect if $VERBOSE
         retry unless beats.stop?
       end
     end
