@@ -177,28 +177,28 @@ describe "Filebeat", :integration => true do
         # Refactor this to use Flores's PKI instead of openssl command line
         # see: https://github.com/jordansissel/ruby-flores/issues/7
         context "with a passphrase" do
-          let!(:temporary_directory) { Stud::Temporary.pathname }
-          let(:certificate_key_file) { ::File.join(temporary_directory, "certificate.key") }
-          let(:certificate_key_file_pkcs8) { ::File.join(temporary_directory, "certificate.pkcs8.key") }
-          let(:certificate_file) { ::File.join(temporary_directory, "certificate.crt") }
-          let(:passphrase) { "foobar" }
-          let(:input_config) { super().merge("ssl_key_passphrase" => passphrase, "ssl_key" => certificate_key_file_pkcs8) }
 
-          let(:beats) { LogStash::Inputs::Beats.new(input_config) }
+          before(:all) do
+            @passphrase = "foobar".freeze
 
-          before do
-            FileUtils.mkdir_p(temporary_directory)
+            FileUtils.mkdir_p temporary_directory = Stud::Temporary.pathname
 
-            cmd = "openssl req -x509  -batch -newkey rsa:2048 -keyout #{temporary_directory}/certificate.key -out #{temporary_directory}/certificate.crt -subj /CN=localhost -passout pass:#{passphrase}"
+            cert_key = ::File.join(temporary_directory, "certificate.key")
+            cert_pub = ::File.join(temporary_directory, "certificate.crt")
+            @cert_key_pkcs8 = ::File.join(temporary_directory, "certificate.key.pkcs8")
+
+            cmd = "openssl req -x509  -batch -newkey rsa:2048 -keyout #{cert_key} -out #{cert_pub} -passout pass:#{@passphrase} -subj /CN=localhost/"
             unless system(cmd)
               fail "failed to run openssl command: #{$?} \n#{cmd}"
             end
 
-            cmd = "openssl pkcs8 -topk8 -in #{temporary_directory}/certificate.key -out #{certificate_key_file_pkcs8} -passin pass:#{passphrase} -passout pass:#{passphrase}"
+            cmd = "openssl pkcs8 -topk8 -in #{cert_key} -out #{@cert_key_pkcs8} -passin pass:#{@passphrase} -passout pass:#{@passphrase}"
             unless system(cmd)
               fail "failed to run openssl command: #{$?} \n#{cmd}"
             end
           end
+
+          let(:input_config) { super().merge("ssl_key_passphrase" => @passphrase, "ssl_key" => @cert_key_pkcs8) }
 
           include_examples "send events"
         end
