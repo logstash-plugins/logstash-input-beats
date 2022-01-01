@@ -177,27 +177,34 @@ describe "Filebeat", :integration => true do
         # Refactor this to use Flores's PKI instead of openssl command line
         # see: https://github.com/jordansissel/ruby-flores/issues/7
         context "with a passphrase" do
-          let!(:temporary_directory) { Stud::Temporary.pathname }
-          let(:certificate_key_file) { ::File.join(temporary_directory, "certificate.key") }
-          let(:certificate_key_file_pkcs8) { ::File.join(temporary_directory, "certificate.pkcs8.key") }
-          let(:certificate_file) { ::File.join(temporary_directory, "certificate.crt") }
-          let(:passphrase) { "foobar" }
-          let(:beats) {
-            # Since we are using a shared context, this not obvious to make sure the openssl command
-            # is run before starting beats so we do it just before initializing it.
-            FileUtils.mkdir_p(temporary_directory)
-            openssl_cmd = "openssl req -x509  -batch -newkey rsa:2048 -keyout #{temporary_directory}/certificate.key -out #{temporary_directory}/certificate.crt -subj /CN=localhost -passout pass:#{passphrase}"
-            system(openssl_cmd)
-            convert_key_cmd = "openssl pkcs8 -topk8 -in #{temporary_directory}/certificate.key -out #{certificate_key_file_pkcs8} -passin pass:#{passphrase} -passout pass:#{passphrase}"
-            system(convert_key_cmd)
 
-            LogStash::Inputs::Beats.new(input_config)
-          }
-          let(:input_config) {
-            super().merge({
-            "ssl_key_passphrase" => passphrase,
-            "ssl_key" => certificate_key_file_pkcs8
-          })}
+          before(:all) do
+            @passphrase = "foobar".freeze
+
+            FileUtils.mkdir_p temporary_directory = Stud::Temporary.pathname
+
+            cert_key = ::File.join(temporary_directory, "certificate.key")
+            @cert_pub = ::File.join(temporary_directory, "certificate.crt")
+            @cert_key_pkcs8 = ::File.join(temporary_directory, "certificate.key.pkcs8")
+
+            cmd = "openssl req -x509  -batch -newkey rsa:2048 -keyout #{cert_key} -out #{@cert_pub} -passout pass:#{@passphrase} -subj \"/C=EU/O=Logstash/CN=localhost\""
+            unless system(cmd)
+              fail "failed to run openssl command: #{$?} \n#{cmd}"
+            end
+
+            # NOTE: CentOS 7 base image (LS < 7.17) uses OpenSSL 1.0 while later is using Ubuntu 20.04 with OpenSSL 1.1.1
+            # the default algorithm for `openssl pkcs8 -topk8` changed to -v2 which Java does not support (see GH-443)
+            cmd = "openssl pkcs8 -topk8 -in #{cert_key} -out #{@cert_key_pkcs8} -v1 PBE-SHA1-RC2-128 -passin pass:#{@passphrase} -passout pass:#{@passphrase}"
+            unless system(cmd)
+              fail "failed to run openssl command: #{$?} \n#{cmd}"
+            end
+          end
+
+          let(:certificate_authorities) { [ @cert_pub ] }
+
+          let(:input_config) do
+            super().merge("ssl_key_passphrase" => @passphrase, "ssl_key" => @cert_key_pkcs8, "ssl_certificate" => @cert_pub)
+          end
 
           include_examples "send events"
         end
