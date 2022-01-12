@@ -313,8 +313,13 @@ Time in milliseconds for an incomplete ssl handshake to timeout
   * There is no default value for this setting.
 
 SSL key to use.
-NOTE: This key need to be in the PKCS8 format, you can convert it with https://www.openssl.org/docs/man1.1.0/apps/pkcs8.html[OpenSSL]
-for more information.
+NOTE: This key needs to be in the PKCS8 format and PEM encoded. This conversion can be done using the https://www.openssl.org/docs/man1.1.1/man1/openssl-pkcs8.html[openssl pkcs8] 
+command. For example, the command to convert a PEM encoded PKCS1 private key to a PEM encoded, non-encrypted PKCS8 key is:
+
+["source","sh",subs="attributes"]
+-----
+openssl pkcs8 -inform PEM -in path/to/logstash.key -topk8 -nocrypt -outform PEM -out path/to/logstash.pkcs8.key
+-----
 
 [id="plugins-{type}s-{plugin}-ssl_key_passphrase"]
 ===== `ssl_key_passphrase`
