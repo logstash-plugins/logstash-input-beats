@@ -316,7 +316,7 @@ SSL key to use.
 NOTE: This key needs to be in the PKCS8 format and PEM encoded. This conversion can be done using the https://www.openssl.org/docs/man1.1.1/man1/openssl-pkcs8.html[openssl pkcs8] 
 command. For example, the command to convert a PEM encoded PKCS1 private key to a PEM encoded, non-encrypted PKCS8 key is:
 
-["source","sh",subs="attributes"]
+[source,sh]
 -----
 openssl pkcs8 -inform PEM -in path/to/logstash.key -topk8 -nocrypt -outform PEM -out path/to/logstash.pkcs8.key
 -----
