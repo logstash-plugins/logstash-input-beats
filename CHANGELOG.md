@@ -1,5 +1,5 @@
 ## 6.2.6
-  - TODO
+  - Update guidance regarding the private key format and encoding [#445](https://github.com/logstash-plugins/logstash-input-beats/pull/441)
 
 ## 6.2.5
  - Build: do not package log4j-api dependency [#441](https://github.com/logstash-plugins/logstash-input-beats/pull/441).
