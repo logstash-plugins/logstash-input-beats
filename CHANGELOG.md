@@ -1,3 +1,6 @@
+## 6.2.6
+  - Update guidance regarding the private key format and encoding [#445](https://github.com/logstash-plugins/logstash-input-beats/pull/445)
+
 ## 6.2.5
  - Build: do not package log4j-api dependency [#441](https://github.com/logstash-plugins/logstash-input-beats/pull/441).
    Logstash provides the log4j framework and the dependency is not needed except testing and compiling.
