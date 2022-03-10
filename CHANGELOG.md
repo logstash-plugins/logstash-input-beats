@@ -1,3 +1,6 @@
+## Unreleased
+  - Added support for TLSv1.3.
+ 
 ## 6.2.6
   - Update guidance regarding the private key format and encoding [#445](https://github.com/logstash-plugins/logstash-input-beats/pull/445)
 

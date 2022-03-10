@@ -52,7 +52,9 @@ public class SslContextBuilder {
             "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
             "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
             "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+            "TLS_AES_128_GCM_SHA256",
+            "TLS_AES_256_GCM_SHA384",
     };
 
     /*
@@ -68,7 +70,7 @@ public class SslContextBuilder {
     private String[] supportedCiphers = ((SSLServerSocketFactory)SSLServerSocketFactory
             .getDefault()).getSupportedCipherSuites();
     private String[] ciphers = DEFAULT_CIPHERS;
-    private String[] protocols = new String[] { "TLSv1.2" };
+    private String[] protocols = new String[] { "TLSv1.3" };
     private String[] certificateAuthorities;
     private String passPhrase;
 
