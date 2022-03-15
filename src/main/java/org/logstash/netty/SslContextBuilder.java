@@ -20,6 +20,7 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by ph on 2016-05-27.
@@ -45,16 +46,19 @@ public class SslContextBuilder {
     https://wiki.mozilla.org/Security/Server_Side_TLS
     */
     private final static String[] DEFAULT_CIPHERS = new String[] {
+            "TLS_AES_128_GCM_SHA256",
+            "TLS_AES_256_GCM_SHA384",
+            "TLS_CHACHA20_POLY1305_SHA256",
             "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
             "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
             "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
             "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
+            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
             "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
             "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
             "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-            "TLS_AES_128_GCM_SHA256",
-            "TLS_AES_256_GCM_SHA384",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
     };
 
     /*
@@ -70,7 +74,7 @@ public class SslContextBuilder {
     private String[] supportedCiphers = ((SSLServerSocketFactory)SSLServerSocketFactory
             .getDefault()).getSupportedCipherSuites();
     private String[] ciphers = DEFAULT_CIPHERS;
-    private String[] protocols = new String[] { "TLSv1.3" };
+    private String[] protocols = new String[] { "TLSv1.2", "TLSv1.3" };
     private String[] certificateAuthorities;
     private String passPhrase;
 
@@ -110,8 +114,13 @@ public class SslContextBuilder {
     }
 
     public static String[] getDefaultCiphers(){
-        if (isUnlimitedJCEAvailable()){
-            return DEFAULT_CIPHERS;
+        if (isUnlimitedJCEAvailable()) {
+            // Filter DEFAULT_CIPHERS according to the ciphers available to current Java version.
+            SSLServerSocketFactory ssf = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
+            List<String> availableCiphers = Arrays.asList(ssf.getSupportedCipherSuites());
+            List<String> selectedCiphers = Arrays.asList(DEFAULT_CIPHERS).stream().filter(availableCiphers::contains)
+                    .collect(Collectors.toList());
+            return selectedCiphers.toArray(new String[0]);
         } else {
             logger.warn("JCE Unlimited Strength Jurisdiction Policy not installed - max key length is 128 bits");
             return DEFAULT_CIPHERS_LIMITED;

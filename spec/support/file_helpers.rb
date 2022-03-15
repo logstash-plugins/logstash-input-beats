@@ -19,7 +19,7 @@ module FileHelpers
   end
 
   def write_to_tmp_file(content)
-    file = Stud::Temporary.file
+    file = Stud::Temporary.file("test-logstash-input-beats", "w+", 0600)
     file.write(content.to_s)
     file.close
     file.path

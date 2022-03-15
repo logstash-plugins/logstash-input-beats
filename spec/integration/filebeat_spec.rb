@@ -37,7 +37,7 @@ describe "Filebeat", :integration => true do
   let(:filebeat_config) do
     {
       "filebeat" => {
-        "prospectors" => [{ "paths" => [log_file],  "type" => "log" }],
+        "inputs" => [{ "paths" => [log_file],  "type" => "log" }],
         "scan_frequency" => "1s"
       },
       "output" => {
@@ -172,6 +172,30 @@ describe "Filebeat", :integration => true do
               include_examples "doesn't send events"
             end
           end
+        end
+
+        context "when specifying minimum protocol version" do
+          let(:filebeat_config) do
+            super().merge({
+              "output" => {
+                "logstash" => {
+                  "hosts" => ["#{host}:#{port}"],
+                  "ssl" => {
+                    "certificate_authorities" => certificate_authorities,
+                  }
+                }
+              },
+              "logging" => { "level" => "debug" }
+              })
+          end
+
+          let(:input_config) {
+            super().merge({
+              "tls_min_version" => "1.3"
+            })
+          }
+
+          include_examples "send events"
         end
 
         # Refactor this to use Flores's PKI instead of openssl command line
