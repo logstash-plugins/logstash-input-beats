@@ -182,6 +182,7 @@ describe "Filebeat", :integration => true do
                   "hosts" => ["#{host}:#{port}"],
                   "ssl" => {
                     "certificate_authorities" => certificate_authorities,
+                    "versions" => ["TLSv1.3"],
                   }
                 }
               },
