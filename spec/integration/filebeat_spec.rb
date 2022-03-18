@@ -174,7 +174,7 @@ describe "Filebeat", :integration => true do
           end
         end
 
-        context "when specifying minimum protocol version" do
+        context "with TLSv1.3 client" do
           let(:filebeat_config) do
             super().merge({
               "output" => {
@@ -189,14 +189,17 @@ describe "Filebeat", :integration => true do
               "logging" => { "level" => "debug" }
               })
           end
-
-          let(:input_config) {
-            super().merge({
-              "tls_min_version" => "1.3"
-            })
-          }
-
           include_examples "send events"
+
+          context "when TLSv1.3 enforced in plugin" do
+            let(:input_config) {
+              super().merge({
+                "tls_min_version" => "1.3"
+              })
+            }
+
+            include_examples "send events"
+          end
         end
 
         # Refactor this to use Flores's PKI instead of openssl command line

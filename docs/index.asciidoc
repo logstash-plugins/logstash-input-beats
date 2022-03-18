@@ -202,7 +202,7 @@ Flag to determine whether to add `host` field to event using the value supplied 
   * Default value is `java.lang.String[TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA384, TLS_CHACHA20_POLY1305_SHA256, TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256, TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256]@459cfcca`
 
 The list of ciphers suite to use, listed by priorities.
-The default value is valid for Java 11+.
+The default values applies for OpenJDK 11.0.14 and higher, for older versions the list does not include suites not supported by the JDK, such as the ChaCha20 family of ciphers.
 
 [id="plugins-{type}s-{plugin}-client_inactivity_timeout"]
 ===== `client_inactivity_timeout`
