@@ -18,7 +18,8 @@ module LogStash module Inputs class Beats
     TLS_PROTOCOL_OPTIONS = [
       TLSOption.new("TLSv1", 1),
       TLSOption.new("TLSv1.1", 1.1),
-      TLSOption.new("TLSv1.2", 1.2)
+      TLSOption.new("TLSv1.2", 1.2),
+      TLSOption.new("TLSv1.3", 1.3)
     ]
 
     def self.min

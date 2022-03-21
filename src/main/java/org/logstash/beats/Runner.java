@@ -33,7 +33,7 @@ public class Runner {
 
 
             SslContextBuilder sslBuilder = new SslContextBuilder(sslCertificate, sslKey, null)
-                    .setProtocols(new String[] { "TLSv1.2" })
+                    .setProtocols(new String[] { "TLSv1.2", "TLSv1.3" })
                     .setCertificateAuthorities(certificateAuthorities);
             SslHandlerProvider sslHandlerProvider = new SslHandlerProvider(sslBuilder.buildContext(), 10000);
             server.setSslHandlerProvider(sslHandlerProvider);

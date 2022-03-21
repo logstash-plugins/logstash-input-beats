@@ -19,7 +19,9 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by ph on 2016-05-27.
@@ -38,22 +40,36 @@ public class SslContextBuilder {
     private File sslCertificateFile;
     private SslClientVerifyMode verifyMode = SslClientVerifyMode.FORCE_PEER;
 
-    private long handshakeTimeoutMilliseconds = 10000;
+    static final Set<String> SUPPORTED_CIPHERS = new HashSet<>(Arrays.asList(
+        ((SSLServerSocketFactory) SSLServerSocketFactory.getDefault()).getSupportedCipherSuites()
+    ));
 
     /*
     Mordern Ciphers List from
     https://wiki.mozilla.org/Security/Server_Side_TLS
     */
-    private final static String[] DEFAULT_CIPHERS = new String[] {
+    private final static String[] DEFAULT_CIPHERS;
+    static {
+        String[] defaultCipherCandidates = new String[] {
+            // Modern compatibility
+            "TLS_AES_128_GCM_SHA256", // TLS 1.3
+            "TLS_AES_256_GCM_SHA384", // TLS 1.3
+            "TLS_CHACHA20_POLY1305_SHA256", // TLS 1.3 (since Java 11.0.14)
+            // Intermediate compatibility
             "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
             "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256", // (since Java 11.0.14)
+            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256", // (since Java 11.0.14)
             "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
             "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            // Backward compatibility
             "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
             "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
             "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
             "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
-    };
+        };
+        DEFAULT_CIPHERS = Arrays.stream(defaultCipherCandidates).filter(SUPPORTED_CIPHERS::contains).toArray(String[]::new);
+    }
 
     /*
       Reduced set of ciphers available when JCE Unlimited Strength Jurisdiction Policy is not installed.
@@ -65,10 +81,8 @@ public class SslContextBuilder {
             "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
     };
 
-    private String[] supportedCiphers = ((SSLServerSocketFactory)SSLServerSocketFactory
-            .getDefault()).getSupportedCipherSuites();
     private String[] ciphers = DEFAULT_CIPHERS;
-    private String[] protocols = new String[] { "TLSv1.2" };
+    private String[] protocols = new String[] { "TLSv1.2", "TLSv1.3" };
     private String[] certificateAuthorities;
     private String passPhrase;
 
@@ -92,10 +106,10 @@ public class SslContextBuilder {
     }
 
     public SslContextBuilder setCipherSuites(String[] ciphersSuite) throws IllegalArgumentException {
-        for(String cipher : ciphersSuite) {
-            if(Arrays.asList(supportedCiphers).contains(cipher)) {
-                logger.debug("Cipher is supported: {}", cipher);
-            }else{
+        for (String cipher : ciphersSuite) {
+            if (SUPPORTED_CIPHERS.contains(cipher)) {
+                logger.debug("{} cipher is supported", cipher);
+            } else {
                 if (!isUnlimitedJCEAvailable()) {
                     logger.warn("JCE Unlimited Strength Jurisdiction Policy not installed");
                 }
@@ -108,7 +122,7 @@ public class SslContextBuilder {
     }
 
     public static String[] getDefaultCiphers(){
-        if (isUnlimitedJCEAvailable()){
+        if (isUnlimitedJCEAvailable()) {
             return DEFAULT_CIPHERS;
         } else {
             logger.warn("JCE Unlimited Strength Jurisdiction Policy not installed - max key length is 128 bits");
@@ -146,7 +160,7 @@ public class SslContextBuilder {
         io.netty.handler.ssl.SslContextBuilder builder = io.netty.handler.ssl.SslContextBuilder.forServer(sslCertificateFile, sslKeyFile, passPhrase);
 
         if (logger.isDebugEnabled()) {
-            logger.debug("Available ciphers: " + Arrays.toString(supportedCiphers));
+            logger.debug("Available ciphers: " + SUPPORTED_CIPHERS);
             logger.debug("Ciphers:  " + Arrays.toString(ciphers));
         }
 

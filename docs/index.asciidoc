@@ -199,9 +199,10 @@ Flag to determine whether to add `host` field to event using the value supplied 
 ===== `cipher_suites`
 
   * Value type is <<array,array>>
-  * Default value is `java.lang.String[TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256]@459cfcca`
+  * Default value is `java.lang.String[TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA384, TLS_CHACHA20_POLY1305_SHA256, TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256, TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256]@459cfcca`
 
 The list of ciphers suite to use, listed by priorities.
+The default values applies for OpenJDK 11.0.14 and higher, for older versions the list does not include suites not supported by the JDK, such as the ChaCha20 family of ciphers.
 
 [id="plugins-{type}s-{plugin}-client_inactivity_timeout"]
 ===== `client_inactivity_timeout`
@@ -360,10 +361,10 @@ This option is only valid when `ssl_verify_mode` is set to `peer` or `force_peer
 ===== `tls_max_version`
 
   * Value type is <<number,number>>
-  * Default value is `1.2`
+  * Default value is `1.3`
 
 The maximum TLS version allowed for the encrypted connections. The value must be the one of the following:
-1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2
+1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2, 1.3 for TLS 1.3
 
 [id="plugins-{type}s-{plugin}-tls_min_version"]
 ===== `tls_min_version`
@@ -372,7 +373,7 @@ The maximum TLS version allowed for the encrypted connections. The value must be
   * Default value is `1`
 
 The minimum TLS version allowed for the encrypted connections. The value must be one of the following:
-1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2
+1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2, 1.3 for TLS 1.3
 
 
 
@@ -380,4 +381,3 @@ The minimum TLS version allowed for the encrypted connections. The value must be
 include::{include_path}/{type}.asciidoc[]
 
 :default_codec!:
-

@@ -10,8 +10,8 @@ describe LogStash::Inputs::Beats::TLS do
   end
 
   it "returns the maximum supported tls" do
-    expect(subject.max.version).to eq(1.2)
-    expect(subject.max.name).to eq("TLSv1.2")
+    expect(subject.max.version).to eq(1.3)
+    expect(subject.max.name).to eq("TLSv1.3")
   end
 
   describe ".get_supported" do

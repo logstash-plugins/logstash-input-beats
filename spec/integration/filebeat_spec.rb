@@ -37,7 +37,7 @@ describe "Filebeat", :integration => true do
   let(:filebeat_config) do
     {
       "filebeat" => {
-        "prospectors" => [{ "paths" => [log_file],  "type" => "log" }],
+        "inputs" => [{ "paths" => [log_file],  "type" => "log" }],
         "scan_frequency" => "1s"
       },
       "output" => {
@@ -171,6 +171,34 @@ describe "Filebeat", :integration => true do
 
               include_examples "doesn't send events"
             end
+          end
+        end
+
+        context "with TLSv1.3 client" do
+          let(:filebeat_config) do
+            super().merge({
+              "output" => {
+                "logstash" => {
+                  "hosts" => ["#{host}:#{port}"],
+                  "ssl" => {
+                    "certificate_authorities" => certificate_authorities,
+                    "versions" => ["TLSv1.3"],
+                  }
+                }
+              },
+              "logging" => { "level" => "debug" }
+              })
+          end
+          include_examples "send events"
+
+          context "when TLSv1.3 enforced in plugin" do
+            let(:input_config) {
+              super().merge({
+                "tls_min_version" => "1.3"
+              })
+            }
+
+            include_examples "send events"
           end
         end
 
