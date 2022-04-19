@@ -51,6 +51,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   require "logstash/inputs/beats/message_listener"
   require "logstash/inputs/beats/tls"
 
+  java_import 'org.logstash.netty.SslContextBuilder'
+
   # adds ecs_compatibility config which could be :disabled or :v1
   include LogStash::PluginMixins::ECSCompatibilitySupport(:disabled,:v1, :v8 => :v1)
 
@@ -89,9 +91,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # 
   config :ssl_certificate_authorities, :validate => :array, :default => []
 
-  # Flag to determine whether to add host information (provided by the beat in the 'hostname' field) to the event
-  config :add_hostname, :validate => :boolean, :default => false, :deprecated => 'This option will be removed in the future as beats determine the event schema'
-
   # By default the server doesn't do any client verification.
   # 
   # `peer` will make the server ask the client to provide a certificate. 
@@ -112,21 +111,30 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # Time in milliseconds for an incomplete ssl handshake to timeout
   config :ssl_handshake_timeout, :validate => :number, :default => 10000
 
-  # The minimum TLS version allowed for the encrypted connections. The value must be one of the following:
-  # 1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2
-  config :tls_min_version, :validate => :number, :default => TLS.min.version
+  config :ssl_cipher_suites, :validate => SslContextBuilder::SUPPORTED_CIPHERS.to_a,
+         :default => SslContextBuilder.getDefaultCiphers, :list => true
 
-  # The maximum TLS version allowed for the encrypted connections. The value must be the one of the following:
-  # 1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2
-  config :tls_max_version, :validate => :number, :default => TLS.max.version
+  config :ssl_supported_protocols, :validate => ['TLSv1.1', 'TLSv1.2', 'TLSv1.3'], :default => ['TLSv1.2', 'TLSv1.3'], :list => true
 
-  # The list of ciphers suite to use, listed by priorities.
-  config :cipher_suites, :validate => :array, :default => org.logstash.netty.SslContextBuilder.getDefaultCiphers
   # Close Idle clients after X seconds of inactivity.
   config :client_inactivity_timeout, :validate => :number, :default => 60
 
   # Beats handler executor thread
   config :executor_threads, :validate => :number, :default => LogStash::Config::CpuCoreStrategy.maximum
+
+  # Flag to determine whether to add host information (provided by the beat in the 'hostname' field) to the event
+  config :add_hostname, :validate => :boolean, :default => false, :deprecated => 'This option will be removed in the future as beats determine the event schema'
+
+  # The list of ciphers suite to use, listed by priorities.
+  config :cipher_suites, :validate => :array, :default => [], :deprecated => "Set 'ssl_cipher_suites' instead."
+
+  # The minimum TLS version allowed for the encrypted connections. The value must be one of the following:
+  # 1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2
+  config :tls_min_version, :validate => :number, :default => TLS.min.version, :deprecated => "Set 'ssl_supported_protocols' instead."
+
+  # The maximum TLS version allowed for the encrypted connections. The value must be the one of the following:
+  # 1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2
+  config :tls_max_version, :validate => :number, :default => TLS.max.version, :deprecated => "Set 'ssl_supported_protocols' instead."
 
   attr_reader :field_hostname, :field_hostip
   attr_reader :field_tls_protocol_version, :field_tls_peer_subject, :field_tls_cipher
@@ -156,6 +164,26 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       if client_authentication_metadata? && !require_certificate_authorities?
         configuration_error "Configuring ssl_peer_metadata => true requires ssl_verify_mode => to be configured with 'peer' or 'force_peer'"
       end
+
+      if original_params.key?('cipher_suites') && original_params.key?('ssl_cipher_suites')
+        raise LogStash::ConfigurationError, "Both `ssl_cipher_suites` and (deprecated) `cipher_suites` were set. Use only `ssl_cipher_suites`."
+      elsif original_params.key?('cipher_suites')
+        @ssl_cipher_suites_final = @cipher_suites
+      else
+        @ssl_cipher_suites_final = @ssl_cipher_suites
+      end
+
+      if original_params.key?('tls_min_version') && original_params.key?('ssl_supported_protocols')
+        raise LogStash::ConfigurationError, "Both `ssl_supported_protocols` and (deprecated) `tls_min_ciphers` were set. Use only `ssl_supported_protocols`."
+      elsif original_params.key?('tls_max_version') && original_params.key?('ssl_supported_protocols')
+        raise LogStash::ConfigurationError, "Both `ssl_supported_protocols` and (deprecated) `tls_max_ciphers` were set. Use only `ssl_supported_protocols`."
+      else
+        if original_params.key?('tls_min_version') || original_params.key?('tls_max_version')
+          @ssl_supported_protocols_final = TLS.get_supported(tls_min_version..tls_max_version).map(&:name)
+        else
+          @ssl_supported_protocols_final = @ssl_supported_protocols
+        end
+      end
     else
       @logger.warn("configured ssl_certificate => #{@ssl_certificate.inspect} will not be used") if @ssl_certificate
       @logger.warn("configured ssl_key => #{@ssl_key.inspect} will not be used") if @ssl_key
@@ -184,9 +212,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       ssl_context_builder = new_ssl_context_builder
       if client_authentification?
         if @ssl_verify_mode == "force_peer"
-          ssl_context_builder.setVerifyMode(org.logstash.netty.SslContextBuilder::SslClientVerifyMode::FORCE_PEER)
+          ssl_context_builder.setVerifyMode(SslContextBuilder::SslClientVerifyMode::FORCE_PEER)
         elsif @ssl_verify_mode == "peer"
-          ssl_context_builder.setVerifyMode(org.logstash.netty.SslContextBuilder::SslClientVerifyMode::VERIFY_PEER)
+          ssl_context_builder.setVerifyMode(SslContextBuilder::SslClientVerifyMode::VERIFY_PEER)
         end
         ssl_context_builder.setCertificateAuthorities(@ssl_certificate_authorities)
       end
@@ -247,20 +275,16 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     passphrase = @ssl_key_passphrase.nil? ? nil : @ssl_key_passphrase.value
     begin
       org.logstash.netty.SslContextBuilder.new(@ssl_certificate, @ssl_key, passphrase)
-          .setProtocols(convert_protocols)
-          .setCipherSuites(normalized_ciphers)
+          .setProtocols(@ssl_supported_protocols_final)
+          .setCipherSuites(normalized_cipher_suites)
     rescue java.lang.IllegalArgumentException => e
       @logger.error("SSL configuration invalid", error_details(e))
       raise LogStash::ConfigurationError, e
     end
   end
 
-  def normalized_ciphers
-    @cipher_suites.map(&:upcase)
-  end
-
-  def convert_protocols
-    TLS.get_supported(@tls_min_version..@tls_max_version).map(&:name)
+  def normalized_cipher_suites
+    @ssl_cipher_suites_final.map(&:upcase)
   end
 
   def configuration_error(message)
