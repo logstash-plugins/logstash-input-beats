@@ -1,8 +1,8 @@
 # encoding: utf-8
 require "thread_safe"
 require "logstash-input-beats_jars"
-import "javax.net.ssl.SSLPeerUnverifiedException"
-import "org.logstash.beats.MessageListener"
+java_import "javax.net.ssl.SSLPeerUnverifiedException"
+java_import "org.logstash.beats.MessageListener"
 
 module LogStash module Inputs class Beats
   class MessageListener
