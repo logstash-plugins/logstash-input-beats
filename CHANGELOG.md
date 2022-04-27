@@ -1,6 +1,9 @@
 ## 6.4.0
  - Feat: review and deprecate ssl protocol/cipher settings [#450](https://github.com/logstash-plugins/logstash-input-beats/pull/450)
 
+## 6.3.1
+ - Fix: Removed use of deprecated `import` of java classes in ruby [#449](https://github.com/logstash-plugins/logstash-input-beats/pull/449)
+
 ## 6.3.0
  - Added support for TLSv1.3. [#447](https://github.com/logstash-plugins/logstash-input-beats/pull/447)
 
