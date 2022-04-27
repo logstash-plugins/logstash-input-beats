@@ -159,7 +159,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 [cols="<,<,<",options="header",]
 |=======================================================================
 |Setting |Input type|Required
-| <<plugins-{type}s-{plugin}-add_hostname>> |<<boolean,boolean>>|No
+| <<plugins-{type}s-{plugin}-add_hostname>> |<<boolean,boolean>>|__Deprecated__
 | <<plugins-{type}s-{plugin}-cipher_suites>> |<<array,array>>|__Deprecated__
 | <<plugins-{type}s-{plugin}-client_inactivity_timeout>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-ecs_compatibility>> | <<string,string>>|No
