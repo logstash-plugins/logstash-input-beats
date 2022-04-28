@@ -159,8 +159,8 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 [cols="<,<,<",options="header",]
 |=======================================================================
 |Setting |Input type|Required
-| <<plugins-{type}s-{plugin}-add_hostname>> |<<boolean,boolean>>|No
-| <<plugins-{type}s-{plugin}-cipher_suites>> |<<array,array>>|No
+| <<plugins-{type}s-{plugin}-add_hostname>> |<<boolean,boolean>>|__Deprecated__
+| <<plugins-{type}s-{plugin}-cipher_suites>> |<<array,array>>|__Deprecated__
 | <<plugins-{type}s-{plugin}-client_inactivity_timeout>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-ecs_compatibility>> | <<string,string>>|No
 | <<plugins-{type}s-{plugin}-executor_threads>> |<<number,number>>|No
@@ -173,10 +173,11 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-ssl_handshake_timeout>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-ssl_key>> |a valid filesystem path|No
 | <<plugins-{type}s-{plugin}-ssl_key_passphrase>> |<<password,password>>|No
-| <<plugins-{type}s-{plugin}-ssl_verify_mode>> |<<string,string>>, one of `["none", "peer", "force_peer"]`|No
 | <<plugins-{type}s-{plugin}-ssl_peer_metadata>> |<<boolean,boolean>>|No
-| <<plugins-{type}s-{plugin}-tls_max_version>> |<<number,number>>|No
-| <<plugins-{type}s-{plugin}-tls_min_version>> |<<number,number>>|No
+| <<plugins-{type}s-{plugin}-ssl_supported_protocols>> |<<array,array>>|No
+| <<plugins-{type}s-{plugin}-ssl_verify_mode>> |<<string,string>>, one of `["none", "peer", "force_peer"]`|No
+| <<plugins-{type}s-{plugin}-tls_max_version>> |<<number,number>>|__Deprecated__
+| <<plugins-{type}s-{plugin}-tls_min_version>> |<<number,number>>|__Deprecated__
 |=======================================================================
 
 Also see <<plugins-{type}s-{plugin}-common-options>> for a list of options supported by all
@@ -194,17 +195,13 @@ input plugins.
 
 Flag to determine whether to add `host` field to event using the value supplied by the {plugin-singular} in the `hostname` field.
 
-
 [id="plugins-{type}s-{plugin}-cipher_suites"]
 ===== `cipher_suites`
+deprecated[6.4.0, Replaced by <<plugins-{type}s-{plugin}-ssl_cipher_suites>>]
 
   * Value type is <<array,array>>
-  * Default value is `java.lang.String[TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA384, TLS_CHACHA20_POLY1305_SHA256, TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256, TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256]@459cfcca`
 
-The list of ciphers suite to use, listed by priorities.
-This default list applies for OpenJDK 11.0.14 and higher.
-For older JDK versions, the default list includes only suites supported by that version.
-For example, the ChaCha20 family of ciphers is not supported in older versions.
+The list of cipher suites to use, listed by priorities.
 
 [id="plugins-{type}s-{plugin}-client_inactivity_timeout"]
 ===== `client_inactivity_timeout`
@@ -217,14 +214,14 @@ Close Idle clients after X seconds of inactivity.
 [id="plugins-{type}s-{plugin}-ecs_compatibility"]
 ===== `ecs_compatibility`
 
-* Value type is <<string,string>>
-* Supported values are:
-** `disabled`: unstructured connection metadata added at root level
-** `v1`: structured connection metadata added under ECS v1 compliant namespaces
-** `v8`: structured connection metadata added under ECS v8 compliant namespaces
-* Default value depends on which version of Logstash is running:
-** When Logstash provides a `pipeline.ecs_compatibility` setting, its value is used as the default
-** Otherwise, the default value is `disabled`.
+  * Value type is <<string,string>>
+  * Supported values are:
+    ** `disabled`: unstructured connection metadata added at root level
+    ** `v1`: structured connection metadata added under ECS v1 compliant namespaces
+    ** `v8`: structured connection metadata added under ECS v8 compliant namespaces
+  * Default value depends on which version of Logstash is running:
+    ** When Logstash provides a `pipeline.ecs_compatibility` setting, its value is used as the default
+    ** Otherwise, the default value is `disabled`.
 
 Refer to <<plugins-{type}s-{plugin}-ecs_metadata,ECS mapping>> for detailed information.
 
@@ -300,6 +297,16 @@ You can define multiple files or paths. All the certificates will
 be read and added to the trust store. You need to configure the `ssl_verify_mode`
 to `peer` or `force_peer` to enable the verification.
 
+[id="plugins-{type}s-{plugin}-ssl_cipher_suites"]
+===== `ssl_cipher_suites`
+
+  * Value type is <<array,array>>
+  * Default value is `['TLS_AES_256_GCM_SHA384', 'TLS_AES_128_GCM_SHA256', 'TLS_CHACHA20_POLY1305_SHA256', 'TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384', 'TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384', 'TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256', 'TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256', 'TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256', 'TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256', 'TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384', 'TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384', 'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256', 'TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256']`
+
+The list of cipher suites to use, listed by priorities.
+This default list applies for OpenJDK 11.0.14 and higher.
+For older JDK versions, the default list includes only suites supported by that version.
+For example, the ChaCha20 family of ciphers is not supported in older versions.
 
 [id="plugins-{type}s-{plugin}-ssl_handshake_timeout"]
 ===== `ssl_handshake_timeout`
@@ -333,6 +340,33 @@ openssl pkcs8 -inform PEM -in path/to/logstash.key -topk8 -nocrypt -outform PEM 
 
 SSL key passphrase to use.
 
+[id="plugins-{type}s-{plugin}-ssl_peer_metadata"]
+===== `ssl_peer_metadata`
+
+  * Value type is <<boolean,boolean>>
+  * Default value is `false`
+
+Enables storing client certificate information in event's metadata.
+
+This option is only valid when `ssl_verify_mode` is set to `peer` or `force_peer`.
+
+[id="plugins-{type}s-{plugin}-ssl_supported_protocols"]
+===== `ssl_supported_protocols`
+
+  * Value type is <<array,array>>
+  * Allowed values are: `'TLSv1.1'`, `'TLSv1.2'`, `'TLSv1.3'`
+  * Default depends on the JDK being used. With up-to-date Logstash, the default is `['TLSv1.2', 'TLSv1.3']`.
+    `'TLSv1.1'` is not considered secure and is only provided for legacy applications.
+
+List of allowed SSL/TLS versions to use when establishing a connection to the HTTP endpoint.
+
+For Java 8 `'TLSv1.3'` is supported  only since **8u262** (AdoptOpenJDK), but requires that you set the
+`LS_JAVA_OPTS="-Djdk.tls.client.protocols=TLSv1.3"` system property in Logstash.
+
+NOTE: If you configure the plugin to use `'TLSv1.1'` on any recent JVM, such as the one packaged with Logstash,
+the protocol is disabled by default and needs to be enabled manually by changing `jdk.tls.disabledAlgorithms` in
+the *$JDK_HOME/conf/security/java.security* configuration file. That is, `TLSv1.1` needs to be removed from the list.
+
 [id="plugins-{type}s-{plugin}-ssl_verify_mode"]
 ===== `ssl_verify_mode`
 
@@ -349,33 +383,23 @@ If the client doesn't provide a certificate, the connection will be closed.
 
 This option needs to be used with `ssl_certificate_authorities` and a defined list of CAs.
 
-[id="plugins-{type}s-{plugin}-ssl_peer_metadata"]
-===== `ssl_peer_metadata`
-
-  * Value type is <<boolean,boolean>>
-  * Default value is `false`
-
-Enables storing client certificate information in event's metadata.
-
-This option is only valid when `ssl_verify_mode` is set to `peer` or `force_peer`.
-
 [id="plugins-{type}s-{plugin}-tls_max_version"]
 ===== `tls_max_version`
+deprecated[6.4.0, Replaced by <<plugins-{type}s-{plugin}-ssl_supported_protocols>>]
 
   * Value type is <<number,number>>
-  * Default value is `1.3`
 
-The maximum TLS version allowed for the encrypted connections. The value must be the one of the following:
-1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2, 1.3 for TLS 1.3
+The maximum TLS version allowed for the encrypted connections.
+The value must be the one of the following: 1.1 for TLS 1.1, 1.2 for TLS 1.2, 1.3 for TLSv1.3
 
 [id="plugins-{type}s-{plugin}-tls_min_version"]
 ===== `tls_min_version`
+deprecated[6.4.0, Replaced by <<plugins-{type}s-{plugin}-ssl_supported_protocols>>]
 
   * Value type is <<number,number>>
-  * Default value is `1`
 
-The minimum TLS version allowed for the encrypted connections. The value must be one of the following:
-1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2, 1.3 for TLS 1.3
+The minimum TLS version allowed for the encrypted connections.
+The value must be one of the following: 1.1 for TLS 1.1, 1.2 for TLS 1.2, 1.3 for TLS 1.3
 
 
 

@@ -47,6 +47,9 @@ describe LogStash::Inputs::Beats do
     end
 
     context "with ssl enabled" do
+
+      let(:config) { { "ssl" => true, "port" => port, "ssl_key" => certificate.ssl_key, "ssl_certificate" => certificate.ssl_cert } }
+
       context "without certificate configuration" do
         let(:config) { { "port" => 0, "ssl" => true, "ssl_key" => certificate.ssl_key, "type" => "example" } }
 
@@ -78,7 +81,7 @@ describe LogStash::Inputs::Beats do
       end
 
       context "with invalid ciphers" do
-        let(:config) { super().merge("ssl" => true, "cipher_suites" => "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA38") }
+        let(:config) { super().merge("cipher_suites" => "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA38") }
 
         it "should raise a configuration error" do
           plugin = LogStash::Inputs::Beats.new(config)
@@ -92,7 +95,7 @@ describe LogStash::Inputs::Beats do
 
       context "verify_mode" do
         context "verify_mode configured to PEER" do
-          let(:config) { super().merge("ssl" => true, "ssl_verify_mode" => "peer") }
+          let(:config) { super().merge("ssl_verify_mode" => "peer") }
 
           it "raise a ConfigurationError when certificate_authorities is not set" do
             plugin = LogStash::Inputs::Beats.new(config)
@@ -107,7 +110,7 @@ describe LogStash::Inputs::Beats do
         end
 
         context "verify_mode configured to FORCE_PEER" do
-          let(:config) { super().merge("ssl" => true, "ssl_verify_mode" => "force_peer") }
+          let(:config) { super().merge("ssl_verify_mode" => "force_peer") }
 
           it "raise a ConfigurationError when certificate_authorities is not set" do
             plugin = LogStash::Inputs::Beats.new(config)
@@ -118,6 +121,40 @@ describe LogStash::Inputs::Beats do
             config.merge!({ "ssl_certificate_authorities" => [certificate.ssl_cert]})
             plugin = LogStash::Inputs::Beats.new(config)
             expect {plugin.register}.not_to raise_error
+          end
+        end
+
+        context "with ssl_cipher_suites and cipher_suites set" do
+          let(:config) do
+            super().merge('ssl_cipher_suites' => ['TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384'],
+                          'cipher_suites' => ['TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384'])
+          end
+
+          it "should raise a configuration error" do
+            plugin = LogStash::Inputs::Beats.new(config)
+            expect { plugin.register }.to raise_error LogStash::ConfigurationError, /Use only .?ssl_cipher_suites.?/i
+          end
+        end
+
+        context "with ssl_supported_protocols and tls_min_version set" do
+          let(:config) do
+            super().merge('ssl_supported_protocols' => ['TLSv1.2'], 'tls_min_version' => 1.2)
+          end
+
+          it "should raise a configuration error" do
+            plugin = LogStash::Inputs::Beats.new(config)
+            expect { plugin.register }.to raise_error LogStash::ConfigurationError, /Use only .?ssl_supported_protocols.?/i
+          end
+        end
+
+        context "with ssl_supported_protocols and tls_max_version set" do
+          let(:config) do
+            super().merge('ssl_supported_protocols' => ['TLSv1.2'], 'tls_max_version' => 1.2)
+          end
+
+          it "should raise a configuration error" do
+            plugin = LogStash::Inputs::Beats.new(config)
+            expect { plugin.register }.to raise_error LogStash::ConfigurationError, /Use only .?ssl_supported_protocols.?/i
           end
         end
       end
