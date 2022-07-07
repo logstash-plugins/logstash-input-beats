@@ -196,7 +196,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
     # Prevent ingest pipelines having an issue when using ECS compatibility where replaces message to event.original field
     # GH issue: https://github.com/logstash-plugins/logstash-input-elastic_agent/issues/3
-    if @codec.class.eql?(LogStash::Codecs::Plain)
+    if @codec.class.eql?(LogStash::Codecs::Plain) && !@codec.ecs_compatibility.eql?(:disabled)
       @codec = LogStash::Codecs::Plain.new('charset' => @codec.charset, 'format' => @codec.format, 'ecs_compatibility' => 'disabled')
     end
 
