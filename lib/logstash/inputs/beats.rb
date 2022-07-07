@@ -194,6 +194,12 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       configuration_error "Multiline codec with beats input is not supported. Please refer to the beats documentation for how to best manage multiline data. See https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html"
     end
 
+    # Prevent ingest pipelines having an issue when using ECS compatibility where replaces message to event.original field
+    # GH issue: https://github.com/logstash-plugins/logstash-input-elastic_agent/issues/3
+    if @codec.class.eql?(LogStash::Codecs::Plain)
+      @codec = LogStash::Codecs::Plain.new('charset' => @codec.charset, 'format' => @codec.format, 'ecs_compatibility' => 'disabled')
+    end
+
     # define ecs name mapping
     @field_hostname = ecs_select[disabled: "host", v1: "[@metadata][input][beats][host][name]"]
     @field_hostip = ecs_select[disabled: "[@metadata][ip_address]", v1: "[@metadata][input][beats][host][ip]"]

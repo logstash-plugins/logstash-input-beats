@@ -200,6 +200,14 @@ describe LogStash::Inputs::Beats do
         expect { plugin.register }.to raise_error(LogStash::ConfigurationError, "Multiline codec with beats input is not supported. Please refer to the beats documentation for how to best manage multiline data. See https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html")
       end
     end
+
+    context "with default plain codec" do
+      it "disables the ECS compatibility" do
+        plugin = LogStash::Inputs::Beats.new(config)
+        expect { plugin.register }.not_to raise_error
+        expect( plugin.codec.ecs_compatibility ).to eql :disabled
+      end
+    end
   end
 
   context "tls meta-data" do

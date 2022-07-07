@@ -72,7 +72,7 @@ public class Server {
         logger.debug("Server stopped");
     }
 
-    private void shutdown(){
+    private void shutdown() {
         try {
             if (workGroup != null) {
                 workGroup.shutdownGracefully().sync();
