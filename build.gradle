@@ -50,7 +50,7 @@ task run (type: JavaExec, dependsOn: classes){
         args(providedargs.split(','))
     }
     description = "Beats testing"
-    main = "org.logstash.beats.Runner"
+    mainClass = "org.logstash.beats.Runner"
     classpath = sourceSets.main.runtimeClasspath
 }
 
