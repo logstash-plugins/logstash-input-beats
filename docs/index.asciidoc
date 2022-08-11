@@ -101,6 +101,15 @@ plugin] to handle multiline events. Doing so will result in the failure to start
 Logstash.
 endif::[]
 
+
+[id="plugins-{type}s-{plugin}-memory"]
+===== Memory usage
+
+This plugin uses direct memory which is not included in the heap memory.
+By default, it is the same as the heap size (Xmx), for example, setting 10GB Xmx means setting 10GB of direct memory.
+Make sure heap and direct memory does not exceed the total size of the server. You can set the amount of direct memory with -XX:MaxDirectMemorySize.
+
+
 //Content for Beats
 ifeval::["{plugin}"=="beats"]
 [id="plugins-{type}s-{plugin}-versioned-indexes"]
