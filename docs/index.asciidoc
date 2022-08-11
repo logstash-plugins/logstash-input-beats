@@ -91,9 +91,12 @@ endif::[]
 [id="plugins-{type}s-{plugin}-memory"]
 ===== Memory usage
 
-This plugin uses direct memory which is not included in the heap memory.
-By default, it is the same as the heap size (Xmx), for example, setting 10GB Xmx means setting 10GB of direct memory.
-Make sure heap and direct memory does not exceed the total size of the server. You can set the amount of direct memory with -XX:MaxDirectMemorySize.
+This plugin uses "off-heap" direct memory _in addition to_ heap memory.
+By default, a JVM's off-heap direct memory limit is the same as the heap size.
+For example, setting `-Xmx10G` without setting the direct memory limit will allocate `10GB` for heap and an additional `10GB` for direct memory, for a total of `20GB` allocated. 
+You can set the amount of direct memory with `-XX:MaxDirectMemorySize` in {logstash-ref}/jvm-settings.html[Logstash's JVM Settings].
+
+NOTE: Be sure that heap and direct memory combined does not exceed the total memory available on the server.
 
 
 //Content for Beats
