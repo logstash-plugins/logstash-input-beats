@@ -98,7 +98,7 @@ You can set the amount of direct memory with `-XX:MaxDirectMemorySize` in {logst
 Consider setting direct memory to half of the heap size. 
 Setting direct memory too low decreases the performance of ingestion.
 
-NOTE: Be sure that heap and direct memory combined does not exceed the total memory available on the server to avoid OutOfDirectMemoryError
+NOTE: Be sure that heap and direct memory combined does not exceed the total memory available on the server to avoid an OutOfDirectMemoryError
 
 
 //Content for Beats
