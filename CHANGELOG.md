@@ -1,3 +1,6 @@
+## 6.4.1
+  - [DOC] Add direct memory example [#454](https://github.com/logstash-plugins/logstash-input-beats/pull/454)
+
 ## 6.4.0
  - Feat: review and deprecate ssl protocol/cipher settings [#450](https://github.com/logstash-plugins/logstash-input-beats/pull/450)
 
