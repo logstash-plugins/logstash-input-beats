@@ -1,3 +1,6 @@
+## 6.4.2
+  - Build: do not package jackson dependencies [#455](https://github.com/logstash-plugins/logstash-input-beats/pull/455)
+
 ## 6.4.1
   - [DOC] Add direct memory example [#454](https://github.com/logstash-plugins/logstash-input-beats/pull/454)
 
