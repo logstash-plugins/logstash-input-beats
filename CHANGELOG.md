@@ -1,3 +1,6 @@
+## 6.4.3
+  - Fix: provide SSL engine with advisory peer and algorithm information [#458](https://github.com/logstash-plugins/logstash-input-beats/issues/458)
+
 ## 6.4.2
   - Build: do not package jackson dependencies [#455](https://github.com/logstash-plugins/logstash-input-beats/pull/455)
 
