@@ -5,7 +5,7 @@ env
 
 set -ex
 
-jruby -rbundler/setup -S rspec -fd
+bundle exec rspec --format=documentation
 
-jruby -rbundler/setup -S rake test:integration:setup
-jruby -rbundler/setup -S rspec spec --tag integration  -fd
+bundle exec rake test:integration:setup
+bundle exec rspec spec --tag integration --format=documentation

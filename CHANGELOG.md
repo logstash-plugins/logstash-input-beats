@@ -1,3 +1,6 @@
+## 6.4.3
+  - [DOC] `executor_thread` default value explanation updated. [#461](https://github.com/logstash-plugins/logstash-input-beats/pull/461)
+
 ## 6.4.2
   - Build: do not package jackson dependencies [#455](https://github.com/logstash-plugins/logstash-input-beats/pull/455)
 

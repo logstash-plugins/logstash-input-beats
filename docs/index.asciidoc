@@ -243,10 +243,10 @@ Refer to <<plugins-{type}s-{plugin}-ecs_metadata,ECS mapping>> for detailed info
 ===== `executor_threads`
 
   * Value type is <<number,number>>
-  * Default value is 1 executor thread per CPU core
+  * Default value is a number of CPU cores
 
 The number of threads to be used to process incoming beats requests.
-By default the Beats input creates a number of threads equal to 2*CPU cores.
+By default the Beats input creates a number of threads equal to CPU cores.
 These threads handle incoming connections, reading from established sockets, and executing most of the tasks related to network connection management. 
 Parsing the Lumberjack protocol is offloaded to a dedicated thread pool.
 
