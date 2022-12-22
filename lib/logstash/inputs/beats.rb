@@ -104,9 +104,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   # Enables storing client certificate information in event's metadata. You need 
   # to configure the `ssl_verify_mode` to `peer` or `force_peer` to enable this.
-  config :ssl_peer_metadata, :validate => :boolean, :default => false
+  config :ssl_peer_metadata, :validate => :boolean, :default => false, :deprecated => 'This option will be removed in the future, please add `ssl_peer_metadata` to `enrich` config to use.'
 
-  config :include_codec_tag, :validate => :boolean, :default => true
+  config :include_codec_tag, :validate => :boolean, :default => true, :deprecated => 'This option will be removed in the future, please add `include_codec_tag` to `enrich` config to use'
 
   # Time in milliseconds for an incomplete ssl handshake to timeout
   config :ssl_handshake_timeout, :validate => :number, :default => 10000
@@ -135,6 +135,12 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # The maximum TLS version allowed for the encrypted connections. The value must be the one of the following:
   # 1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2
   config :tls_max_version, :validate => :number, :default => TLS.max.version, :deprecated => "Set 'ssl_supported_protocols' instead."
+
+  # The fields to enrich
+  # available modes are `none`, `default` and `all`
+  # default: ['ssl_peer_metadata', 'include_codec_tag']
+  # all: defaults + ['ssl_peer_metadata', 'include_codec_tag']
+  config :enrich, :validate => :array, :default => ['default']
 
   attr_reader :field_hostname, :field_hostip
   attr_reader :field_tls_protocol_version, :field_tls_peer_subject, :field_tls_cipher
@@ -187,6 +193,14 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     else
       @logger.warn("configured ssl_certificate => #{@ssl_certificate.inspect} will not be used") if @ssl_certificate
       @logger.warn("configured ssl_key => #{@ssl_key.inspect} will not be used") if @ssl_key
+    end
+
+    resolve_enriches
+
+    # Prevent ingest pipelines having an issue when using ECS compatibility where replaces message to event.original field
+    # GH issue: https://github.com/logstash-plugins/logstash-input-elastic_agent/issues/3
+    if !@enrich.include?('event_original') && !@codec.ecs_compatibility.eql?(:disabled) && @codec.class.eql?(LogStash::Codecs::Plain)
+      @codec = LogStash::Codecs::Plain.new('charset' => @codec.charset, 'format' => @codec.format, 'ecs_compatibility' => 'disabled')
     end
 
     # Logstash 6.x breaking change (introduced with 4.0.0 of this gem)
@@ -246,7 +260,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end
 
   def client_authentication_metadata?
-    @ssl_peer_metadata && ssl_configured? && client_authentification? 
+    @enrich.include?('ssl_peer_metadata') && ssl_configured? && client_authentification?
   end
 
   def client_authentication_required?
@@ -303,4 +317,20 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     error_details
   end
 
+  def resolve_enriches
+    default_enriches = [ 'event_original', 'source_metadata', 'codec_metadata' ]
+    all_enriches = default_enriches + ['ssl_peer_metadata', 'include_codec_tag']
+
+    @enrich = [] if @enrich.length == 1 && @enrich.first == 'none'
+    @enrich = all_enriches if @enrich.length == 1 && @enrich.first == 'all'
+
+    if @enrich.include?('default')
+      @enrich.delete('default')
+      @enrich |= default_enriches # unique values only
+    end
+
+    @enrich.each do |enrich|
+      raise LogStash::ConfigurationError, "#{enrich} enrich is not supported, please remove." unless all_enriches.include?(enrich)
+    end
+  end
 end
