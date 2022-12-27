@@ -6,6 +6,7 @@ require "logstash/codecs/multiline"
 require "logstash/util"
 require "logstash-input-beats_jars"
 require "logstash/plugin_mixins/ecs_compatibility_support"
+require 'logstash/plugin_mixins/plugin_factory_support'
 require 'logstash/plugin_mixins/event_support/event_factory_adapter'
 require_relative "beats/patch"
 
@@ -58,9 +59,12 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   include LogStash::PluginMixins::EventSupport::EventFactoryAdapter
 
+  include LogStash::PluginMixins::PluginFactorySupport
+
   config_name "beats"
 
-  default :codec, "plain"
+  DEFAULT_CODEC_SENTINEL = Object.new
+  default :codec, DEFAULT_CODEC_SENTINEL
 
   # The IP address to listen on.
   config :host, :validate => :string, :default => "0.0.0.0"
@@ -104,9 +108,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   # Enables storing client certificate information in event's metadata. You need 
   # to configure the `ssl_verify_mode` to `peer` or `force_peer` to enable this.
-  config :ssl_peer_metadata, :validate => :boolean, :default => false, :deprecated => 'This option will be removed in the future, please add `ssl_peer_metadata` to `enrich` config to use.'
+  config :ssl_peer_metadata, :validate => :boolean, :default => false, :deprecated => "use `enrich` option to configure which enrichments to perform"
 
-  config :include_codec_tag, :validate => :boolean, :default => true, :deprecated => 'This option will be removed in the future, please add `include_codec_tag` to `enrich` config to use'
+  config :include_codec_tag, :validate => :boolean, :default => true, :deprecated => "use `enrich` option to configure which enrichments to perform"
 
   # Time in milliseconds for an incomplete ssl handshake to timeout
   config :ssl_handshake_timeout, :validate => :number, :default => 10000
@@ -136,11 +140,18 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # 1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2
   config :tls_max_version, :validate => :number, :default => TLS.max.version, :deprecated => "Set 'ssl_supported_protocols' instead."
 
-  # The fields to enrich
-  # available modes are `none`, `default` and `all`
-  # default: ['ssl_peer_metadata', 'include_codec_tag']
-  # all: defaults + ['ssl_peer_metadata', 'include_codec_tag']
-  config :enrich, :validate => :array, :default => ['default']
+  ENRICH_DEFAULTS = {
+    'source_metadata'   => true,
+    'codec_metadata'    => true,
+    'ssl_peer_metadata' => false,
+  }.freeze
+
+  ENRICH_ALL = ENRICH_DEFAULTS.keys.freeze
+  ENRICH_DEFAULT = ENRICH_DEFAULTS.select { |_,v| v }.keys.freeze
+  ENRICH_NONE = [].freeze
+  ENRICH_ALIASES = %w(none default all)
+
+  config :enrich, :validate => (ENRICH_ALL | ENRICH_ALIASES), :list => true
 
   attr_reader :field_hostname, :field_hostip
   attr_reader :field_tls_protocol_version, :field_tls_peer_subject, :field_tls_cipher
@@ -195,12 +206,13 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       @logger.warn("configured ssl_key => #{@ssl_key.inspect} will not be used") if @ssl_key
     end
 
-    resolve_enriches
+    @enrich = resolve_enriches
 
-    # Prevent ingest pipelines having an issue when using ECS compatibility where replaces message to event.original field
-    # GH issue: https://github.com/logstash-plugins/logstash-input-elastic_agent/issues/3
-    if !@enrich.include?('event_original') && !@codec.ecs_compatibility.eql?(:disabled) && @codec.class.eql?(LogStash::Codecs::Plain)
-      @codec = LogStash::Codecs::Plain.new('charset' => @codec.charset, 'format' => @codec.format, 'ecs_compatibility' => 'disabled')
+    @include_codec_tag = original_params.include?('include_codec_tag') ? params['include_codec_tag'] : include_codec_metadata?
+    @ssl_peer_metadata = original_params.include?('ssl_peer_metadata') ? params['ssl_peer_metadata'] : include_source_metadata?
+
+    if DEFAULT_CODEC_SENTINEL == @codec
+      @codec = plugin_factory.codec('plain').new('ecs_compatibility' => 'disabled')
     end
 
     # Logstash 6.x breaking change (introduced with 4.0.0 of this gem)
@@ -260,7 +272,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end
 
   def client_authentication_metadata?
-    @enrich.include?('ssl_peer_metadata') && ssl_configured? && client_authentification?
+    @ssl_peer_metadata && ssl_configured? && client_authentification?
   end
 
   def client_authentication_required?
@@ -318,19 +330,28 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end
 
   def resolve_enriches
-    default_enriches = [ 'event_original', 'source_metadata', 'codec_metadata' ]
-    all_enriches = default_enriches + ['ssl_peer_metadata', 'include_codec_tag']
-
-    @enrich = [] if @enrich.length == 1 && @enrich.first == 'none'
-    @enrich = all_enriches if @enrich.length == 1 && @enrich.first == 'all'
-
-    if @enrich.include?('default')
-      @enrich.delete('default')
-      @enrich |= default_enriches # unique values only
+    deprecated_flags_provided = %w(ssl_peer_metadata include_codec_tag) & original_params.keys
+    if deprecated_flags_provided.any? && original_params.include?('enrich')
+      raise LogStash::ConfigurationError, "both `enrich` and (deprecated) #{deprecated_flags_provided.join(',')} were provided; use only `enrich`"
     end
 
-    @enrich.each do |enrich|
-      raise LogStash::ConfigurationError, "#{enrich} enrich is not supported, please remove." unless all_enriches.include?(enrich)
+    aliases_provided = ENRICH_ALIASES & (@enrich || [])
+    if aliases_provided.any? && @enrich.size > 1
+      raise LogStash::ConfigurationError, "when an alias is provided to `enrich`, it must be the only value given (got: #{@enrich.inspect}, including #{aliases_provided.size > 1 ? 'aliases' : 'alias'} #{aliases_provided.join(',')})"
     end
+
+    return ENRICH_ALL if aliases_provided.include?('all')
+    return ENRICH_NONE if aliases_provided.include?('none')
+    return ENRICH_DEFAULT if aliases_provided.include?('default') || !original_params.include?('enrich')
+
+    return @enrich
+  end
+
+  def include_source_metadata?
+    return @enrich.include?('source_metadata')
+  end
+
+  def include_codec_metadata?
+    return @enrich.include?('codec_metadata')
   end
 end

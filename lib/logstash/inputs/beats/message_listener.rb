@@ -32,11 +32,14 @@ module LogStash module Inputs class Beats
 
     def onNewMessage(ctx, message)
       hash = message.getData
-      ip_address = ip_address(ctx)
 
-      unless ip_address.nil? || hash['@metadata'].nil?
-        set_nested(hash, @input.field_hostip, ip_address)
+      if include_source_metadata?
+        ip_address = ip_address(ctx)
+        unless ip_address.nil? || hash['@metadata'].nil?
+          set_nested(hash, @input.field_hostip, ip_address)
+        end
       end
+
       target_field = extract_target_field(hash)
 
       extract_tls_peer(hash, ctx)
