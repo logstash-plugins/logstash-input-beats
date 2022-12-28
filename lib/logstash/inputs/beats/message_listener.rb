@@ -33,7 +33,7 @@ module LogStash module Inputs class Beats
     def onNewMessage(ctx, message)
       hash = message.getData
 
-      if include_source_metadata?
+      if @input.include_source_metadata?
         ip_address = ip_address(ctx)
         unless ip_address.nil? || hash['@metadata'].nil?
           set_nested(hash, @input.field_hostip, ip_address)

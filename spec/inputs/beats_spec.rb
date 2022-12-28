@@ -200,6 +200,85 @@ describe LogStash::Inputs::Beats do
         expect { plugin.register }.to raise_error(LogStash::ConfigurationError, "Multiline codec with beats input is not supported. Please refer to the beats documentation for how to best manage multiline data. See https://www.elastic.co/guide/en/beats/filebeat/current/multiline-examples.html")
       end
     end
+
+    context "with default codec configuration" do
+      it "should load default ['source_metadata', 'codec_metadata'] configs and initialize ECS disabled codec" do
+        plugin = LogStash::Inputs::Beats.new(config)
+        plugin.register
+        expect(plugin.include_codec_tag).to be_truthy
+        expect(plugin.ssl_peer_metadata).to be_falsey
+        expect(plugin.codec.ecs_compatibility).to eq(:disabled)
+      end
+    end
+
+    context "with enrich provided" do
+
+      it "should raise an exception if deprecated `ssl_peer_metadata` applied" do
+        plugin = LogStash::Inputs::Beats.new(config.merge({ "ssl_peer_metadata" => true, "enrich" => ['default'] }))
+        expect { plugin.register }.to raise_error(LogStash::ConfigurationError, "both `enrich` and (deprecated) ssl_peer_metadata were provided; use only `enrich`")
+      end
+
+      it "should raise an exception if deprecated `include_codec_tag` applied" do
+        plugin = LogStash::Inputs::Beats.new(config.merge({ "include_codec_tag" => true, "enrich" => ['default'] }))
+        expect { plugin.register }.to raise_error(LogStash::ConfigurationError, "both `enrich` and (deprecated) include_codec_tag were provided; use only `enrich`")
+      end
+
+      context "with `none` alias enrich provided" do
+        let(:config) { super().merge({ "enrich" => ["none"] }) }
+
+        it "should not include codec and source metadata" do
+          plugin = LogStash::Inputs::Beats.new(config)
+          plugin.register
+          expect(plugin.ssl_peer_metadata).to be_falsey
+          expect(plugin.include_codec_tag).to be_falsey
+        end
+      end
+
+      context "with `default` alias enrich provided" do
+        let(:config) { super().merge({ "enrich" => ["default"] }) }
+
+        it "should include codec tag config and set `ssl_peer_metadata` metadata to false" do
+          plugin = LogStash::Inputs::Beats.new(config)
+          plugin.register
+          expect(plugin.include_codec_tag).to be_truthy
+          expect(plugin.ssl_peer_metadata).to be_falsey
+        end
+      end
+
+      context "with `all` alias enrich provided" do
+        let(:config) { super().merge({ "enrich" => ["all"] }) }
+
+        it "should include codec tag config and `ssl_peer_metadata`/source metadata" do
+          plugin = LogStash::Inputs::Beats.new(config)
+          plugin.register
+          expect(plugin.include_codec_tag).to be_truthy
+          expect(plugin.ssl_peer_metadata).to be_truthy
+        end
+      end
+    end
+
+    context "with manual codec configuration" do
+      let(:codec) { LogStash::Codecs::Plain.new("charset" => "UTF-8") }
+      let(:config) { super() }
+
+      it "should initialize the codec with default ECS when enrich isn't provided" do
+        plugin = LogStash::Inputs::Beats.new(config.merge({ "codec" => codec }))
+        plugin.register
+        expect(plugin.codec.ecs_compatibility).to eq(:v8)
+      end
+
+      it "should initialize the codec with disabled ECS when none alias enrich is provided" do
+        plugin = LogStash::Inputs::Beats.new(config.merge({ "codec" => codec, "enrich" => ["none"] }))
+        plugin.register
+        expect(plugin.codec.ecs_compatibility).to eq(:disabled)
+      end
+
+      it "should initialize the codec with default ECS when default/all alias enrich is provided" do
+        plugin = LogStash::Inputs::Beats.new(config.merge({ "codec" => codec, "enrich" => ["all"] }))
+        plugin.register
+        expect(plugin.codec.ecs_compatibility).to eq(:v8)
+      end
+    end
   end
 
   context "tls meta-data" do

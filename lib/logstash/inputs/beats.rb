@@ -63,8 +63,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   config_name "beats"
 
-  DEFAULT_CODEC_SENTINEL = Object.new
-  default :codec, DEFAULT_CODEC_SENTINEL
+  default :codec, "plain"
 
   # The IP address to listen on.
   config :host, :validate => :string, :default => "0.0.0.0"
@@ -209,9 +208,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     @enrich = resolve_enriches
 
     @include_codec_tag = original_params.include?('include_codec_tag') ? params['include_codec_tag'] : include_codec_metadata?
-    @ssl_peer_metadata = original_params.include?('ssl_peer_metadata') ? params['ssl_peer_metadata'] : include_source_metadata?
+    @ssl_peer_metadata = original_params.include?('ssl_peer_metadata') ? params['ssl_peer_metadata'] : @enrich.include?('ssl_peer_metadata')
 
-    if DEFAULT_CODEC_SENTINEL == @codec
+    unless original_params.include?('codec') && @enrich && @enrich.size > 0 && @enrich.include?('codec_metadata')
       @codec = plugin_factory.codec('plain').new('ecs_compatibility' => 'disabled')
     end
 
@@ -283,6 +282,14 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     @ssl_verify_mode == "force_peer" || @ssl_verify_mode == "peer"
   end
 
+  def include_source_metadata?
+    return @enrich.include?('source_metadata')
+  end
+
+  def include_codec_metadata?
+    return @enrich.include?('codec_metadata')
+  end
+
   private
 
   def new_ssl_handshake_provider(ssl_context_builder)
@@ -345,13 +352,5 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     return ENRICH_DEFAULT if aliases_provided.include?('default') || !original_params.include?('enrich')
 
     return @enrich
-  end
-
-  def include_source_metadata?
-    return @enrich.include?('source_metadata')
-  end
-
-  def include_codec_metadata?
-    return @enrich.include?('codec_metadata')
   end
 end
