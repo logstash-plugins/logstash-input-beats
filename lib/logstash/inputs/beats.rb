@@ -147,7 +147,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   ENRICH_ALL = ENRICH_DEFAULTS.keys.freeze
   ENRICH_DEFAULT = ENRICH_DEFAULTS.select { |_,v| v }.keys.freeze
-  ENRICH_NONE = [].freeze
+  ENRICH_NONE = ['none'].freeze
   ENRICH_ALIASES = %w(none default all)
 
   config :enrich, :validate => (ENRICH_ALL | ENRICH_ALIASES), :list => true
@@ -210,7 +210,9 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     @include_codec_tag = original_params.include?('include_codec_tag') ? params['include_codec_tag'] : include_codec_metadata?
     @ssl_peer_metadata = original_params.include?('ssl_peer_metadata') ? params['ssl_peer_metadata'] : @enrich.include?('ssl_peer_metadata')
 
-    unless original_params.include?('codec') && @enrich && @enrich.size > 0 && @enrich.include?('codec_metadata')
+    # intentionally ask users to provide codec when they want to use the codec metadata
+    # second layer enrich is also a controller, provide enrich => ['codec_metadata' or 'default'] with codec if you override event original
+    if !original_params.include?('codec') || (@enrich && (!@enrich.include?('codec_metadata') || @enrich.include?('none')))
       @codec = plugin_factory.codec('plain').new('ecs_compatibility' => 'disabled')
     end
 
