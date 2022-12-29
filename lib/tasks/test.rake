@@ -28,7 +28,7 @@ namespace :test do
     end
 
     namespace :setup do
-      desc "Download lastest stable version of Logstash-forwarder"
+      desc "Download latest stable version of Logstash-forwarder"
       task :lsf do
         destination = File.join(VENDOR_PATH, "logstash-forwarder")
         FileUtils.rm_rf(destination)

@@ -264,7 +264,8 @@ describe LogStash::Inputs::Beats do
       it "should initialize the codec with default ECS when enrich isn't provided" do
         plugin = LogStash::Inputs::Beats.new(config.merge({ "codec" => codec, "ssl_key" => certificate.ssl_key }))
         plugin.register
-        expect(plugin.codec.ecs_compatibility).to eq(:v8)
+        es_major_version = SpecHelper.es_major_version.to_i
+        expect(plugin.codec.ecs_compatibility).to eq(es_major_version > 7 ? :v8 : :disabled)
       end
 
       it "should initialize the codec with disabled ECS when none alias enrich is provided" do
@@ -276,7 +277,8 @@ describe LogStash::Inputs::Beats do
       it "should initialize the codec with default ECS when default/all alias enrich is provided" do
         plugin = LogStash::Inputs::Beats.new(config.merge({ "codec" => codec, "enrich" => ["all"], "ssl_key" => certificate.ssl_key }))
         plugin.register
-        expect(plugin.codec.ecs_compatibility).to eq(:v8)
+        es_major_version = SpecHelper.es_major_version.to_i
+        expect(plugin.codec.ecs_compatibility).to eq(es_major_version > 7 ? :v8 : :disabled)
       end
     end
   end
