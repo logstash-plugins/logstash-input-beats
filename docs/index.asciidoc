@@ -179,7 +179,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-ecs_compatibility>> | <<string,string>>|No
 | <<plugins-{type}s-{plugin}-executor_threads>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-host>> |<<string,string>>|No
-| <<plugins-{type}s-{plugin}-include_codec_tag>> |<<boolean,boolean>>|No
+| <<plugins-{type}s-{plugin}-include_codec_tag>> |<<boolean,boolean>>|__Deprecated__
 | <<plugins-{type}s-{plugin}-port>> |<<number,number>>|Yes
 | <<plugins-{type}s-{plugin}-ssl>> |<<boolean,boolean>>|No
 | <<plugins-{type}s-{plugin}-ssl_certificate>> |a valid filesystem path|No
@@ -187,11 +187,12 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-ssl_handshake_timeout>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-ssl_key>> |a valid filesystem path|No
 | <<plugins-{type}s-{plugin}-ssl_key_passphrase>> |<<password,password>>|No
-| <<plugins-{type}s-{plugin}-ssl_peer_metadata>> |<<boolean,boolean>>|No
+| <<plugins-{type}s-{plugin}-ssl_peer_metadata>> |<<boolean,boolean>>|__Deprecated__
 | <<plugins-{type}s-{plugin}-ssl_supported_protocols>> |<<array,array>>|No
 | <<plugins-{type}s-{plugin}-ssl_verify_mode>> |<<string,string>>, one of `["none", "peer", "force_peer"]`|No
 | <<plugins-{type}s-{plugin}-tls_max_version>> |<<number,number>>|__Deprecated__
 | <<plugins-{type}s-{plugin}-tls_min_version>> |<<number,number>>|__Deprecated__
+| <<plugins-{type}s-{plugin}-enrich>> |<<array,array>>|No
 |=======================================================================
 
 Also see <<plugins-{type}s-{plugin}-common-options>> for a list of options supported by all
@@ -267,6 +268,8 @@ The IP address to listen on.
 
 [id="plugins-{type}s-{plugin}-include_codec_tag"]
 ===== `include_codec_tag`
+
+deprecated[6.5.0, Replaced by <<plugins-{type}s-{plugin}-enrich>>]
 
   * Value type is <<boolean,boolean>>
   * Default value is `true`
@@ -357,6 +360,8 @@ SSL key passphrase to use.
 [id="plugins-{type}s-{plugin}-ssl_peer_metadata"]
 ===== `ssl_peer_metadata`
 
+deprecated[6.5.0, Replaced by <<plugins-{type}s-{plugin}-enrich>>]
+
   * Value type is <<boolean,boolean>>
   * Default value is `false`
 
@@ -415,6 +420,35 @@ deprecated[6.4.0, Replaced by <<plugins-{type}s-{plugin}-ssl_supported_protocols
 The minimum TLS version allowed for the encrypted connections.
 The value must be one of the following: 1.1 for TLS 1.1, 1.2 for TLS 1.2, 1.3 for TLS 1.3
 
+[id="plugins-{type}s-{plugin}-enrich"]
+===== `enrich`
+* Value type is <<array,array>>
+
+By default, the plugin initializes ECS-disabled plain codec, source and codec metadata such as source host or `[event][original]` will not be added.
+`enrich` option helps to manage which metadata to be included. Available options are:
+
+[cols="<,<"]
+|=======================================================================
+|Option |Description
+
+|`none`                  |Not to include any data
+|`default` alias | `codec_metadata` and `codec_metadata` will be included
+|`all` alias | All `codec_metadata`, `codec_metadata` and `ssl_peer_metadata` will be included
+|`source_metadata` | Source metadata such as host name will be included
+|`codec_metadata` | Codec metadata such as `tag`, `[event][original]` will be included
+|`ssl_peer_metadata` | SSL peer metadata will be included
+|=======================================================================
+
+As an example, following configuration enables source and metadata with ECS enabled plain codec:
+```
+input {
+  beats {
+    port => 5044
+    enrich => ["default"]
+    codec => plain
+  }
+}
+```
 
 
 [id="plugins-{type}s-{plugin}-common-options"]
