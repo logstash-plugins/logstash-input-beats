@@ -422,33 +422,59 @@ The value must be one of the following: 1.1 for TLS 1.1, 1.2 for TLS 1.2, 1.3 fo
 
 [id="plugins-{type}s-{plugin}-enrich"]
 ===== `enrich`
-* Value type is <<array,array>>
 
-By default, the plugin initializes ECS-disabled plain codec, source and codec metadata such as source host or `[event][original]` will not be added.
-`enrich` option helps to manage which metadata to be included. Available options are:
-
-[cols="<,<"]
+  * Value type is <<string,string>>
+  ** A <<list,list>> can also be provided
+  ** Configures which enrichments are applied to each event
+  ** Supported values are:
++
+[cols="2l,5"]
 |=======================================================================
-|Option |Description
+|Enrichment | Description
 
-|`none`                  |Not to include any data
-|`default` alias | `codec_metadata` and `codec_metadata` will be included
-|`all` alias | All `codec_metadata`, `codec_metadata` and `ssl_peer_metadata` will be included
-|`source_metadata` | Source metadata such as host name will be included
-|`codec_metadata` | Codec metadata such as `tag`, `[event][original]` will be included
-|`ssl_peer_metadata` | SSL peer metadata will be included
+| codec_metadata    | Information about how the codec transformed a sequence of bytes into
+                      this Event, such as _which_ codec was used. If no <<codec>> is explicitly
+                      specified, _excluding_ `codec_metadata` from `enrich` will prevent the
+                      default codec itself from adding metadata such as `[event][original]`.
+| source_metadata   | Information about the _source_ of the event, such as the IP address
+                      of the inbound connection this input received the event from and the
+                      name of the Logstash host that processed the event
+| ssl_peer_metadata | Detailed information about the _SSL peer_ we received the event from,
+                      such as identity information from the SSL client certificate that was
+                      presented when establishing a connection to this input
+| default           | _alias_ resolving to _at least_ `[codec_metadata, source_metadata]`
+| all               | _alias_ to include _all_ available enrichments (including additional
+                      enrichments introduced in future versions of this plugin)
+| none              | _alias_ to _exclude_ all available enrichments
 |=======================================================================
+  ** Default value is `default`, which is an alias for for `[codec_metadata, source_metadata]` that may be extended in future versions of this plugin to include additional by-default enrichments.
 
-As an example, following configuration enables source and metadata with ECS enabled plain codec:
-```
+
+As an example, following configuration disables _all_ enrichments:
+
+["source",subs="attributes"]
+--------------------------------------------------
 input {
   beats {
     port => 5044
-    enrich => ["default"]
-    codec => plain
+    enrich => none
   }
 }
-```
+--------------------------------------------------
+
+Or, to explicitly enable _only_ `source_metadata` and `ssl_peer_metadata` (disabling all others):
+
+
+["source",subs="attributes"]
+--------------------------------------------------
+input {
+  beats {
+    port => 5044
+    enrich => [source_metadata, ssl_peer_metadata]
+  }
+}
+--------------------------------------------------
+
 
 
 [id="plugins-{type}s-{plugin}-common-options"]

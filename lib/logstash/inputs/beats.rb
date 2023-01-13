@@ -212,7 +212,13 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
     # intentionally ask users to provide codec when they want to use the codec metadata
     # second layer enrich is also a controller, provide enrich => ['codec_metadata' or 'default'] with codec if you override event original
-    if !original_params.include?('codec') || (@enrich && (!@enrich.include?('codec_metadata') || @enrich.include?('none')))
+    if !@enrich.include?('codec_metadata')
+      if original_params.include?('codec')
+        @logger.warn('`enrich` configuration does not include `codec_metadata`, but the directive is not propagated to the explicitly-defined `codec`')
+      else
+        @codec = plugin_factory.codec('plain').new('ecs_compatibility' => 'disabled')
+      end
+    end
       @codec = plugin_factory.codec('plain').new('ecs_compatibility' => 'disabled')
     end
 
