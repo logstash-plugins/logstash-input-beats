@@ -192,7 +192,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-ssl_verify_mode>> |<<string,string>>, one of `["none", "peer", "force_peer"]`|No
 | <<plugins-{type}s-{plugin}-tls_max_version>> |<<number,number>>|__Deprecated__
 | <<plugins-{type}s-{plugin}-tls_min_version>> |<<number,number>>|__Deprecated__
-| <<plugins-{type}s-{plugin}-enrich>> |<<array,array>>|No
+| <<plugins-{type}s-{plugin}-enrich>> |<<string,string>>|No
 |=======================================================================
 
 Also see <<plugins-{type}s-{plugin}-common-options>> for a list of options supported by all
@@ -442,12 +442,11 @@ The value must be one of the following: 1.1 for TLS 1.1, 1.2 for TLS 1.2, 1.3 fo
 | ssl_peer_metadata | Detailed information about the _SSL peer_ we received the event from,
                       such as identity information from the SSL client certificate that was
                       presented when establishing a connection to this input
-| default           | _alias_ resolving to _at least_ `[codec_metadata, source_metadata]`
 | all               | _alias_ to include _all_ available enrichments (including additional
                       enrichments introduced in future versions of this plugin)
 | none              | _alias_ to _exclude_ all available enrichments
 |=======================================================================
-  ** Default value is `default`, which is an alias for for `[codec_metadata, source_metadata]` that may be extended in future versions of this plugin to include additional by-default enrichments.
+  ** Default value is `[codec_metadata, source_metadata]` that may be extended in future versions of this plugin to include additional enrichments.
 
 
 As an example, following configuration disables _all_ enrichments:

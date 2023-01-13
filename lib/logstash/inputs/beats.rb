@@ -148,7 +148,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   ENRICH_ALL = ENRICH_DEFAULTS.keys.freeze
   ENRICH_DEFAULT = ENRICH_DEFAULTS.select { |_,v| v }.keys.freeze
   ENRICH_NONE = ['none'].freeze
-  ENRICH_ALIASES = %w(none default all)
+  ENRICH_ALIASES = %w(none all)
 
   config :enrich, :validate => (ENRICH_ALL | ENRICH_ALIASES), :list => true
 
@@ -211,15 +211,13 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     @ssl_peer_metadata = original_params.include?('ssl_peer_metadata') ? params['ssl_peer_metadata'] : @enrich.include?('ssl_peer_metadata')
 
     # intentionally ask users to provide codec when they want to use the codec metadata
-    # second layer enrich is also a controller, provide enrich => ['codec_metadata' or 'default'] with codec if you override event original
-    if !@enrich.include?('codec_metadata')
+    # second layer enrich is also a controller, provide enrich => ['codec_metadata' or/with 'source_metadata'] with codec if you override event original
+    unless @enrich.include?('codec_metadata')
       if original_params.include?('codec')
         @logger.warn('`enrich` configuration does not include `codec_metadata`, but the directive is not propagated to the explicitly-defined `codec`')
       else
         @codec = plugin_factory.codec('plain').new('ecs_compatibility' => 'disabled')
       end
-    end
-      @codec = plugin_factory.codec('plain').new('ecs_compatibility' => 'disabled')
     end
 
     # Logstash 6.x breaking change (introduced with 4.0.0 of this gem)
@@ -357,7 +355,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
     return ENRICH_ALL if aliases_provided.include?('all')
     return ENRICH_NONE if aliases_provided.include?('none')
-    return ENRICH_DEFAULT if aliases_provided.include?('default') || !original_params.include?('enrich')
+    return ENRICH_DEFAULT unless original_params.include?('enrich')
 
     return @enrich
   end
