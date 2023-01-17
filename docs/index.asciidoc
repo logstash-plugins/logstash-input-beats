@@ -143,26 +143,65 @@ endif::[]
 
 
 [id="plugins-{type}s-{plugin}-ecs_metadata"]
-==== Event Metadata and the Elastic Common Schema (ECS)
+==== Event Enrichment and the Elastic Common Schema (ECS)
 
-When decoding {plugin-uc} events, this plugin adds two fields related to the event:
-the deprecated `host` which contains the `hostname` provided by {plugin-uc} and the
-`ip_address` containing the remote address of the client's connection. When
-<<plugins-{type}s-{plugin}-ecs_compatibility,ECS compatibility mode>> is enabled
-these are now moved in ECS compatible namespace. Here's how
-<<plugins-{type}s-{plugin}-ecs_compatibility,ECS compatibility mode>> affects
-output.  
+When decoding {plugin-uc} events, this plugin _enriches_ each event with metadata to make information about where the event came from available during further processing.
+The <<plugins-{type}s-{plugin}-enrich>> option can be used to activate or deactivate individual enrichment categories.
 
-[cols="<l,<l,e,<e"]
+The location of these enrichment fields depends on whether <<plugins-{type}s-{plugin}-ecs_compatibility,ECS compatibility mode>> is enabled:
+
+- When ECS compatibility is _enabled_, enrichment fields will be added in an ECS-compatible structure.
+- When ECS compatibility is _disabled_, enrichment fields will be added in a way that is backward-compatible with this plugin, but is known to clash with the Elastic Common Schema.
+
+
+.`source_metadata`
+[cols="<l,<l,<e",caption="Enrichment Category:"]
 |=======================================================================
-|ECS `disabled` |ECS `v1`, `v8` |Availability |Description
+|ECS `v1`, `v8` |ECS `disabled` |Description
 
-|[host]                  |[@metadata][input][beats][host][name]   |Always       |Name or address of the {plugin-singular} host
-|[@metadata][ip_address] |[@metadata][input][beats][host][ip]     |Always       |IP address of the {plugin-uc} client
-|[@metadata][tls_peer][status] | [@metadata][tls_peer][status] | When SSL related fields are populated | Contains "verified"/"unverified" labels in `disabled`, `true`/`false` in `v1`/`v8`
-|[@metadata][tls_peer][protocol] | [@metadata][input][beats][tls][version_protocol] | When SSL status is "verified" | Contains the TLS version used (e.g. `TLSv1.2`)
-|[@metadata][tls_peer][subject] | [@metadata][input][beats][tls][client][subject] | When SSL status is "verified" | Contains the identity name of the remote end (e.g. `CN=artifacts-no-kpi.elastic.co`)
-|[@metadata][tls_peer][cipher_suite] | [@metadata][input][beats][tls][cipher] | When SSL status is "verified" | Contains the name of cipher suite used (e.g. `TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256`)
+|[@metadata][input][beats][host][name]
+|[host]
+|Name or address of the {plugin-singular} host
+
+|[@metadata][input][beats][host][ip]
+|[@metadata][ip_address]
+|IP address of the {plugin-uc} client that connected to this input
+|=======================================================================
+
+.`ssl_peer_metadata``
+[cols="<l,<l,<e",caption="Enrichment Category:"]
+|=======================================================================
+|ECS `v1`, `v8` |ECS `disabled` |Description
+
+|[@metadata][tls_peer][status]
+|[@metadata][tls_peer][status]
+|Contains "verified" or "unverified" label; available when SSL is enabled.
+
+|[@metadata][input][beats][tls][version_protocol]
+|[@metadata][tls_peer][protocol]
+|Contains the TLS version used (e.g. `TLSv1.2`); available when SSL status is "verified"
+
+|[@metadata][input][beats][tls][client][subject]
+|[@metadata][tls_peer][subject]
+|Contains the identity name of the remote end (e.g. `CN=artifacts-no-kpi.elastic.co`); available when SSL status is "verified"
+
+|[@metadata][input][beats][tls][cipher]
+|[@metadata][tls_peer][cipher_suite]
+|Contains the name of cipher suite used (e.g. `TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256`); available when SSL status is "verified"
+|=======================================================================
+
+.`codec_metadata`
+[cols="<l,<l,<e",caption="Enrichment Category:"]
+|=======================================================================
+|ECS `v1`, `v8` |ECS `disabled` |Description
+
+|[tag]
+|[tag]
+|Contains `beats_input_codec_XXX_applied` where `XXX` is the name of the codec
+
+|[event][original]
+e|N/A
+|When ECS is enabled, this plugin's *default codec* will ensure that the event's `[event][original]` field is populated, using the bytes as-processed by the codec if the field does not already exist on the event being processed.
 |=======================================================================
 
 [id="plugins-{type}s-{plugin}-options"]
