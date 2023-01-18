@@ -201,75 +201,184 @@ describe LogStash::Inputs::Beats do
       end
     end
 
-    context "with default codec configuration" do
-      it "should load default ['source_metadata', 'codec_metadata'] configs" do
-        plugin = LogStash::Inputs::Beats.new(config)
-        plugin.register
-        expect(plugin.include_codec_tag).to be_truthy
-        expect(plugin.ssl_peer_metadata).to be_falsey
+    context "enrich configuration" do
+      # We define a shared example for each enrichment type that can independently
+      # validate whether that enrichment is effectively enabled or disabled.
+      #  - "#{enrichment} enabled"
+      #  - "#{enrichment} disabled"
 
-        es_major_version = SpecHelper.es_major_version.to_i
-        expect(plugin.codec.ecs_compatibility).to eq(es_major_version > 7 ? :v8 : :disabled)
-      end
-    end
+      let(:registered_plugin) { plugin.tap(&:register) }
 
-    context "with enrich provided" do
-
-      it "should raise an exception if deprecated `ssl_peer_metadata` applied" do
-        plugin = LogStash::Inputs::Beats.new(config.merge({ "ssl_peer_metadata" => true, "enrich" => ['all'] }))
-        expect { plugin.register }.to raise_error(LogStash::ConfigurationError, "both `enrich` and (deprecated) ssl_peer_metadata were provided; use only `enrich`")
-      end
-
-      it "should raise an exception if deprecated `include_codec_tag` applied" do
-        plugin = LogStash::Inputs::Beats.new(config.merge({ "include_codec_tag" => true, "enrich" => ['all'] }))
-        expect { plugin.register }.to raise_error(LogStash::ConfigurationError, "both `enrich` and (deprecated) include_codec_tag were provided; use only `enrich`")
-      end
-
-      context "with `none` alias enrich provided" do
-        let(:config) { super().merge({ "enrich" => ["none"] }) }
-
-        it "should not include codec and source metadata" do
-          plugin = LogStash::Inputs::Beats.new(config)
-          plugin.register
-          expect(plugin.ssl_peer_metadata).to be_falsey
-          expect(plugin.include_codec_tag).to be_falsey
+      shared_examples "source_metadata enabled" do
+        it "is configured to enrich source metadata" do
+          expect(registered_plugin.include_source_metadata).to be true
         end
       end
 
-      context "with `all` alias enrich provided" do
-        let(:config) { super().merge({ "enrich" => ["all"] }) }
-
-        it "should include codec tag config and `ssl_peer_metadata`/source metadata" do
-          plugin = LogStash::Inputs::Beats.new(config)
-          plugin.register
-          expect(plugin.include_codec_tag).to be_truthy
-          expect(plugin.ssl_peer_metadata).to be_truthy
+      shared_examples "source_metadata disabled" do
+        it "is configured to NOT enrich source metadata" do
+          expect(registered_plugin.include_source_metadata).to be false
         end
       end
-    end
 
-    context "with manual codec configuration" do
-      let(:codec) { LogStash::Codecs::Plain.new("charset" => "UTF-8") }
-      let(:config) { super() }
-
-      it "should initialize the codec with default ECS when enrich isn't provided" do
-        plugin = LogStash::Inputs::Beats.new(config.merge({ "codec" => codec, "ssl_key" => certificate.ssl_key }))
-        plugin.register
-        es_major_version = SpecHelper.es_major_version.to_i
-        expect(plugin.codec.ecs_compatibility).to eq(es_major_version > 7 ? :v8 : :disabled)
+      shared_examples "include codec tag" do
+        it "is configured to include the codec tag" do
+          expect(registered_plugin.include_codec_tag).to be true
+        end
       end
 
-      it "should initialize the codec with disabled ECS when none alias enrich is provided" do
-        plugin = LogStash::Inputs::Beats.new(config.merge({ "enrich" => ["none"] }))
-        plugin.register
-        expect(plugin.codec.ecs_compatibility).to eq(:disabled)
+      shared_examples "exclude codec tag" do
+        it "is configured to NOT include the codec tag" do
+          expect(registered_plugin.include_codec_tag).to be false
+        end
       end
 
-      it "should initialize the codec with default ECS when default/all alias enrich is provided" do
-        plugin = LogStash::Inputs::Beats.new(config.merge({ "codec" => codec, "enrich" => ["all"], "ssl_key" => certificate.ssl_key }))
-        plugin.register
-        es_major_version = SpecHelper.es_major_version.to_i
-        expect(plugin.codec.ecs_compatibility).to eq(es_major_version > 7 ? :v8 : :disabled)
+      shared_examples "default codec configured to avoid metadata" do
+        it "configures the default codec to NOT enrich codec metadata" do
+          fail("spec setup error: not compatible with explicitly-given codec") if config.include?('codec')
+          # note: disabling ECS is an _implementation detail_ of how we prevent
+          # the codec from enriching the event with [event][original]
+          expect(registered_plugin.codec.original_params).to include('ecs_compatibility' => 'disabled')
+        end
+      end
+
+      shared_examples "codec is untouched" do
+        it "does NOT configure the codec to avoid enriching codec metadata" do
+          # note: disabling ECS is an _implementation detail_ of how we prevent
+          # the codec from enriching the event with [event][original], so we ensure
+          # the absence of the setting.
+          expect(registered_plugin.codec.original_params).to_not include('ecs_compatibility')
+        end
+      end
+
+      shared_examples "codec_metadata enabled" do
+        include_examples "include codec tag"
+        include_examples "codec is untouched"
+      end
+
+      shared_examples "codec_metadata disabled" do
+        include_examples "exclude codec tag"
+        include_examples "default codec configured to avoid metadata"
+
+        context "with an explicitly-provided codec" do
+          let(:config) { super().merge("codec" => "plain") }
+
+          include_examples "exclude codec tag"
+          include_examples "codec is untouched"
+        end
+      end
+
+      shared_examples "ssl_peer_metadata enabled" do
+        it "is configured to enrich ssl_peer_metadata" do
+          expect(registered_plugin.ssl_peer_metadata).to be_truthy
+        end
+      end
+
+      shared_examples "ssl_peer_metadata disabled" do
+        it "is configured to NOT enrich ssl_peer_metadata" do
+          expect(registered_plugin.ssl_peer_metadata).to be_falsey
+        end
+      end
+
+      shared_examples "reject deprecated enrichment flags" do
+        context "with deprecated `ssl_peer_metadata`" do
+          let(:config) { super().merge("ssl_peer_metadata" => true) }
+          it 'rejects the configuration with a helpful error message' do
+            expect { plugin.register }.to raise_exception(LogStash::ConfigurationError, "both `enrich` and (deprecated) ssl_peer_metadata were provided; use only `enrich`")
+          end
+        end
+        context "with deprecated `include_codec_tag`" do
+          let(:config) { super().merge("include_codec_tag" => false) }
+          it 'rejects the configuration with a helpful error message' do
+            expect { plugin.register }.to raise_exception(LogStash::ConfigurationError, "both `enrich` and (deprecated) include_codec_tag were provided; use only `enrich`")
+          end
+        end
+      end
+
+      context "when `enrich` is NOT provided" do
+        # validate defaults
+        include_examples "codec_metadata enabled"
+        include_examples "source_metadata enabled"
+        include_examples "ssl_peer_metadata disabled"
+
+        # validate interaction with deprecated settings
+        context "with deprecated `ssl_peer_metadata => true`" do
+          let(:config) { super().merge("ssl_peer_metadata" => true) }
+
+          # intended delta
+          include_examples "ssl_peer_metadata enabled"
+
+          # ensure no side-effects
+          include_examples "codec_metadata enabled"
+          include_examples "source_metadata enabled"
+        end
+
+        context "with deprecated `include_codec_tag => false`" do
+          let(:config) { super().merge("include_codec_tag" => false) }
+
+          # intended delta
+          include_examples "exclude codec tag"
+          include_examples "codec is untouched"
+
+          # ensure no side-effects
+          include_examples "source_metadata enabled"
+          include_examples "ssl_peer_metadata disabled"
+        end
+      end
+
+      # validate aliases
+      context "alias resolution" do
+        context "with alias `enrich => all`" do
+          let(:config) { super().merge("enrich" => "all") }
+
+          include_examples "codec_metadata enabled"
+          include_examples "source_metadata enabled"
+          include_examples "ssl_peer_metadata enabled"
+
+          include_examples "reject deprecated enrichment flags"
+        end
+
+        context "with alias `enrich => none`" do
+          let(:config) { super().merge("enrich" => "none") }
+
+          include_examples "codec_metadata disabled"
+          include_examples "source_metadata disabled"
+          include_examples "ssl_peer_metadata disabled"
+
+          include_examples "reject deprecated enrichment flags"
+        end
+      end
+
+      available_enrichments = %w(
+        codec_metadata
+        source_metadata
+        ssl_peer_metadata
+      )
+      shared_examples "enrich activations" do |enrich_arg|
+        activated = Array(enrich_arg)
+        context "with `enrich => #{enrich_arg}`" do
+          let(:config) { super().merge("enrich" => enrich_arg) }
+
+          available_enrichments.each do |enrichment|
+            include_examples "#{enrichment} #{activated.include?(enrichment) ? 'enabled' : 'disabled'}"
+          end
+
+          include_examples "reject deprecated enrichment flags"
+        end
+      end
+
+      # ensure explicit empty-list does not activate defaults
+      include_examples "enrich activations", []
+
+      # ensure single enrichment does not activate others
+      available_enrichments.each do |single_active_enrichment|
+        include_examples "enrich activations", single_active_enrichment   # single
+        include_examples "enrich activations", [single_active_enrichment] # list-of-one
+      end
+
+      # ensure any combination of two enrichment categories activates only those two
+      available_enrichments.combination(2) do |active_enrichments|
+        include_examples "enrich activations", active_enrichments
       end
     end
   end

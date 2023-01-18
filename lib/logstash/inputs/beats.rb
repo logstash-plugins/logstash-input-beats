@@ -154,6 +154,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   attr_reader :field_hostname, :field_hostip
   attr_reader :field_tls_protocol_version, :field_tls_peer_subject, :field_tls_cipher
+  attr_reader :include_source_metadata
 
   def register
     # For Logstash 2.4 we need to make sure that the logger is correctly set for the
@@ -205,14 +206,15 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       @logger.warn("configured ssl_key => #{@ssl_key.inspect} will not be used") if @ssl_key
     end
 
-    @enrich = resolve_enriches
+    active_enrichments = resolve_enriches
 
-    @include_codec_tag = original_params.include?('include_codec_tag') ? params['include_codec_tag'] : include_codec_metadata?
-    @ssl_peer_metadata = original_params.include?('ssl_peer_metadata') ? params['ssl_peer_metadata'] : @enrich.include?('ssl_peer_metadata')
+    @include_source_metadata = active_enrichments.include?('source_metadata')
+    @include_codec_tag = original_params.include?('include_codec_tag') ? params['include_codec_tag'] : active_enrichments.include?('codec_metadata')
+    @ssl_peer_metadata = original_params.include?('ssl_peer_metadata') ? params['ssl_peer_metadata'] : active_enrichments.include?('ssl_peer_metadata')
 
     # intentionally ask users to provide codec when they want to use the codec metadata
     # second layer enrich is also a controller, provide enrich => ['codec_metadata' or/with 'source_metadata'] with codec if you override event original
-    unless @enrich.include?('codec_metadata')
+    unless active_enrichments.include?('codec_metadata')
       if original_params.include?('codec')
         @logger.warn('`enrich` configuration does not include `codec_metadata`, but the directive is not propagated to the explicitly-defined `codec`')
       else
@@ -289,11 +291,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end
 
   def include_source_metadata?
-    return @enrich.include?('source_metadata')
-  end
-
-  def include_codec_metadata?
-    return @enrich.include?('codec_metadata')
+    return @include_source_metadata
   end
 
   private
