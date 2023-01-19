@@ -168,7 +168,7 @@ The location of these enrichment fields depends on whether <<plugins-{type}s-{pl
 |IP address of the {plugin-uc} client that connected to this input
 |=======================================================================
 
-.`ssl_peer_metadata``
+.`ssl_peer_metadata`
 [cols="<l,<l,<e",caption="Enrichment Category:"]
 |=======================================================================
 |ECS `v1`, `v8` |ECS `disabled` |Description
