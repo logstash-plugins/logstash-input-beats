@@ -1,5 +1,5 @@
 ## 6.4.4
- - Updates Netty dependency to 4.1.87 [#n](https://github.com/logstash-plugins/logstash-input-beats/pull/n)
+ - Updates Netty dependency to 4.1.87 [#466](https://github.com/logstash-plugins/logstash-input-beats/pull/466)
 
 ## 6.4.3
   - [DOC] `executor_threads` default value explanation updated. [#461](https://github.com/logstash-plugins/logstash-input-beats/pull/461)
