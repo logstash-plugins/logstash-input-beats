@@ -216,9 +216,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     # second layer enrich is also a controller, provide enrich => ['codec_metadata' or/with 'source_metadata'] with codec if you override event original
     unless active_enrichments.include?('codec_metadata')
       if original_params.include?('codec')
-        @logger.warn('`enrich` configuration does not include `codec_metadata`, but the directive is not propagated to the explicitly-defined `codec`')
+        @logger.warn('`codec` is specified but enrich configuration does not include `codec_metadata`. ECS compatibility aligns on pipeline or codec `ecs_compatibility` configuration, enabled by default.')
       else
         @codec = plugin_factory.codec('plain').new('ecs_compatibility' => 'disabled')
+        @logger.debug('Disabling `ecs_compatibility` for the default codec since `enrich` configuration does not include `codec_metadata` and no explicit codec is set.')
       end
     end
 

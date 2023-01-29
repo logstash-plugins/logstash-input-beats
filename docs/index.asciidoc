@@ -472,9 +472,9 @@ The value must be one of the following: 1.1 for TLS 1.1, 1.2 for TLS 1.2, 1.3 fo
 |Enrichment | Description
 
 | codec_metadata    | Information about how the codec transformed a sequence of bytes into
-                      this Event, such as _which_ codec was used. If no <<codec>> is explicitly
-                      specified, _excluding_ `codec_metadata` from `enrich` will prevent the
-                      default codec itself from adding metadata such as `[event][original]`.
+                      this Event, such as _which_ codec was used. Also, if no <<codec>> is
+                      explicitly specified, _excluding_ `codec_metadata` from `enrich` will
+                      disable `ecs_compatibility` for this plugin.
 | source_metadata   | Information about the _source_ of the event, such as the IP address
                       of the inbound connection this input received the event from and the
                       name of the Logstash host that processed the event
@@ -483,7 +483,9 @@ The value must be one of the following: 1.1 for TLS 1.1, 1.2 for TLS 1.2, 1.3 fo
                       presented when establishing a connection to this input
 | all               | _alias_ to include _all_ available enrichments (including additional
                       enrichments introduced in future versions of this plugin)
-| none              | _alias_ to _exclude_ all available enrichments
+| none              | _alias_ to _exclude_ all available enrichments. Note that, _explicitly_
+                      defining <<codec>> with this option will not disable the `ecs_compatibility`,
+                      instead it relies on pipeline or codec `ecs_compatibility` configuration.
 |=======================================================================
   ** Default value is `[codec_metadata, source_metadata]` that may be extended in future versions of this plugin to include additional enrichments.
 
