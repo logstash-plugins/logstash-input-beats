@@ -201,7 +201,7 @@ The location of these enrichment fields depends on whether <<plugins-{type}s-{pl
 
 |[event][original]
 e|N/A
-|When ECS is enabled, this plugin's *default codec* will ensure that the event's `[event][original]` field is populated, using the bytes as-processed by the codec if the field does not already exist on the event being processed.
+|When ECS is enabled, even if `[event][original]` field does not already exist on the event being processed, this plugin's *default codec* ensures that the field is populated using the bytes as-processed.
 |=======================================================================
 
 [id="plugins-{type}s-{plugin}-options"]
@@ -285,6 +285,7 @@ Refer to <<plugins-{type}s-{plugin}-ecs_metadata,ECS mapping>> for detailed info
 * Value type is <<string,string>>
 ** A <<list,list>> can also be provided
 ** Configures which enrichments are applied to each event
+** Default value is `[codec_metadata, source_metadata]` that may be extended in future versions of this plugin to include additional enrichments.
 ** Supported values are:
 +
 [cols="2l,5"]
@@ -307,7 +308,6 @@ Refer to <<plugins-{type}s-{plugin}-ecs_metadata,ECS mapping>> for detailed info
                       defining <<codec>> with this option will not disable the `ecs_compatibility`,
                       instead it relies on pipeline or codec `ecs_compatibility` configuration.
 |=======================================================================
-** Default value is `[codec_metadata, source_metadata]` that may be extended in future versions of this plugin to include additional enrichments.
 
 
 **Example:**
