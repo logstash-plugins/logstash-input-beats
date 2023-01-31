@@ -143,19 +143,19 @@ endif::[]
 
 
 [id="plugins-{type}s-{plugin}-ecs_metadata"]
-==== Event Enrichment and the Elastic Common Schema (ECS)
+==== Event enrichment and the Elastic Common Schema (ECS)
 
-When decoding {plugin-uc} events, this plugin _enriches_ each event with metadata to make information about where the event came from available during further processing.
-The <<plugins-{type}s-{plugin}-enrich>> option can be used to activate or deactivate individual enrichment categories.
+When decoding {plugin-uc} events, this plugin enriches each event with metadata about the event's source, making this information available during further processing. 
+You can use the <<plugins-{type}s-{plugin}-enrich>> option to activate or deactivate individual enrichment categories.
 
 The location of these enrichment fields depends on whether <<plugins-{type}s-{plugin}-ecs_compatibility,ECS compatibility mode>> is enabled:
 
-- When ECS compatibility is _enabled_, enrichment fields will be added in an ECS-compatible structure.
-- When ECS compatibility is _disabled_, enrichment fields will be added in a way that is backward-compatible with this plugin, but is known to clash with the Elastic Common Schema.
+- When ECS compatibility is _enabled_, enrichment fields are added in an ECS-compatible structure.
+- When ECS compatibility is _disabled_, enrichment fields are added in a way that is backward-compatible with this plugin, but is known to clash with the Elastic Common Schema.
 
 
 .`source_metadata`
-[cols="<l,<l,<e",caption="Enrichment Category:"]
+[cols="<l,<l,<e",caption="Enrichment category:"]
 |=======================================================================
 |ECS `v1`, `v8` |ECS `disabled` |Description
 
@@ -169,7 +169,7 @@ The location of these enrichment fields depends on whether <<plugins-{type}s-{pl
 |=======================================================================
 
 .`ssl_peer_metadata`
-[cols="<l,<l,<e",caption="Enrichment Category:"]
+[cols="<l,<l,<e",caption="Enrichment category:"]
 |=======================================================================
 |ECS `v1`, `v8` |ECS `disabled` |Description
 
@@ -179,19 +179,19 @@ The location of these enrichment fields depends on whether <<plugins-{type}s-{pl
 
 |[@metadata][input][beats][tls][version_protocol]
 |[@metadata][tls_peer][protocol]
-|Contains the TLS version used (e.g. `TLSv1.2`); available when SSL status is "verified"
+|Contains the TLS version used (such as `TLSv1.2`); available when SSL status is "verified"
 
 |[@metadata][input][beats][tls][client][subject]
 |[@metadata][tls_peer][subject]
-|Contains the identity name of the remote end (e.g. `CN=artifacts-no-kpi.elastic.co`); available when SSL status is "verified"
+|Contains the identity name of the remote end (such as `CN=artifacts-no-kpi.elastic.co`); available when SSL status is "verified"
 
 |[@metadata][input][beats][tls][cipher]
 |[@metadata][tls_peer][cipher_suite]
-|Contains the name of cipher suite used (e.g. `TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256`); available when SSL status is "verified"
+|Contains the name of cipher suite used (such as `TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256`); available when SSL status is "verified"
 |=======================================================================
 
 .`codec_metadata`
-[cols="<l,<l,<e",caption="Enrichment Category:"]
+[cols="<l,<l,<e",caption="Enrichment category:"]
 |=======================================================================
 |ECS `v1`, `v8` |ECS `disabled` |Description
 
@@ -490,7 +490,8 @@ The value must be one of the following: 1.1 for TLS 1.1, 1.2 for TLS 1.2, 1.3 fo
   ** Default value is `[codec_metadata, source_metadata]` that may be extended in future versions of this plugin to include additional enrichments.
 
 
-As an example, following configuration disables _all_ enrichments:
+**Example:**
+This configuration disables _all_ enrichments:
 
 ["source",subs="attributes"]
 --------------------------------------------------
