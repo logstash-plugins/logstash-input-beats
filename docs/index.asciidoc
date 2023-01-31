@@ -216,6 +216,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-cipher_suites>> |<<array,array>>|__Deprecated__
 | <<plugins-{type}s-{plugin}-client_inactivity_timeout>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-ecs_compatibility>> | <<string,string>>|No
+| <<plugins-{type}s-{plugin}-enrich>> |<<string,string>>|No
 | <<plugins-{type}s-{plugin}-executor_threads>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-host>> |<<string,string>>|No
 | <<plugins-{type}s-{plugin}-include_codec_tag>> |<<boolean,boolean>>|__Deprecated__
@@ -231,7 +232,6 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-ssl_verify_mode>> |<<string,string>>, one of `["none", "peer", "force_peer"]`|No
 | <<plugins-{type}s-{plugin}-tls_max_version>> |<<number,number>>|__Deprecated__
 | <<plugins-{type}s-{plugin}-tls_min_version>> |<<number,number>>|__Deprecated__
-| <<plugins-{type}s-{plugin}-enrich>> |<<string,string>>|No
 |=======================================================================
 
 Also see <<plugins-{type}s-{plugin}-common-options>> for a list of options supported by all
@@ -278,6 +278,63 @@ Close Idle clients after X seconds of inactivity.
     ** Otherwise, the default value is `disabled`.
 
 Refer to <<plugins-{type}s-{plugin}-ecs_metadata,ECS mapping>> for detailed information.
+
+[id="plugins-{type}s-{plugin}-enrich"]
+===== `enrich`
+
+* Value type is <<string,string>>
+** A <<list,list>> can also be provided
+** Configures which enrichments are applied to each event
+** Supported values are:
++
+[cols="2l,5"]
+|=======================================================================
+|Enrichment | Description
+
+| codec_metadata    | Information about how the codec transformed a sequence of bytes into
+                      this Event, such as _which_ codec was used. Also, if no <<codec>> is
+                      explicitly specified, _excluding_ `codec_metadata` from `enrich` will
+                      disable `ecs_compatibility` for this plugin.
+| source_metadata   | Information about the _source_ of the event, such as the IP address
+                      of the inbound connection this input received the event from and the
+                      name of the Logstash host that processed the event
+| ssl_peer_metadata | Detailed information about the _SSL peer_ we received the event from,
+                      such as identity information from the SSL client certificate that was
+                      presented when establishing a connection to this input
+| all               | _alias_ to include _all_ available enrichments (including additional
+                      enrichments introduced in future versions of this plugin)
+| none              | _alias_ to _exclude_ all available enrichments. Note that, _explicitly_
+                      defining <<codec>> with this option will not disable the `ecs_compatibility`,
+                      instead it relies on pipeline or codec `ecs_compatibility` configuration.
+|=======================================================================
+** Default value is `[codec_metadata, source_metadata]` that may be extended in future versions of this plugin to include additional enrichments.
+
+
+**Example:**
+This configuration disables _all_ enrichments:
+
+["source",subs="attributes"]
+--------------------------------------------------
+input {
+  beats {
+    port => 5044
+    enrich => none
+  }
+}
+--------------------------------------------------
+
+Or, to explicitly enable _only_ `source_metadata` and `ssl_peer_metadata` (disabling all others):
+
+
+["source",subs="attributes"]
+--------------------------------------------------
+input {
+  beats {
+    port => 5044
+    enrich => [source_metadata, ssl_peer_metadata]
+  }
+}
+--------------------------------------------------
 
 [id="plugins-{type}s-{plugin}-executor_threads"]
 ===== `executor_threads`
@@ -458,64 +515,6 @@ deprecated[6.4.0, Replaced by <<plugins-{type}s-{plugin}-ssl_supported_protocols
 
 The minimum TLS version allowed for the encrypted connections.
 The value must be one of the following: 1.1 for TLS 1.1, 1.2 for TLS 1.2, 1.3 for TLS 1.3
-
-[id="plugins-{type}s-{plugin}-enrich"]
-===== `enrich`
-
-  * Value type is <<string,string>>
-  ** A <<list,list>> can also be provided
-  ** Configures which enrichments are applied to each event
-  ** Supported values are:
-+
-[cols="2l,5"]
-|=======================================================================
-|Enrichment | Description
-
-| codec_metadata    | Information about how the codec transformed a sequence of bytes into
-                      this Event, such as _which_ codec was used. Also, if no <<codec>> is
-                      explicitly specified, _excluding_ `codec_metadata` from `enrich` will
-                      disable `ecs_compatibility` for this plugin.
-| source_metadata   | Information about the _source_ of the event, such as the IP address
-                      of the inbound connection this input received the event from and the
-                      name of the Logstash host that processed the event
-| ssl_peer_metadata | Detailed information about the _SSL peer_ we received the event from,
-                      such as identity information from the SSL client certificate that was
-                      presented when establishing a connection to this input
-| all               | _alias_ to include _all_ available enrichments (including additional
-                      enrichments introduced in future versions of this plugin)
-| none              | _alias_ to _exclude_ all available enrichments. Note that, _explicitly_
-                      defining <<codec>> with this option will not disable the `ecs_compatibility`,
-                      instead it relies on pipeline or codec `ecs_compatibility` configuration.
-|=======================================================================
-  ** Default value is `[codec_metadata, source_metadata]` that may be extended in future versions of this plugin to include additional enrichments.
-
-
-**Example:**
-This configuration disables _all_ enrichments:
-
-["source",subs="attributes"]
---------------------------------------------------
-input {
-  beats {
-    port => 5044
-    enrich => none
-  }
-}
---------------------------------------------------
-
-Or, to explicitly enable _only_ `source_metadata` and `ssl_peer_metadata` (disabling all others):
-
-
-["source",subs="attributes"]
---------------------------------------------------
-input {
-  beats {
-    port => 5044
-    enrich => [source_metadata, ssl_peer_metadata]
-  }
-}
---------------------------------------------------
-
 
 
 [id="plugins-{type}s-{plugin}-common-options"]
