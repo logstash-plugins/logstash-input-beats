@@ -311,6 +311,7 @@ Refer to <<plugins-{type}s-{plugin}-ecs_metadata,ECS mapping>> for detailed info
 
 
 **Example:**
+
 This configuration disables _all_ enrichments:
 
 ["source",subs="attributes"]
@@ -342,8 +343,8 @@ input {
   * Value type is <<number,number>>
   * Default value is equal to the number of CPU cores (1 executor thread per CPU core).
 
-The number of threads to be used to process incoming beats requests.
-By default, the Beats Input creates a number of threads equal to the number of CPU cores.
+The number of threads to be used to process incoming {plugin-uc} requests.
+By default, the {plugin-uc} input creates a number of threads equal to the number of CPU cores.
 These threads handle incoming connections, reading from established sockets, and executing most of the tasks related to network connection management. 
 Parsing the Lumberjack protocol is offloaded to a dedicated thread pool.
 
