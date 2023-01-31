@@ -12,4 +12,3 @@ $: << File.realpath(File.join(File.dirname(__FILE__), "..", "lib"))
 RSpec.configure do |config|
   config.order = :rand
 end
-
