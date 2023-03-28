@@ -48,10 +48,10 @@ describe LogStash::Inputs::Beats do
 
     context "with ssl enabled" do
 
-      let(:config) { { "ssl" => true, "port" => port, "ssl_key" => certificate.ssl_key, "ssl_certificate" => certificate.ssl_cert } }
+      let(:config) { { "ssl_enabled" => true, "port" => port, "ssl_key" => certificate.ssl_key, "ssl_certificate" => certificate.ssl_cert } }
 
       context "without certificate configuration" do
-        let(:config) { { "port" => 0, "ssl" => true, "ssl_key" => certificate.ssl_key, "type" => "example" } }
+        let(:config) { { "port" => 0, "ssl_enabled" => true, "ssl_key" => certificate.ssl_key, "type" => "example" } }
 
         it "should fail to register the plugin with ConfigurationError" do
           plugin = LogStash::Inputs::Beats.new(config)
@@ -60,7 +60,7 @@ describe LogStash::Inputs::Beats do
       end
 
       context "without key configuration" do
-        let(:config) { { "port" => 0, "ssl" => true, "ssl_certificate" => certificate.ssl_cert, "type" => "example" } }
+        let(:config) { { "port" => 0, "ssl_enabled" => true, "ssl_certificate" => certificate.ssl_cert, "type" => "example" } }
         it "should fail to register the plugin with ConfigurationError" do
           plugin = LogStash::Inputs::Beats.new(config)
           expect { plugin.register }.to raise_error(LogStash::ConfigurationError)
@@ -69,7 +69,7 @@ describe LogStash::Inputs::Beats do
 
       context "with invalid key configuration" do
         let(:p12_key) { certificate.p12_key }
-        let(:config) { { "port" => 0, "ssl" => true, "ssl_certificate" => certificate.ssl_cert, "ssl_key" => p12_key } }
+        let(:config) { { "port" => 0, "ssl_enabled" => true, "ssl_certificate" => certificate.ssl_cert, "ssl_key" => p12_key } }
         it "should fail to register the plugin" do
           plugin = LogStash::Inputs::Beats.new(config)
           expect( plugin.logger ).to receive(:error) do |msg, opts|
@@ -93,13 +93,65 @@ describe LogStash::Inputs::Beats do
         end
       end
 
-      context "verify_mode" do
-        context "verify_mode configured to PEER" do
-          let(:config) { super().merge("ssl_verify_mode" => "peer") }
+      context "ssl_client_authentication" do
+        context "normalized from ssl_verify_mode NONE" do
+          let(:config) { super().merge("ssl_verify_mode" => "none") }
+
+          it 'should transform the value to NONE' do
+            plugin = LogStash::Inputs::Beats.new(config)
+            plugin.register
+
+            expect(plugin.params).to match hash_including("ssl_client_authentication" => "none")
+            expect(plugin.instance_variable_get(:@ssl_client_authentication)).to eql("none")
+          end
+        end
+
+        context "normalized from ssl_verify_mode PEER" do
+          let(:config) { super().merge("ssl_verify_mode" => "peer", "ssl_certificate_authorities" => [certificate.ssl_cert]) }
+
+          it 'should transform the value to OPTIONAL' do
+            plugin = LogStash::Inputs::Beats.new(config)
+            plugin.register
+
+            expect(plugin.params).to match hash_including("ssl_client_authentication" => "optional")
+            expect(plugin.instance_variable_get(:@ssl_client_authentication)).to eql("optional")
+          end
+
+          context "with no ssl_certificate_authorities set " do
+            let(:config) { super().reject { |key| "ssl_certificate_authorities".eql?(key) } }
+            it "raise a configuration error" do
+              plugin = LogStash::Inputs::Beats.new(config)
+              expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "ssl_certificate_authorities => is a required setting when ssl_verify_mode => 'peer' is configured")
+            end
+          end
+        end
+
+        context "normalized from ssl_verify_mode FORCE_PEER" do
+          let(:config) { super().merge("ssl_verify_mode" => "force_peer", "ssl_certificate_authorities" => [certificate.ssl_cert]) }
+
+          it 'should transform the value to REQUIRED' do
+            plugin = LogStash::Inputs::Beats.new(config)
+            plugin.register
+
+            expect(plugin.params).to match hash_including("ssl_client_authentication" => "required")
+            expect(plugin.instance_variable_get(:@ssl_client_authentication)).to eql("required")
+          end
+
+          context "with no ssl_certificate_authorities set " do
+            let(:config) { super().reject { |key| "ssl_certificate_authorities".eql?(key) } }
+            it "raise a configuration error" do
+              plugin = LogStash::Inputs::Beats.new(config)
+              expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "ssl_certificate_authorities => is a required setting when ssl_verify_mode => 'force_peer' is configured")
+            end
+          end
+        end
+
+        context "configured to REQUIRED" do
+          let(:config) { super().merge("ssl_client_authentication" => "required") }
 
           it "raise a ConfigurationError when certificate_authorities is not set" do
             plugin = LogStash::Inputs::Beats.new(config)
-            expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "ssl_certificate_authorities => is a required setting when ssl_verify_mode => 'peer' is configured")
+            expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "ssl_certificate_authorities => is a required setting when ssl_client_authentication => 'required' is configured")
           end
 
           it "doesn't raise a configuration error when certificate_authorities is set" do
@@ -109,12 +161,12 @@ describe LogStash::Inputs::Beats do
           end
         end
 
-        context "verify_mode configured to FORCE_PEER" do
-          let(:config) { super().merge("ssl_verify_mode" => "force_peer") }
+        context "configured to OPTIONAL" do
+          let(:config) { super().merge("ssl_client_authentication" => "optional") }
 
           it "raise a ConfigurationError when certificate_authorities is not set" do
             plugin = LogStash::Inputs::Beats.new(config)
-            expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "ssl_certificate_authorities => is a required setting when ssl_verify_mode => 'force_peer' is configured")
+            expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "ssl_certificate_authorities => is a required setting when ssl_client_authentication => 'optional' is configured")
           end
 
           it "doesn't raise a configuration error when certificate_authorities is set" do
@@ -157,12 +209,28 @@ describe LogStash::Inputs::Beats do
             expect { plugin.register }.to raise_error LogStash::ConfigurationError, /Use only .?ssl_supported_protocols.?/i
           end
         end
+
+        context "with ssl_client_authentication and ssl_verify_mode set" do
+          let(:config) { super().merge("ssl_verify_mode" => "none", "ssl_client_authentication" => "none") }
+          it "raise a configuration error" do
+            plugin = LogStash::Inputs::Beats.new(config)
+            expect { plugin.register }.to raise_error LogStash::ConfigurationError, /Use only .?ssl_client_authentication.?/i
+          end
+        end
+      end
+
+      context "with ssl and ssl_enabled set" do
+        let(:config) { super().merge("ssl" => true) }
+        it "raise a configuration error" do
+          plugin = LogStash::Inputs::Beats.new(config)
+          expect { plugin.register }.to raise_error LogStash::ConfigurationError, /Use only .?ssl_enabled.?/i
+        end
       end
     end
 
     context "with ssl disabled" do
       context "and certificate configuration" do
-        let(:config) { { "port" => 0, "ssl" => false, "ssl_certificate" => certificate.ssl_cert, "type" => "example", "tags" => "Beats" } }
+        let(:config) { { "port" => 0, "ssl_enabled" => false, "ssl_certificate" => certificate.ssl_cert, "type" => "example", "tags" => "Beats" } }
 
         it "should not fail" do
           plugin = LogStash::Inputs::Beats.new(config)
@@ -171,7 +239,7 @@ describe LogStash::Inputs::Beats do
       end
 
       context "and certificate key configuration" do
-        let(:config) {{ "port" => 0, "ssl" => false, "ssl_key" => certificate.ssl_key, "type" => "example", "tags" => "beats" }}
+        let(:config) {{ "port" => 0, "ssl_enabled" => false, "ssl_key" => certificate.ssl_key, "type" => "example", "tags" => "beats" }}
 
         it "should not fail" do
           plugin = LogStash::Inputs::Beats.new(config)
@@ -180,7 +248,7 @@ describe LogStash::Inputs::Beats do
       end
 
       context "and no certificate or key configured" do
-        let(:config) {{ "ssl" => false, "port" => 0, "type" => "example", "tags" => "beats" }}
+        let(:config) {{ "ssl_enabled" => false, "port" => 0, "type" => "example", "tags" => "beats" }}
 
         it "should work just fine" do
           plugin = LogStash::Inputs::Beats.new(config)

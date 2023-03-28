@@ -29,15 +29,15 @@ import java.util.Set;
 public class SslContextBuilder {
 
     public enum SslClientVerifyMode {
-        VERIFY_PEER,
-        FORCE_PEER,
+        OPTIONAL,
+        REQUIRED,
     }
     private final static Logger logger = LogManager.getLogger(SslContextBuilder.class);
 
 
     private File sslKeyFile;
     private File sslCertificateFile;
-    private SslClientVerifyMode verifyMode = SslClientVerifyMode.FORCE_PEER;
+    private SslClientVerifyMode verifyMode = SslClientVerifyMode.REQUIRED;
 
     public static final Set<String> SUPPORTED_CIPHERS = new HashSet<>(Arrays.asList(
         ((SSLServerSocketFactory) SSLServerSocketFactory.getDefault()).getSupportedCipherSuites()
@@ -170,10 +170,10 @@ public class SslContextBuilder {
                 logger.debug("Certificate Authorities: " + Arrays.toString(certificateAuthorities));
 
             builder.trustManager(loadCertificateCollection(certificateAuthorities));
-            if(verifyMode == SslClientVerifyMode.FORCE_PEER) {
+            if(verifyMode == SslClientVerifyMode.REQUIRED) {
                 // Explicitly require a client certificate
                 builder.clientAuth(ClientAuth.REQUIRE);
-            } else if(verifyMode == SslClientVerifyMode.VERIFY_PEER) {
+            } else if(verifyMode == SslClientVerifyMode.OPTIONAL) {
                 // If the client supply a client certificate we will verify it.
                 builder.clientAuth(ClientAuth.OPTIONAL);
             }

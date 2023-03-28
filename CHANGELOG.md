@@ -1,3 +1,8 @@
+## 6.6.0
+ - Reviewed and deprecated SSL settings to comply with Logstash's naming convention [#470](https://github.com/logstash-plugins/logstash-input-beats/pull/470)
+   - Deprecated `ssl` in favor of `ssl_enabled`
+   - Deprecated `ssl_verify_mode` in favor of `ssl_client_authentication`
+
 ## 6.5.0
  - An enrichment `enrich` option added to control ECS passthrough. `ssl_peer_metadata` and `include_codec_tag` configurations are deprecated and can be managed through the `enrich`  [#464](https://github.com/logstash-plugins/logstash-input-beats/pull/464)
 
