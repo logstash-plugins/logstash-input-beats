@@ -432,7 +432,7 @@ For example, the ChaCha20 family of ciphers is not supported in older versions.
 * Value can be any of: `none`, `optional`, `required`
 * Default value is `"none"`
 
-Controls the server’s behavior in regard to requesting a certificate from client connections:
+Controls the server's behavior in regard to requesting a certificate from client connections:
 `required` forces a client to present a certificate, while `optional` requests a client certificate
 but the client is not required to present one. Defaults to `none`, which disables the client authentication.
 
@@ -515,7 +515,8 @@ deprecated[6.6.0, Replaced by <<plugins-{type}s-{plugin}-ssl_client_authenticati
   * Value can be any of: `none`, `peer`, `force_peer`
   * Default value is `"none"`
 
-By default the server doesn't do any client verification.
+By default, the server doesn't do any client verification. If the <<plugins-{type}s-{plugin}-ssl_certificate_authorities>>
+is configured, and no value or `none` is provided for this option, it defaults to `force_peer` instead of `none`.
 
 `peer` will make the server ask the client to provide a certificate.
 If the client provides a certificate, it will be validated.
@@ -523,7 +524,7 @@ If the client provides a certificate, it will be validated.
 `force_peer` will make the server ask the client to provide a certificate.
 If the client doesn't provide a certificate, the connection will be closed.
 
-This option needs to be used with `ssl_certificate_authorities` and a defined list of CAs.
+This option needs to be used with <<plugins-{type}s-{plugin}-ssl_certificate_authorities>> and a defined list of CAs.
 
 [id="plugins-{type}s-{plugin}-tls_max_version"]
 ===== `tls_max_version`

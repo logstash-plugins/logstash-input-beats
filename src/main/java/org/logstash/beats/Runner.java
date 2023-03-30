@@ -1,6 +1,5 @@
 package org.logstash.beats;
 
-import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.netty.SslContextBuilder;
@@ -11,8 +10,6 @@ public class Runner {
     private static final int DEFAULT_PORT = 5044;
 
     private final static Logger logger = LogManager.getLogger(Runner.class);
-
-
 
     static public void main(String[] args) throws Exception {
         logger.info("Starting Beats Bulk");
@@ -34,7 +31,7 @@ public class Runner {
 
             SslContextBuilder sslBuilder = new SslContextBuilder(sslCertificate, sslKey, null)
                     .setProtocols(new String[] { "TLSv1.2", "TLSv1.3" })
-                    .setCertificateAuthorities(certificateAuthorities);
+                    .setClientAuthentication(SslContextBuilder.SslClientVerifyMode.REQUIRED, certificateAuthorities);
             SslHandlerProvider sslHandlerProvider = new SslHandlerProvider(sslBuilder.buildContext(), 10000);
             server.setSslHandlerProvider(sslHandlerProvider);
         }

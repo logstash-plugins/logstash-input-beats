@@ -119,7 +119,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # If the client doesn't provide a certificate, the connection will be closed.
   #
   # This option needs to be used with `ssl_certificate_authorities` and a defined list of CAs.
-  config :ssl_verify_mode, :validate => ["none", "peer", "force_peer"], :default => "none", :deprecated => "Use 'ssl_client_authentication' instead."
+  config :ssl_verify_mode, :validate => ["none", "peer", "force_peer"], :default => "none", :deprecated => "Set 'ssl_client_authentication' instead."
 
   # Enables storing client certificate information in event's metadata. You need 
   # to configure the `ssl_verify_mode` to `peer` or `force_peer` to enable this.
@@ -172,12 +172,19 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   attr_reader :field_tls_protocol_version, :field_tls_peer_subject, :field_tls_cipher
   attr_reader :include_source_metadata
 
+  NON_PREFIXED_SSL_CONFIGS = Set[
+    'tls_min_version',
+    'tls_max_version',
+    'cipher_suites',
+  ].freeze
+
   SSL_VERIFY_MODE_TO_CLIENT_AUTHENTICATION_MAP = {
     'none' => 'none',
     'peer' => 'optional',
     'force_peer' => 'required'
   }.freeze
 
+  private_constant :NON_PREFIXED_SSL_CONFIGS
   private_constant :SSL_VERIFY_MODE_TO_CLIENT_AUTHENTICATION_MAP
 
   def register
@@ -230,18 +237,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   def create_server
     server = org.logstash.beats.Server.new(@host, @port, @client_inactivity_timeout, @executor_threads)
-    if @ssl_enabled
-      ssl_context_builder = new_ssl_context_builder
-      if client_authentication?
-        if @ssl_client_authentication == "required"
-          ssl_context_builder.setVerifyMode(SslContextBuilder::SslClientVerifyMode::REQUIRED)
-        elsif @ssl_client_authentication == "optional"
-          ssl_context_builder.setVerifyMode(SslContextBuilder::SslClientVerifyMode::OPTIONAL)
-        end
-        ssl_context_builder.setCertificateAuthorities(@ssl_certificate_authorities)
-      end
-      server.setSslHandlerProvider(new_ssl_handshake_provider(ssl_context_builder))
-    end
+    server.setSslHandlerProvider(new_ssl_handshake_provider(new_ssl_context_builder)) if @ssl_enabled
     server
   end
 
@@ -263,20 +259,39 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     !@target_codec_on_field.empty?
   end
 
-  def client_authentication?
+  def client_authentication_enabled?
+    if original_params.include?('ssl_client_authentication')
+      return client_authentication_optional? || client_authentication_required?
+    end
+
+    # Keep backward compatibility with the deprecated `ssl_verify_mode` until it's not removed.
+    # When it's explicitly set (or both settings are absent), it should use the ssl_certificate_authorities
+    # to enable/disable the client authentication. (even if ssl_verify_mode => none)
+    certificate_authorities_configured?
+  end
+
+  def certificate_authorities_configured?
     @ssl_certificate_authorities && @ssl_certificate_authorities.size > 0
   end
 
   def client_authentication_metadata?
-    @ssl_peer_metadata && ssl_configured? && client_authentication?
+    @ssl_enabled && @ssl_peer_metadata && ssl_configured? && client_authentication_enabled?
   end
 
   def client_authentication_required?
-    @ssl_client_authentication == "required"
+    @ssl_client_authentication && @ssl_client_authentication.downcase == "required"
+  end
+
+  def client_authentication_optional?
+    @ssl_client_authentication && @ssl_client_authentication.downcase == "optional"
+  end
+
+  def client_authentication_none?
+    @ssl_client_authentication && @ssl_client_authentication.downcase == 'none'
   end
 
   def require_certificate_authorities?
-    @ssl_client_authentication == "required" || @ssl_client_authentication == "optional"
+    client_authentication_required? || client_authentication_optional?
   end
 
   def include_source_metadata?
@@ -286,29 +301,42 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   private
 
   def validate_ssl_config!
+    ssl_config_name = original_params.include?('ssl') ? 'ssl' : 'ssl_enabled'
+
     unless @ssl_enabled
-      @logger.warn("configured ssl_certificate => #{@ssl_certificate.inspect} will not be used") if @ssl_certificate
-      @logger.warn("configured ssl_key => #{@ssl_key.inspect} will not be used") if @ssl_key
+      ignored_ssl_settings = @original_params.select { |k| k != 'ssl_enabled' && k.start_with?('ssl_') || NON_PREFIXED_SSL_CONFIGS.include?(k) }
+      @logger.warn("Configured SSL settings are not used when `#{ssl_config_name}` is set to `false`: #{ignored_ssl_settings.keys}") if ignored_ssl_settings.any?
       return
     end
 
     if @ssl_key.nil? || @ssl_key.empty?
-      configuration_error "ssl_key => is a required setting when #{original_params.include?('ssl') ? 'ssl' : 'ssl_enabled'} => true is configured"
+      configuration_error "ssl_key => is a required setting when #{ssl_config_name} => true is configured"
     end
 
     if @ssl_certificate.nil? || @ssl_certificate.empty?
-      configuration_error "ssl_certificate => is a required setting when #{original_params.include?('ssl') ? 'ssl' : 'ssl_enabled'} => true is configured"
+      configuration_error "ssl_certificate => is a required setting when #{ssl_config_name} => true is configured"
     end
 
-    ssl_verify_mode_set = original_params.include?('ssl_verify_mode')
-    if require_certificate_authorities? && !client_authentication?
-      configuration_error "ssl_certificate_authorities => is a required setting when #{ssl_verify_mode_set ? 'ssl_verify_mode' : 'ssl_client_authentication'} => "\
-                            "'#{ssl_verify_mode_set ? SSL_VERIFY_MODE_TO_CLIENT_AUTHENTICATION_MAP.key(@ssl_client_authentication) : @ssl_client_authentication}' is configured"
+    if require_certificate_authorities? && !certificate_authorities_configured?
+      config_name, config_value = provided_client_authentication_config
+      configuration_error "ssl_certificate_authorities => is a required setting when #{config_name} => '#{config_value}' is configured"
     end
 
     if client_authentication_metadata? && !require_certificate_authorities?
-      configuration_error "Configuring ssl_peer_metadata => true requires #{ssl_verify_mode_set ? 'ssl_verify_mode' : 'ssl_client_authentication'} => to be configured with "\
-                            "'#{ssl_verify_mode_set ? 'certificate' : SSL_VERIFY_MODE_TO_CLIENT_AUTHENTICATION_MAP.key('peer')}' or '#{ssl_verify_mode_set ? 'full' : SSL_VERIFY_MODE_TO_CLIENT_AUTHENTICATION_MAP.key('force_peer')}'"
+      config_name, optional, required = provided_client_authentication_config(%w[optional required])
+      configuration_error "Configuring ssl_peer_metadata => true requires #{config_name} => to be configured with '#{optional}' or '#{required}'"
+    end
+
+    if original_params.include?('ssl_client_authentication') && certificate_authorities_configured? && !require_certificate_authorities?
+        configuration_error "Configuring ssl_certificate_authorities requires ssl_client_authentication => to be configured with 'optional' or 'required'"
+    end
+  end
+
+  def provided_client_authentication_config(values = [@ssl_client_authentication])
+    if original_params.include?('ssl_verify_mode')
+      ['ssl_verify_mode', *values.map { |v| SSL_VERIFY_MODE_TO_CLIENT_AUTHENTICATION_MAP.key(v) }]
+    else
+      ['ssl_client_authentication', *values]
     end
   end
 
@@ -329,7 +357,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
     @ssl_client_authentication = normalize_config(:ssl_client_authentication) do |normalizer|
       normalizer.with_deprecated_mapping(:ssl_verify_mode) do |ssl_verify_mode|
-        normalized_value = SSL_VERIFY_MODE_TO_CLIENT_AUTHENTICATION_MAP[ssl_verify_mode]
+        normalized_value = SSL_VERIFY_MODE_TO_CLIENT_AUTHENTICATION_MAP[ssl_verify_mode.downcase]
         fail(LogStash::ConfigurationError, "Unsupported value #{ssl_verify_mode} for deprecated option `ssl_verify_mode`") unless normalized_value
         normalized_value
       end
@@ -356,13 +384,32 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   def new_ssl_context_builder
     passphrase = @ssl_key_passphrase.nil? ? nil : @ssl_key_passphrase.value
     begin
-      org.logstash.netty.SslContextBuilder.new(@ssl_certificate, @ssl_key, passphrase)
+      ssl_context_builder = org.logstash.netty.SslContextBuilder.new(@ssl_certificate, @ssl_key, passphrase)
           .setProtocols(@ssl_supported_protocols)
           .setCipherSuites(normalized_cipher_suites)
+
+      if client_authentication_enabled?
+        ssl_context_builder.setClientAuthentication(ssl_context_builder_verify_mode, @ssl_certificate_authorities)
+      end
+
+      ssl_context_builder
     rescue java.lang.IllegalArgumentException => e
       @logger.error("SSL configuration invalid", error_details(e))
       raise LogStash::ConfigurationError, e
     end
+  end
+
+  def ssl_context_builder_verify_mode
+    return SslContextBuilder::SslClientVerifyMode::OPTIONAL if client_authentication_optional?
+    return SslContextBuilder::SslClientVerifyMode::REQUIRED if client_authentication_required?
+
+    # Backward compatibility with the deprecated `ssl_verify_mode` and the current `none` overrides
+    if !original_params.include?('ssl_client_authentication') && certificate_authorities_configured?
+      return SslContextBuilder::SslClientVerifyMode::REQUIRED
+    end
+
+    return SslContextBuilder::SslClientVerifyMode::NONE if client_authentication_none?
+    configuration_error "Invalid `ssl_client_authentication` value #{@ssl_client_authentication}"
   end
 
   def normalized_cipher_suites
