@@ -412,8 +412,8 @@ SSL certificate to use.
 
 Validate client certificates against these authorities.
 You can define multiple files or paths. All the certificates will
-be read and added to the trust store. You need to configure the `ssl_verify_mode`
-to `peer` or `force_peer` to enable the verification.
+be read and added to the trust store. You need to configure the <<plugins-{type}s-{plugin}-ssl_client_authentication>>
+to `optional` or `required` to enable the verification.
 
 [id="plugins-{type}s-{plugin}-ssl_cipher_suites"]
 ===== `ssl_cipher_suites`
