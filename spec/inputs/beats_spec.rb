@@ -302,11 +302,10 @@ describe LogStash::Inputs::Beats do
         end
       end
 
-      context "and ssl_ settings provided" do
+      context "and `ssl_` settings provided" do
         let(:config) { { "port" => 0, "ssl_enabled" => false, "ssl_certificate" => certificate.ssl_cert, "ssl_client_authentication" => "none", "cipher_suites" => ["FOO"] } }
 
         it "should warn about not using the configs" do
-          puts config
           plugin = LogStash::Inputs::Beats.new(config)
           expect( plugin.logger ).to receive(:warn).with('Configured SSL settings are not used when `ssl_enabled` is set to `false`: ["ssl_certificate", "ssl_client_authentication", "cipher_suites"]')
 

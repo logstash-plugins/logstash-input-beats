@@ -178,12 +178,19 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     'cipher_suites',
   ].freeze
 
+  SSL_CLIENT_AUTH_NONE = 'none'.freeze
+  SSL_CLIENT_AUTH_OPTIONAL = 'optional'.freeze
+  SSL_CLIENT_AUTH_REQUIRED = 'required'.freeze
+
   SSL_VERIFY_MODE_TO_CLIENT_AUTHENTICATION_MAP = {
-    'none' => 'none',
-    'peer' => 'optional',
-    'force_peer' => 'required'
+    'none' => SSL_CLIENT_AUTH_NONE,
+    'peer' => SSL_CLIENT_AUTH_OPTIONAL,
+    'force_peer' => SSL_CLIENT_AUTH_REQUIRED
   }.freeze
 
+  private_constant :SSL_CLIENT_AUTH_NONE
+  private_constant :SSL_CLIENT_AUTH_OPTIONAL
+  private_constant :SSL_CLIENT_AUTH_REQUIRED
   private_constant :NON_PREFIXED_SSL_CONFIGS
   private_constant :SSL_VERIFY_MODE_TO_CLIENT_AUTHENTICATION_MAP
 
@@ -279,15 +286,15 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end
 
   def client_authentication_required?
-    @ssl_client_authentication && @ssl_client_authentication.downcase == "required"
+    @ssl_client_authentication && @ssl_client_authentication.downcase == SSL_CLIENT_AUTH_REQUIRED
   end
 
   def client_authentication_optional?
-    @ssl_client_authentication && @ssl_client_authentication.downcase == "optional"
+    @ssl_client_authentication && @ssl_client_authentication.downcase == SSL_CLIENT_AUTH_OPTIONAL
   end
 
   def client_authentication_none?
-    @ssl_client_authentication && @ssl_client_authentication.downcase == 'none'
+    @ssl_client_authentication && @ssl_client_authentication.downcase == SSL_CLIENT_AUTH_NONE
   end
 
   def require_certificate_authorities?
@@ -304,7 +311,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     ssl_config_name = original_params.include?('ssl') ? 'ssl' : 'ssl_enabled'
 
     unless @ssl_enabled
-      ignored_ssl_settings = @original_params.select { |k| k != 'ssl_enabled' && k.start_with?('ssl_') || NON_PREFIXED_SSL_CONFIGS.include?(k) }
+      ignored_ssl_settings = original_params.select { |k| k != 'ssl_enabled' && k.start_with?('ssl_') || NON_PREFIXED_SSL_CONFIGS.include?(k) }
       @logger.warn("Configured SSL settings are not used when `#{ssl_config_name}` is set to `false`: #{ignored_ssl_settings.keys}") if ignored_ssl_settings.any?
       return
     end
@@ -323,12 +330,12 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     end
 
     if client_authentication_metadata? && !require_certificate_authorities?
-      config_name, optional, required = provided_client_authentication_config(%w[optional required])
+      config_name, optional, required = provided_client_authentication_config([SSL_CLIENT_AUTH_OPTIONAL, SSL_CLIENT_AUTH_REQUIRED])
       configuration_error "Configuring ssl_peer_metadata => true requires #{config_name} => to be configured with '#{optional}' or '#{required}'"
     end
 
     if original_params.include?('ssl_client_authentication') && certificate_authorities_configured? && !require_certificate_authorities?
-        configuration_error "Configuring ssl_certificate_authorities requires ssl_client_authentication => to be configured with 'optional' or 'required'"
+      configuration_error "Configuring ssl_certificate_authorities requires ssl_client_authentication => to be configured with '#{SSL_CLIENT_AUTH_OPTIONAL}' or '#{SSL_CLIENT_AUTH_REQUIRED}'"
     end
   end
 

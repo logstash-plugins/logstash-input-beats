@@ -4,21 +4,28 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import org.hamcrest.core.Every;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.hamcrest.Matchers.*;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
-import static org.logstash.netty.SslContextBuilder.*;
-
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLServerSocketFactory;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLServerSocketFactory;
+import static org.hamcrest.Matchers.arrayWithSize;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.isIn;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.logstash.netty.SslContextBuilder.SUPPORTED_CIPHERS;
+import static org.logstash.netty.SslContextBuilder.SslClientVerifyMode;
+import static org.logstash.netty.SslContextBuilder.getDefaultCiphers;
 
 /**
  * Unit test for {@link SslContextBuilder}
@@ -136,14 +143,14 @@ public class SslContextBuilderTest {
 
         try {
             sslContextBuilder.setClientAuthentication(mode, new String[0]);
-            Assert.fail("No exception was thrown");
+            fail("No exception was thrown");
         } catch (IllegalArgumentException e) {
             assertThat(e.getMessage(), is(expectedMessage));
         }
 
         try {
             sslContextBuilder.setClientAuthentication(mode, null);
-            Assert.fail("No exception was thrown");
+            fail("No exception was thrown");
         } catch (IllegalArgumentException e) {
             assertThat(e.getMessage(), is(expectedMessage));
         }

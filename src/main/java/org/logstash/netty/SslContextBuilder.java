@@ -28,23 +28,18 @@ import java.util.Set;
 public class SslContextBuilder {
 
     public enum SslClientVerifyMode {
-        NONE,
-        OPTIONAL,
-        REQUIRED;
+        NONE(ClientAuth.NONE),
+        OPTIONAL(ClientAuth.OPTIONAL),
+        REQUIRED(ClientAuth.REQUIRE);
+
+        private final ClientAuth clientAuth;
+
+        SslClientVerifyMode(ClientAuth clientAuth) {
+            this.clientAuth = clientAuth;
+        }
 
         public ClientAuth toClientAuth() {
-            switch (this) {
-                case NONE:
-                    return ClientAuth.NONE;
-                case OPTIONAL:
-                    return ClientAuth.OPTIONAL;
-                case REQUIRED:
-                    return ClientAuth.REQUIRE;
-                default:
-                    throw new IllegalArgumentException(
-                            String.format("Unsupported SSL client authentication mode `%s`", this.name().toLowerCase())
-                    );
-            }
+            return clientAuth;
         }
     }
 
@@ -173,8 +168,8 @@ public class SslContextBuilder {
 
     public SslContext buildContext() throws Exception {
         if (logger.isDebugEnabled()) {
-            logger.debug(String.format("Available ciphers: %s", SUPPORTED_CIPHERS));
-            logger.debug(String.format("Ciphers: %s", Arrays.toString(ciphers)));
+            logger.debug("Available ciphers: {}", SUPPORTED_CIPHERS);
+            logger.debug("Ciphers: {}", Arrays.toString(ciphers));
         }
 
         io.netty.handler.ssl.SslContextBuilder builder = io.netty.handler.ssl.SslContextBuilder
@@ -184,7 +179,7 @@ public class SslContextBuilder {
 
         if (isClientAuthenticationEnabled(verifyMode)) {
             if (logger.isDebugEnabled()) {
-                logger.debug(String.format("Certificate Authorities: %s", Arrays.toString(certificateAuthorities)));
+                logger.debug("Certificate Authorities: {}", Arrays.toString(certificateAuthorities));
             }
 
             builder.clientAuth(verifyMode.toClientAuth())
