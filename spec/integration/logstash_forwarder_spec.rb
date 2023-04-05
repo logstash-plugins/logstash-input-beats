@@ -75,7 +75,7 @@ describe "Logstash-Forwarder", :integration => true do
     context "Server Verification" do
       let(:input_config) do
         super().merge({
-          "ssl" => true,
+          "ssl_enabled" => true,
           "ssl_certificate" => certificate_file,
           "ssl_key" => certificate_key_file,
         })

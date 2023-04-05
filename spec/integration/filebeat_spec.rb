@@ -112,7 +112,7 @@ describe "Filebeat", :integration => true do
 
       let(:input_config) do
         super().merge({
-          "ssl" => true,
+          "ssl_enabled" => true,
           "ssl_certificate" => certificate_file,
           "ssl_key" => certificate_key_file
         })
@@ -146,7 +146,7 @@ describe "Filebeat", :integration => true do
 
           let(:input_config) {
             super().merge({
-              "cipher_suites" => [logstash_cipher],
+              "ssl_cipher_suites" => [logstash_cipher],
               "tls_min_version" => "1.2"
             })
           }
@@ -281,11 +281,11 @@ describe "Filebeat", :integration => true do
 
         let(:input_config) do
           super().merge({
-            "ssl" => true,
+            "ssl_enabled" => true,
             "ssl_certificate_authorities" => certificate_authorities,
             "ssl_certificate" => server_certificate_file,
             "ssl_key" => server_certificate_key_file,
-            "ssl_verify_mode" => "force_peer"
+            "ssl_client_authentication" => "required"
           })
         end
 

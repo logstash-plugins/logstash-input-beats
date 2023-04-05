@@ -10,7 +10,6 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLServerSocketFactory;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
@@ -29,25 +28,36 @@ import java.util.Set;
 public class SslContextBuilder {
 
     public enum SslClientVerifyMode {
-        VERIFY_PEER,
-        FORCE_PEER,
+        NONE(ClientAuth.NONE),
+        OPTIONAL(ClientAuth.OPTIONAL),
+        REQUIRED(ClientAuth.REQUIRE);
+
+        private final ClientAuth clientAuth;
+
+        SslClientVerifyMode(ClientAuth clientAuth) {
+            this.clientAuth = clientAuth;
+        }
+
+        public ClientAuth toClientAuth() {
+            return clientAuth;
+        }
     }
-    private final static Logger logger = LogManager.getLogger(SslContextBuilder.class);
 
+    private static final Logger logger = LogManager.getLogger(SslContextBuilder.class);
 
-    private File sslKeyFile;
-    private File sslCertificateFile;
-    private SslClientVerifyMode verifyMode = SslClientVerifyMode.FORCE_PEER;
+    private final File sslKeyFile;
+    private final File sslCertificateFile;
+    private SslClientVerifyMode verifyMode = SslClientVerifyMode.NONE;
 
     public static final Set<String> SUPPORTED_CIPHERS = new HashSet<>(Arrays.asList(
-        ((SSLServerSocketFactory) SSLServerSocketFactory.getDefault()).getSupportedCipherSuites()
+            ((SSLServerSocketFactory) SSLServerSocketFactory.getDefault()).getSupportedCipherSuites()
     ));
 
     /*
-    Mordern Ciphers List from
+    Modern Ciphers List from
     https://wiki.mozilla.org/Security/Server_Side_TLS
     */
-    private final static String[] DEFAULT_CIPHERS;
+    private static final String[] DEFAULT_CIPHERS;
     static {
         String[] defaultCipherCandidates = new String[] {
             // Modern compatibility
@@ -73,7 +83,7 @@ public class SslContextBuilder {
     /*
       Reduced set of ciphers available when JCE Unlimited Strength Jurisdiction Policy is not installed.
      */
-    private final static String[] DEFAULT_CIPHERS_LIMITED = new String[] {
+    private static final String[] DEFAULT_CIPHERS_LIMITED = new String[]{
             "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
             "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
             "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
@@ -83,7 +93,7 @@ public class SslContextBuilder {
     private String[] ciphers = DEFAULT_CIPHERS;
     private String[] protocols = new String[] { "TLSv1.2", "TLSv1.3" };
     private String[] certificateAuthorities;
-    private String passPhrase;
+    private final String passphrase;
 
     public SslContextBuilder(String sslCertificateFilePath, String sslKeyFilePath, String pass) throws IllegalArgumentException {
         sslCertificateFile = new File(sslCertificateFilePath);
@@ -96,7 +106,7 @@ public class SslContextBuilder {
             throw new IllegalArgumentException(
                     String.format("Private key file cannot be read. Please confirm the user running Logstash has permissions to read: %s", sslKeyFilePath));
         }
-        passPhrase = pass;
+        passphrase = pass;
     }
 
     public SslContextBuilder setProtocols(String[] protocols) {
@@ -120,7 +130,25 @@ public class SslContextBuilder {
         return this;
     }
 
-    public static String[] getDefaultCiphers(){
+    public SslContextBuilder setClientAuthentication(SslClientVerifyMode verifyMode, String[] certificateAuthorities) {
+        if (isClientAuthenticationEnabled(verifyMode) && (certificateAuthorities == null || certificateAuthorities.length < 1)) {
+            throw new IllegalArgumentException("Certificate authorities are required to enable client authentication");
+        }
+
+        this.verifyMode = verifyMode;
+        this.certificateAuthorities = certificateAuthorities;
+        return this;
+    }
+
+    private boolean isClientAuthenticationEnabled(final SslClientVerifyMode mode) {
+        return mode == SslClientVerifyMode.OPTIONAL || mode == SslClientVerifyMode.REQUIRED;
+    }
+
+    public boolean isClientAuthenticationRequired() {
+        return verifyMode == SslClientVerifyMode.REQUIRED;
+    }
+
+    public static String[] getDefaultCiphers() {
         if (isUnlimitedJCEAvailable()) {
             return DEFAULT_CIPHERS;
         } else {
@@ -129,7 +157,7 @@ public class SslContextBuilder {
         }
     }
 
-    public static boolean isUnlimitedJCEAvailable(){
+    public static boolean isUnlimitedJCEAvailable() {
         try {
             return (Cipher.getMaxAllowedKeyLength("AES") > 128);
         } catch (NoSuchAlgorithmException e) {
@@ -137,50 +165,26 @@ public class SslContextBuilder {
             return false;
         }
     }
-    public SslContextBuilder setCertificateAuthorities(String[] cert) {
-        certificateAuthorities = cert;
-        return this;
-    }
-
-    public SslContextBuilder setVerifyMode(SslClientVerifyMode mode) {
-        verifyMode = mode;
-        return this;
-    }
-
-    public File getSslKeyFile() {
-        return sslKeyFile;
-    }
-
-    public File getSslCertificateFile() {
-        return sslCertificateFile;
-    }
 
     public SslContext buildContext() throws Exception {
-        io.netty.handler.ssl.SslContextBuilder builder = io.netty.handler.ssl.SslContextBuilder.forServer(sslCertificateFile, sslKeyFile, passPhrase);
-
         if (logger.isDebugEnabled()) {
-            logger.debug("Available ciphers: " + SUPPORTED_CIPHERS);
-            logger.debug("Ciphers:  " + Arrays.toString(ciphers));
+            logger.debug("Available ciphers: {}", SUPPORTED_CIPHERS);
+            logger.debug("Ciphers: {}", Arrays.toString(ciphers));
         }
 
-        builder.ciphers(Arrays.asList(ciphers));
+        io.netty.handler.ssl.SslContextBuilder builder = io.netty.handler.ssl.SslContextBuilder
+                .forServer(sslCertificateFile, sslKeyFile, passphrase)
+                .ciphers(Arrays.asList(ciphers))
+                .protocols(protocols);
 
-        if(requireClientAuth()) {
-            if (logger.isDebugEnabled())
-                logger.debug("Certificate Authorities: " + Arrays.toString(certificateAuthorities));
-
-            builder.trustManager(loadCertificateCollection(certificateAuthorities));
-            if(verifyMode == SslClientVerifyMode.FORCE_PEER) {
-                // Explicitly require a client certificate
-                builder.clientAuth(ClientAuth.REQUIRE);
-            } else if(verifyMode == SslClientVerifyMode.VERIFY_PEER) {
-                // If the client supply a client certificate we will verify it.
-                builder.clientAuth(ClientAuth.OPTIONAL);
+        if (isClientAuthenticationEnabled(verifyMode)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Certificate Authorities: {}", Arrays.toString(certificateAuthorities));
             }
-        }else{
-            builder.clientAuth(ClientAuth.NONE);
+
+            builder.clientAuth(verifyMode.toClientAuth())
+                    .trustManager(loadCertificateCollection(certificateAuthorities));
         }
-        builder.protocols(protocols);
 
         try {
             return builder.build();
@@ -190,7 +194,9 @@ public class SslContextBuilder {
             if ("failed to initialize the server-side SSL context".equals(e.getMessage()) ||
                 "failed to initialize the client-side SSL context".equals(e.getMessage())) {
                 // Netty catches Exception and simply wraps: throw new SSLException("...", e);
-                if (e.getCause() instanceof Exception) throw (Exception) e.getCause();
+                if (e.getCause() instanceof Exception) {
+                    throw (Exception) e.getCause();
+                }
             }
             throw e;
         } catch (Exception e) {
@@ -203,14 +209,11 @@ public class SslContextBuilder {
         logger.debug("Load certificates collection");
         CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
 
-        List<X509Certificate> collections = new ArrayList<X509Certificate>();
-
-        for(int i = 0; i < certificates.length; i++) {
-            String certificate = certificates[i];
-
+        final List<X509Certificate> collections = new ArrayList<>();
+        for (String certificate : certificates) {
             logger.debug("Loading certificates from file {}", certificate);
 
-            try(InputStream in = new FileInputStream(certificate)) {
+            try (InputStream in = new FileInputStream(certificate)) {
                 List<X509Certificate> certificatesChains = (List<X509Certificate>) certificateFactory.generateCertificates(in);
                 collections.addAll(certificatesChains);
             }
@@ -218,23 +221,24 @@ public class SslContextBuilder {
         return collections.toArray(new X509Certificate[collections.size()]);
     }
 
-    private boolean requireClientAuth() {
-        if(certificateAuthorities != null) {
-            return true;
-        }
-
-        return false;
-    }
-
-    private FileInputStream createFileInputStream(String filepath) throws FileNotFoundException {
-        return new FileInputStream(filepath);
-    }
-
     /**
      * Get the supported protocols
+     *
      * @return a defensive copy of the supported protocols
      */
     String[] getProtocols() {
-        return protocols.clone();
+        return protocols != null ? protocols.clone() : null;
+    }
+
+    String[] getCertificateAuthorities() {
+        return certificateAuthorities != null ? certificateAuthorities.clone() : null;
+    }
+
+    String[] getCiphers() {
+        return ciphers != null ? ciphers.clone() : null;
+    }
+
+    SslClientVerifyMode getVerifyMode() {
+        return verifyMode;
     }
 }
