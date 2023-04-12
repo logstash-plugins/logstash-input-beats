@@ -286,7 +286,7 @@ Refer to <<plugins-{type}s-{plugin}-ecs_metadata,ECS mapping>> for detailed info
 ===== `enrich`
 
 * Value type is <<string,string>>
-** A <<list,list>> can also be provided
+** An <<array,array>> can also be provided
 ** Configures which enrichments are applied to each event
 ** Default value is `[codec_metadata, source_metadata]` that may be extended in future versions of this plugin to include additional enrichments.
 ** Supported values are:
@@ -296,7 +296,7 @@ Refer to <<plugins-{type}s-{plugin}-ecs_metadata,ECS mapping>> for detailed info
 |Enrichment | Description
 
 | codec_metadata    | Information about how the codec transformed a sequence of bytes into
-                      this Event, such as _which_ codec was used. Also, if no <<codec>> is
+                      this Event, such as _which_ codec was used. Also, if no codec is
                       explicitly specified, _excluding_ `codec_metadata` from `enrich` will
                       disable `ecs_compatibility` for this plugin.
 | source_metadata   | Information about the _source_ of the event, such as the IP address
@@ -308,7 +308,7 @@ Refer to <<plugins-{type}s-{plugin}-ecs_metadata,ECS mapping>> for detailed info
 | all               | _alias_ to include _all_ available enrichments (including additional
                       enrichments introduced in future versions of this plugin)
 | none              | _alias_ to _exclude_ all available enrichments. Note that, _explicitly_
-                      defining <<codec>> with this option will not disable the `ecs_compatibility`,
+                      defining codec with this option will not disable the `ecs_compatibility`,
                       instead it relies on pipeline or codec `ecs_compatibility` configuration.
 |=======================================================================
 
