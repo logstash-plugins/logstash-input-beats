@@ -286,7 +286,7 @@ Refer to <<plugins-{type}s-{plugin}-ecs_metadata,ECS mapping>> for detailed info
 ===== `enrich`
 
 * Value type is <<string,string>>
-** A <<list,list>> can also be provided
+** An <<array,array>> can also be provided
 ** Configures which enrichments are applied to each event
 ** Default value is `[codec_metadata, source_metadata]` that may be extended in future versions of this plugin to include additional enrichments.
 ** Supported values are:
