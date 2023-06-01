@@ -1,3 +1,6 @@
+## 6.6.1
+  - update netty to 4.1.93 and jackson to 2.13.5 [#472](https://github.com/logstash-plugins/logstash-input-beats/pull/472)
+
 ## 6.6.0
  - Reviewed and deprecated SSL settings to comply with Logstash's naming convention [#470](https://github.com/logstash-plugins/logstash-input-beats/pull/470)
    - Deprecated `ssl` in favor of `ssl_enabled`
