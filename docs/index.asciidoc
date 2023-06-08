@@ -436,6 +436,10 @@ Controls the server's behavior in regard to requesting a certificate from client
 `required` forces a client to present a certificate, while `optional` requests a client certificate
 but the client is not required to present one. Defaults to `none`, which disables the client authentication.
 
+When mutual TLS is enabled (`required` or `optional`), the certificate presented by the client must be signed by trusted
+<<plugins-{type}s-{plugin}-ssl_certificate_authorities>> (CAs).
+Please note that the server does not validate the client certificate CN (Common Name) or SAN (Subject Alternative Name).
+
 NOTE: This setting can be used only if <<plugins-{type}s-{plugin}-ssl_certificate_authorities>> is set.
 
 [id="plugins-{type}s-{plugin}-ssl_enabled"]
@@ -524,7 +528,11 @@ If the client provides a certificate, it will be validated.
 `force_peer` will make the server ask the client to provide a certificate.
 If the client doesn't provide a certificate, the connection will be closed.
 
-This option needs to be used with <<plugins-{type}s-{plugin}-ssl_certificate_authorities>> and a defined list of CAs.
+When mutual TLS is enabled (`peer` or `force_peer`), the certificate presented by the client must be signed by trusted
+<<plugins-{type}s-{plugin}-ssl_certificate_authorities>> (CAs).
+Please note that the server does not validate the client certificate CN (Common Name) or SAN (Subject Alternative Name).
+
+NOTE: This setting can be used only if <<plugins-{type}s-{plugin}-ssl_certificate_authorities>> is set.
 
 [id="plugins-{type}s-{plugin}-tls_max_version"]
 ===== `tls_max_version`

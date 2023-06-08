@@ -1,3 +1,6 @@
+## 6.6.1
+ - [DOC] Updated the `ssl_client_authentication` and `ssl_verify_mode` documentation explaining that CN and SAN are not validated. [#473](https://github.com/logstash-plugins/logstash-input-beats/pull/473)
+
 ## 6.6.0
  - Reviewed and deprecated SSL settings to comply with Logstash's naming convention [#470](https://github.com/logstash-plugins/logstash-input-beats/pull/470)
    - Deprecated `ssl` in favor of `ssl_enabled`
