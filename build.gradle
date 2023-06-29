@@ -13,7 +13,7 @@ description = "Beats/Lumberjack Netty implementation"
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-String jacksonVersion = '2.13.5'
+String jacksonVersion = '2.15.2'
 String jacksonDatabindVersion = '2.15.2'
 String nettyVersion = '4.1.94.Final'
 
