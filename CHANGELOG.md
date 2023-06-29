@@ -1,4 +1,7 @@
 ## 6.6.1
+  - bump netty to 4.1.94 [#474](https://github.com/logstash-plugins/logstash-input-beats/pull/474)
+
+## 6.6.1
   - update netty to 4.1.93 and jackson to 2.13.5 [#472](https://github.com/logstash-plugins/logstash-input-beats/pull/472)
 
 ## 6.6.0
