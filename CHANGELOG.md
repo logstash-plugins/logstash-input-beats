@@ -1,3 +1,6 @@
+## 6.6.3
+ - [DOC] Updated the `ssl_client_authentication` and `ssl_verify_mode` documentation explaining that CN and SAN are not validated. [#473](https://github.com/logstash-plugins/logstash-input-beats/pull/473)
+
 ## 6.6.2
   - bump netty to 4.1.94 and jackson to 2.15.2 [#474](https://github.com/logstash-plugins/logstash-input-beats/pull/474)
 
