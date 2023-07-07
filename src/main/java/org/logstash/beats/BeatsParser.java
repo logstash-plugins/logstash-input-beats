@@ -52,6 +52,8 @@ public class BeatsParser extends ByteToMessageDecoder {
     private long usedDirectMemory;
     private boolean closeCalled = false;
 
+    private boolean stopAutoreadRequested = false;
+
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws InvalidFrameProtocolException, IOException {
         if (!hasEnoughBytes(in)) {
@@ -296,17 +298,25 @@ public class BeatsParser extends ByteToMessageDecoder {
         // but also give it back once a full batch is read.
         if ((!decodingCompressedBuffer) && (this.currentState != States.READ_COMPRESSED_FRAME)) {
             if (usedDirectMemory > (maxDirectMemory * 0.40)) {
-                ctx.channel().config().setAutoRead(false);
-                //System.out.println("pausing reads on " + ctx.channel().id());
-                ctx.channel().eventLoop().schedule(() -> {
-                    //System.out.println("resuming reads on " + ctx.channel().id());
-                    ctx.channel().config().setAutoRead(true);
-                }, 200, TimeUnit.MILLISECONDS);
+                if (!stopAutoreadRequested) {
+                    ctx.channel().config().setAutoRead(false);
+                    stopAutoreadRequested = true;
+                    logger.info("Set channel {} to autoread FALSE (> 40%)", ctx.channel());
+                    //System.out.println("pausing reads on " + ctx.channel().id());
+                    ctx.channel().eventLoop().schedule(() -> {
+                        //System.out.println("resuming reads on " + ctx.channel().id());
+                        ctx.channel().config().setAutoRead(true);
+                        stopAutoreadRequested = false;
+                        logger.info("Set channel {} to autoread TRUE after 200 ms", ctx.channel());
+                    }, 200, TimeUnit.MILLISECONDS);
+                }
             } else {
                 //System.out.println("no need to pause reads on " + ctx.channel().id());
             }
         } else if (usedDirectMemory > maxDirectMemory * 0.90) {
             ctx.channel().config().setAutoRead(false);
+            stopAutoreadRequested = true;
+            logger.info("Set channel {} to autoread FALSE (> 90%)", ctx.channel());
             ctx.close();
             closeCalled = true;
             ((ByteBuf) msg).release();
@@ -314,6 +324,22 @@ public class BeatsParser extends ByteToMessageDecoder {
             throw new IOException("about to explode, cut them all down " + ctx.channel().id());
         }
         super.channelRead(ctx, msg);
+    }
+
+    @Override
+    public void channelActive(final ChannelHandlerContext ctx) throws Exception {
+        super.channelActive(ctx);
+        if (!ctx.channel().config().isAutoRead()) {
+            ctx.channel().read();
+        }
+    }
+
+    @Override
+    public void channelReadComplete(final ChannelHandlerContext ctx) throws Exception {
+        super.channelReadComplete(ctx);
+        if (!ctx.channel().config().isAutoRead()) {
+            ctx.channel().read();
+        }
     }
 
     @Override
