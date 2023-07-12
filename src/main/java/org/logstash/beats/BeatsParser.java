@@ -23,7 +23,6 @@ import java.util.zip.InflaterOutputStream;
 
 public class BeatsParser extends ByteToMessageDecoder {
     private final static Logger logger = LogManager.getLogger(BeatsParser.class);
-    private final static long maxDirectMemory = io.netty.util.internal.PlatformDependent.maxDirectMemory();
 
     private Batch batch;
 
@@ -49,10 +48,6 @@ public class BeatsParser extends ByteToMessageDecoder {
     private int requiredBytes = 0;
     private int sequence = 0;
     private boolean decodingCompressedBuffer = false;
-    private long usedDirectMemory;
-    private boolean closeCalled = false;
-
-    private boolean stopAutoreadRequested = false;
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws InvalidFrameProtocolException, IOException {
@@ -62,7 +57,6 @@ public class BeatsParser extends ByteToMessageDecoder {
             }
             return;
         }
-        usedDirectMemory = ((PooledByteBufAllocator) ctx.alloc()).metric().usedDirectMemory();
 
         switch (currentState) {
             case READ_HEADER: {
@@ -192,12 +186,6 @@ public class BeatsParser extends ByteToMessageDecoder {
             case READ_COMPRESSED_FRAME: {
                 logger.trace("Running: READ_COMPRESSED_FRAME");
 
-                if (usedDirectMemory + requiredBytes > maxDirectMemory * 0.90) {
-                    ctx.channel().config().setAutoRead(false);
-                    ctx.close();
-                    closeCalled = true;
-                    throw new IOException("not enough memory to decompress this from " + ctx.channel().id());
-                }
                 inflateCompressedFrame(ctx, in, (buffer) -> {
                     transition(States.READ_HEADER);
 
@@ -208,10 +196,6 @@ public class BeatsParser extends ByteToMessageDecoder {
                         }
                     } finally {
                         decodingCompressedBuffer = false;
-                        ctx.channel().config().setAutoRead(false);
-                        ctx.channel().eventLoop().schedule(() -> {
-                            ctx.channel().config().setAutoRead(true);
-                        }, 5, TimeUnit.MILLISECONDS);
                         transition(States.READ_HEADER);
                     }
                 });
@@ -278,70 +262,6 @@ public class BeatsParser extends ByteToMessageDecoder {
         requiredBytes = 0;
         sequence = 0;
         batch = null;
-    }
-
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        //System.out.println("channelRead(" + ctx.channel().isActive() + ": " + ctx.channel().id() + ":" + currentState + ":" + decodingCompressedBuffer);
-        if (closeCalled) {
-            ((ByteBuf) msg).release();
-            //if(batch != null) batch.release();
-            return;
-        }
-        usedDirectMemory = ((PooledByteBufAllocator) ctx.alloc()).metric().usedDirectMemory();
-
-        // If we're just beginning a new frame on this channel,
-        // don't accumulate more data for 25 ms if usage of direct memory is above 20%
-        //
-        // The goal here is to avoid thundering herd: many beats connecting and sending data
-        // at the same time. As some channels progress to other states they'll use more memory
-        // but also give it back once a full batch is read.
-        if ((!decodingCompressedBuffer) && (this.currentState != States.READ_COMPRESSED_FRAME)) {
-            if (usedDirectMemory > (maxDirectMemory * 0.40)) {
-                if (!stopAutoreadRequested) {
-                    ctx.channel().config().setAutoRead(false);
-                    stopAutoreadRequested = true;
-                    logger.info("Set channel {} to autoread FALSE (> 40%)", ctx.channel());
-                    //System.out.println("pausing reads on " + ctx.channel().id());
-                    ctx.channel().eventLoop().schedule(() -> {
-                        //System.out.println("resuming reads on " + ctx.channel().id());
-                        ctx.channel().config().setAutoRead(true);
-                        stopAutoreadRequested = false;
-                        logger.info("Set channel {} to autoread TRUE after 200 ms", ctx.channel());
-                    }, 200, TimeUnit.MILLISECONDS);
-                }
-            } else {
-                //System.out.println("no need to pause reads on " + ctx.channel().id());
-            }
-        } else if (usedDirectMemory > maxDirectMemory * 0.90) {
-            ctx.channel().config().setAutoRead(false);
-            stopAutoreadRequested = true;
-            logger.info("Set channel {} to autoread FALSE (> 90%)", ctx.channel());
-            ctx.close();
-            closeCalled = true;
-            ((ByteBuf) msg).release();
-            if (batch != null) batch.release();
-            throw new IOException("about to explode, cut them all down " + ctx.channel().id());
-        }
-        super.channelRead(ctx, msg);
-    }
-
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        System.out.println(cause.getClass().toString() + ":" + ctx.channel().id().toString() + ":" + this.currentState + "|" + cause.getMessage());
-        if (cause instanceof DecoderException) {
-            ctx.channel().config().setAutoRead(false);
-            if (!closeCalled) ctx.close();
-        } else if (cause instanceof OutOfMemoryError) {
-            cause.printStackTrace();
-            ctx.channel().config().setAutoRead(false);
-            if (!closeCalled) ctx.close();
-        } else if (cause instanceof IOException) {
-            ctx.channel().config().setAutoRead(false);
-            if (!closeCalled) ctx.close();
-        } else {
-            super.exceptionCaught(ctx, cause);
-        }
     }
 
     @FunctionalInterface
