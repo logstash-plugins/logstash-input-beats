@@ -132,6 +132,7 @@ public class Server {
                              new IdleStateHandler(localClientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS, localClientInactivityTimeoutSeconds));
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
             pipeline.addLast(CONNECTION_HANDLER, new ConnectionHandler());
+            pipeline.addLast(new FlowLimiterHandler());
             pipeline.addLast(new BeatsParser());
             pipeline.addLast(new BeatsHandler(localMessageListener));
         }

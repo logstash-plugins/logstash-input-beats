@@ -327,22 +327,6 @@ public class BeatsParser extends ByteToMessageDecoder {
     }
 
     @Override
-    public void channelActive(final ChannelHandlerContext ctx) throws Exception {
-        super.channelActive(ctx);
-        if (!ctx.channel().config().isAutoRead()) {
-            ctx.channel().read();
-        }
-    }
-
-    @Override
-    public void channelReadComplete(final ChannelHandlerContext ctx) throws Exception {
-        super.channelReadComplete(ctx);
-        if (!ctx.channel().config().isAutoRead()) {
-            ctx.channel().read();
-        }
-    }
-
-    @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         System.out.println(cause.getClass().toString() + ":" + ctx.channel().id().toString() + ":" + this.currentState + "|" + cause.getMessage());
         if (cause instanceof DecoderException) {
