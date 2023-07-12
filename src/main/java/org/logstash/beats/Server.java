@@ -133,6 +133,7 @@ public class Server {
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
             pipeline.addLast(CONNECTION_HANDLER, new ConnectionHandler());
             pipeline.addLast(new FlowLimiterHandler());
+            pipeline.addLast(new ThunderingGuardHandler());
             pipeline.addLast(new BeatsParser());
             pipeline.addLast(new BeatsHandler(localMessageListener));
         }
