@@ -1,7 +1,6 @@
 package org.logstash.beats;
 
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -11,7 +10,7 @@ import org.apache.logging.log4j.Logger;
 /**
  * This handler is responsible to avoid accepting new connections when the direct memory
  * consumption is close to the MaxDirectMemorySize.
- *
+ * <p>
  * If the total allocated direct memory is close to the max memory size and also the pinned
  * bytes from the direct memory allocator is close to the direct memory used, then it drops the new
  * incoming connections.
@@ -31,6 +30,7 @@ public final class ThunderingGuardHandler extends ChannelInboundHandlerAdapter {
             long pinnedDirectMemory = pooledAllocator.pinnedDirectMemory();
             if (pinnedDirectMemory >= usedDirectMemory * 0.80) {
                 ctx.close();
+                logger.info("Dropping connection {} due to high resource consumption", ctx.channel());
                 return;
             }
         }
