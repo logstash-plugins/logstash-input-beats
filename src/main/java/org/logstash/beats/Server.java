@@ -1,6 +1,8 @@
 package org.logstash.beats;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -135,6 +137,7 @@ public class Server {
             pipeline.addLast(new FlowLimiterHandler());
             pipeline.addLast(new ThunderingGuardHandler());
             pipeline.addLast(new BeatsParser());
+            pipeline.addLast(new OOMConnectionCloser());
             pipeline.addLast(new BeatsHandler(localMessageListener));
         }
 
