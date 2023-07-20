@@ -2,6 +2,7 @@ package org.logstash.beats;
 
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
@@ -199,7 +200,16 @@ public class BeatsParser extends ByteToMessageDecoder {
             }
             case READ_JSON: {
                 logger.trace("Running: READ_JSON");
-                ((V2Batch) batch).addMessage(sequence, in, requiredBytes);
+                try {
+                    ((V2Batch) batch).addMessage(sequence, in, requiredBytes);
+                } catch (Throwable th) {
+                    // batch has to release its internal buffer before bubbling up the exception
+                    batch.release();
+
+                    // re throw the same error after released the internal buffer
+                    throw th;
+                }
+
                 if (batch.isComplete()) {
                     if (logger.isTraceEnabled()) {
                         logger.trace("Sending batch size: " + this.batch.size() + ", windowSize: " + batch.getBatchSize() + " , seq: " + sequence);
