@@ -106,7 +106,7 @@ NOTE: Be sure that heap and direct memory combined does not exceed the total mem
 To correctly size the direct memory to sustain the flow of incoming Beats connections, the medium size of the transmitted
 log lines has to be known and also the batch size used by Beats (default to 2048). Overall the connections, only a
 subset of them are actively processed in parallel by Netty, corresponding to the number of workers which equals the
-number of CPU cores available. For each under processing channel a batch of events is read and due to the way
+number of CPU cores available multiplied by 2. For each under processing channel a batch of events is read and due to the way
 the decompressing and decoding part works, it keeps two copies of the batch in memory.
 The expression used to calculate the maximum direct memory usage is:
 ["source","text"]
@@ -118,9 +118,9 @@ Supposing a 1Kb event size, there a small overhead of ~500 bytes of metadata tra
 consumption could be estimated as:
 ["source","text"]
 -----
-1,5 KB * 2048 * 2 * 12
+1,5 KB * 2048 * 2 * 24
 -----
-This totalling to about 140MB. So if you have some data about the medium size of the events to process you can size
+This totalling to about 280MB. So if you have some data about the medium size of the events to process you can size
 the memory accordingly without risking to go in Out-Of-Memory error on the direct memory space in production environment.
 
 //Content for Beats
