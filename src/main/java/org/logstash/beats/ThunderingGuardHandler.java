@@ -30,7 +30,7 @@ public final class ThunderingGuardHandler extends ChannelInboundHandlerAdapter {
             long pinnedDirectMemory = pooledAllocator.pinnedDirectMemory();
             if (pinnedDirectMemory >= usedDirectMemory * 0.80) {
                 ctx.close();
-                logger.info("Dropping connection {} due to high resource consumption", ctx.channel());
+                logger.warn("Dropping connection {} due to high resource consumption", ctx.channel());
                 return;
             }
         }
