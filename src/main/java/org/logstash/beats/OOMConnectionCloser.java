@@ -40,9 +40,8 @@ public class OOMConnectionCloser extends ChannelInboundHandlerAdapter {
         if (isDirectMemoryOOM(cause)) {
             DirectMemoryUsage direct = DirectMemoryUsage.capture();
             logger.info("Direct memory status, used: {}, pinned: {}, ratio: {}", direct.used, direct.pinned, direct.ratio);
-            logger.warn("Dropping connection {} because run out of direct memory. To fix it, check if the upstream source " +
-                    "has a way to lower the number of concurrent connections or reduce the bulk's size it transmits. " +
-                    "Raise up the -XX:MaxDirectMemorySize option in the JVM running Logstash", ctx.channel());
+            logger.warn("Dropping connection {} due to lack of available Direct Memory. Please lower the number of concurrent connections or reduce the batch size. " +
+                    "Alternatively, raise -XX:MaxDirectMemorySize option in the JVM running Logstash", ctx.channel());
             ctx.flush();
             ctx.close();
         } else {
