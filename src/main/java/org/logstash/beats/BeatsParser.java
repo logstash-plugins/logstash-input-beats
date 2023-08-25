@@ -2,12 +2,10 @@ package org.logstash.beats;
 
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
-import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
-import io.netty.handler.codec.DecoderException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -17,7 +15,6 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterOutputStream;
 
@@ -59,9 +56,13 @@ public class BeatsParser extends ByteToMessageDecoder {
             return;
         }
 
+        if (!ctx.channel().isOpen()) {
+            logger.info("Channel is not open, {}", ctx.channel());
+        }
+
         switch (currentState) {
             case READ_HEADER: {
-                logger.trace("Running: READ_HEADER");
+                logger.trace("Running: READ_HEADER {}", ctx.channel());
 
                 int version = Protocol.version(in.readByte());
 
@@ -74,7 +75,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                         batch = new V1Batch();
                     }
                 }
-                transition(States.READ_FRAME_TYPE);
+                transition(States.READ_FRAME_TYPE, ctx.channel());
                 break;
             }
             case READ_FRAME_TYPE: {
@@ -82,20 +83,20 @@ public class BeatsParser extends ByteToMessageDecoder {
 
                 switch(frameType) {
                     case Protocol.CODE_WINDOW_SIZE: {
-                        transition(States.READ_WINDOW_SIZE);
+                        transition(States.READ_WINDOW_SIZE, ctx.channel());
                         break;
                     }
                     case Protocol.CODE_JSON_FRAME: {
                         // Reading Sequence + size of the payload
-                        transition(States.READ_JSON_HEADER);
+                        transition(States.READ_JSON_HEADER, ctx.channel());
                         break;
                     }
                     case Protocol.CODE_COMPRESSED_FRAME: {
-                        transition(States.READ_COMPRESSED_FRAME_HEADER);
+                        transition(States.READ_COMPRESSED_FRAME_HEADER, ctx.channel());
                         break;
                     }
                     case Protocol.CODE_FRAME: {
-                        transition(States.READ_DATA_FIELDS);
+                        transition(States.READ_DATA_FIELDS, ctx.channel());
                         break;
                     }
                     default: {
@@ -105,8 +106,10 @@ public class BeatsParser extends ByteToMessageDecoder {
                 break;
             }
             case READ_WINDOW_SIZE: {
-                logger.trace("Running: READ_WINDOW_SIZE");
-                batch.setBatchSize((int) in.readUnsignedInt());
+                logger.trace("Running: READ_WINDOW_SIZE {}", ctx.channel());
+                int batchSize = (int) in.readUnsignedInt();
+                logger.trace("Batch size: {} - channel {}", batchSize, ctx.channel());
+                batch.setBatchSize(batchSize);
 
                 // This is unlikely to happen but I have no way to known when a frame is
                 // actually completely done other than checking the windows and the sequence number,
@@ -118,12 +121,12 @@ public class BeatsParser extends ByteToMessageDecoder {
                     batchComplete();
                 }
 
-                transition(States.READ_HEADER);
+                transition(States.READ_HEADER, ctx.channel());
                 break;
             }
             case READ_DATA_FIELDS: {
                 // Lumberjack version 1 protocol, which use the Key:Value format.
-                logger.trace("Running: READ_DATA_FIELDS");
+                logger.trace("Running: READ_DATA_FIELDS {}", ctx.channel());
                 sequence = (int) in.readUnsignedInt();
                 int fieldsCount = (int) in.readUnsignedInt();
                 int count = 0;
@@ -156,35 +159,36 @@ public class BeatsParser extends ByteToMessageDecoder {
                     out.add(batch);
                     batchComplete();
                 }
-                transition(States.READ_HEADER);
+                transition(States.READ_HEADER, ctx.channel());
 
                 break;
             }
             case READ_JSON_HEADER: {
-                logger.trace("Running: READ_JSON_HEADER");
+                logger.trace("Running: READ_JSON_HEADER {}", ctx.channel());
 
                 sequence = (int) in.readUnsignedInt();
+                logger.trace("Sequence num to read {} for channel {}", sequence, ctx.channel());
                 int jsonPayloadSize = (int) in.readUnsignedInt();
 
                 if(jsonPayloadSize <= 0) {
                     throw new InvalidFrameProtocolException("Invalid json length, received: " + jsonPayloadSize);
                 }
 
-                transition(States.READ_JSON, jsonPayloadSize);
+                transition(States.READ_JSON, jsonPayloadSize, ctx.channel());
                 break;
             }
             case READ_COMPRESSED_FRAME_HEADER: {
-                logger.trace("Running: READ_COMPRESSED_FRAME_HEADER");
+                logger.trace("Running: READ_COMPRESSED_FRAME_HEADER {}", ctx.channel());
 
-                transition(States.READ_COMPRESSED_FRAME, in.readInt());
+                transition(States.READ_COMPRESSED_FRAME, in.readInt(), ctx.channel());
                 break;
             }
 
             case READ_COMPRESSED_FRAME: {
-                logger.trace("Running: READ_COMPRESSED_FRAME");
+                logger.trace("Running: READ_COMPRESSED_FRAME {}", ctx.channel());
 
                 inflateCompressedFrame(ctx, in, (buffer) -> {
-                    transition(States.READ_HEADER);
+                    transition(States.READ_HEADER, ctx.channel());
 
                     decodingCompressedBuffer = true;
                     try {
@@ -193,13 +197,13 @@ public class BeatsParser extends ByteToMessageDecoder {
                         }
                     } finally {
                         decodingCompressedBuffer = false;
-                        transition(States.READ_HEADER);
+                        transition(States.READ_HEADER, ctx.channel());
                     }
                 });
                 break;
             }
             case READ_JSON: {
-                logger.trace("Running: READ_JSON");
+                logger.trace("Running: READ_JSON {}", ctx.channel());
                 try {
                     ((V2Batch) batch).addMessage(sequence, in, requiredBytes);
                 } catch (Throwable th) {
@@ -212,13 +216,13 @@ public class BeatsParser extends ByteToMessageDecoder {
 
                 if (batch.isComplete()) {
                     if (logger.isTraceEnabled()) {
-                        logger.trace("Sending batch size: " + this.batch.size() + ", windowSize: " + batch.getBatchSize() + " , seq: " + sequence);
+                        logger.trace("Sending batch size: " + this.batch.size() + ", windowSize: " + batch.getBatchSize() + " , seq: " + sequence + " {}", ctx.channel());
                     }
                     out.add(batch);
                     batchComplete();
                 }
 
-                transition(States.READ_HEADER);
+                transition(States.READ_HEADER, ctx.channel());
                 break;
             }
         }
@@ -252,13 +256,13 @@ public class BeatsParser extends ByteToMessageDecoder {
         return in.readableBytes() >= requiredBytes;
     }
 
-    private void transition(States next) {
-        transition(next, next.length);
+    private void transition(States next, Channel ch) {
+        transition(next, next.length, ch);
     }
 
-    private void transition(States nextState, int requiredBytes) {
+    private void transition(States nextState, int requiredBytes, Channel ch) {
         if (logger.isTraceEnabled()) {
-            logger.trace("Transition, from: " + currentState + ", to: " + nextState + ", requiring " + requiredBytes + " bytes");
+            logger.trace("Transition, from: " + currentState + ", to: " + nextState + ", requiring " + requiredBytes + " bytes {}", ch);
         }
         this.currentState = nextState;
         this.requiredBytes = requiredBytes;

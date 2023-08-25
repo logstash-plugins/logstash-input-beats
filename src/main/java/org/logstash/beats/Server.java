@@ -130,15 +130,29 @@ public class Server {
             if (isSslEnabled()) {
                 pipeline.addLast(SSL_HANDLER, sslHandlerProvider.sslHandlerForChannel(socket));
             }
-            pipeline.addLast(idleExecutorGroup, IDLESTATE_HANDLER,
-                             new IdleStateHandler(localClientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS, localClientInactivityTimeoutSeconds));
-            pipeline.addLast(BEATS_ACKER, new AckEncoder());
-            pipeline.addLast(CONNECTION_HANDLER, new ConnectionHandler());
-            pipeline.addLast(new FlowLimiterHandler());
-            pipeline.addLast(new ThunderingGuardHandler());
-            pipeline.addLast(new BeatsParser());
-            pipeline.addLast(new OOMConnectionCloser());
-            pipeline.addLast(new BeatsHandler(localMessageListener));
+//            pipeline.addLast(idleExecutorGroup, IDLESTATE_HANDLER,
+//                             new IdleStateHandler(localClientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS, localClientInactivityTimeoutSeconds));
+//            pipeline.addLast(BEATS_ACKER, new AckEncoder());
+//            pipeline.addLast(CONNECTION_HANDLER, new ConnectionHandler());
+
+//            pipeline.addLast(new FlowLimiterHandler());
+//            pipeline.addLast(new ThunderingGuardHandler());
+            pipeline.addLast("beats parser", new BeatsParser());
+//            pipeline.addLast(new OOMConnectionCloser());
+//            pipeline.addLast("beats handler", new BeatsHandler(localMessageListener));
+            pipeline.addLast(new ChannelInboundHandlerAdapter() {
+                @Override
+                public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+                    logger.warn("Exception {} received on {}", cause.getMessage(), ctx.channel());
+//                    pipeline.remove("beats parser");
+//                    if (cause instanceof OutOfMemoryError) {
+                        ctx.channel().close();
+//                    }
+                    super.exceptionCaught(ctx, cause);
+                }
+            });
+
+            logger.info("Starting with handlers: {}", pipeline.names());
         }
 
 
