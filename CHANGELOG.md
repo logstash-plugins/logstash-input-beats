@@ -1,3 +1,6 @@
+## 6.6.4
+ - [DOC] Fix misleading `enrich/source_data` input beats documentation about the Logstash host. [#478](https://github.com/logstash-plugins/logstash-input-beats/pull/478)
+
 ## 6.6.3
  - [DOC] Updated the `ssl_client_authentication` and `ssl_verify_mode` documentation explaining that CN and SAN are not validated. [#473](https://github.com/logstash-plugins/logstash-input-beats/pull/473)
 
