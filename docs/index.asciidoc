@@ -300,8 +300,7 @@ Refer to <<plugins-{type}s-{plugin}-ecs_metadata,ECS mapping>> for detailed info
                       explicitly specified, _excluding_ `codec_metadata` from `enrich` will
                       disable `ecs_compatibility` for this plugin.
 | source_metadata   | Information about the _source_ of the event, such as the IP address
-                      of the inbound connection this input received the event from and the
-                      name of the Logstash host that processed the event
+                      of the inbound connection this input received the event from
 | ssl_peer_metadata | Detailed information about the _SSL peer_ we received the event from,
                       such as identity information from the SSL client certificate that was
                       presented when establishing a connection to this input
