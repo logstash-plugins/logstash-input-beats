@@ -1,3 +1,6 @@
+## 6.7.0
+ - PROTOCOL: adds explicit support for receiving a 0-length window to encapsulate an empty batch. Empty batches are acknowledged with the same 0-sequence ACK's that are used as keep-alives during processing. [#479](https://github.com/logstash-plugins/logstash-input-beats/pull/479)  
+
 ## 6.6.4
  - [DOC] Fix misleading `enrich/source_data` input beats documentation about the Logstash host. [#478](https://github.com/logstash-plugins/logstash-input-beats/pull/478)
 
