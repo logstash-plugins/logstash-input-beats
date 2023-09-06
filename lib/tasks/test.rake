@@ -21,6 +21,9 @@ end
 require "logstash/devutils/rake"
 
 namespace :test do
+  task :java do
+    exit(1) unless system './gradlew test'
+  end
   namespace :integration do
     task :setup do
       Rake::Task["test:integration:setup:filebeat"].invoke

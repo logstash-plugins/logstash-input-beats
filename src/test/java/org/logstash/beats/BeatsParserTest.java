@@ -20,6 +20,7 @@ import java.util.Random;
 import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 
 public class BeatsParserTest {
@@ -133,6 +134,45 @@ public class BeatsParserTest {
         ByteBuf randomBufferData = Unpooled.wrappedBuffer(n);
 
         sendPayloadToParser(randomBufferData);
+    }
+
+    @Test
+    public void testV1EmptyWindowEmitsEmptyBatch() {
+        Batch decodedBatch = decodeBatch(new V1Batch());
+
+        assertNotNull(decodedBatch);
+        assertTrue(decodedBatch.isEmpty());
+        assertEquals(0, decodedBatch.getBatchSize());
+        assertEquals(0, decodedBatch.size());
+    }
+    @Test
+    public void testV2EmptyWindowEmitsEmptyBatch() {
+        Batch decodedBatch = decodeBatch(new V2Batch());
+
+        assertNotNull(decodedBatch);
+        assertTrue(decodedBatch.isEmpty());
+        assertEquals(0, decodedBatch.getBatchSize());
+        assertEquals(0, decodedBatch.size());
+    }
+
+
+    @Test
+    public void testV1CompressedFrameEmptyWindowEmitsEmptyBatch() {
+        Batch decodedBatch = decodeCompressedBatch(new V1Batch());
+
+        assertNotNull(decodedBatch);
+        assertTrue(decodedBatch.isEmpty());
+        assertEquals(0, decodedBatch.getBatchSize());
+        assertEquals(0, decodedBatch.size());
+    }
+    @Test
+    public void testV2CompressedFrameEmptyWindowEmitsEmptyBatch() {
+        Batch decodedBatch = decodeCompressedBatch(new V2Batch());
+
+        assertNotNull(decodedBatch);
+        assertTrue(decodedBatch.isEmpty());
+        assertEquals(0, decodedBatch.getBatchSize());
+        assertEquals(0, decodedBatch.size());
     }
 
 

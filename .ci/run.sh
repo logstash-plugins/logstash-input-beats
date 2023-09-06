@@ -5,6 +5,7 @@ env
 
 set -ex
 
+bundle exec rake test:java
 bundle exec rspec --format=documentation
 
 bundle exec rake test:integration:setup
