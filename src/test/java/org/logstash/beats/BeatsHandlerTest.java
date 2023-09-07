@@ -121,8 +121,19 @@ public class BeatsHandlerTest {
         embeddedChannel.writeInbound(batch);
         assertEquals(messageCount, spyListener.getLastMessages().size());
         Ack ack = embeddedChannel.readOutbound();
-        assertEquals(ack.getProtocol(), Protocol.VERSION_1);
-        assertEquals(ack.getSequence(), startSequenceNumber + messageCount - 1);
+        assertEquals(Protocol.VERSION_1, ack.getProtocol());
+        assertEquals(startSequenceNumber + messageCount - 1, ack.getSequence());
+        embeddedChannel.close();
+    }
+
+    @Test
+    public void testAcksZeroSequenceForEmptyBatch() {
+        EmbeddedChannel embeddedChannel = new EmbeddedChannel(new BeatsHandler(spyListener));
+        embeddedChannel.writeInbound(new V2Batch());
+        assertEquals(0, spyListener.getLastMessages().size());
+        Ack ack = embeddedChannel.readOutbound();
+        assertEquals(Protocol.VERSION_2, ack.getProtocol());
+        assertEquals(0, ack.getSequence());
         embeddedChannel.close();
     }
 }
