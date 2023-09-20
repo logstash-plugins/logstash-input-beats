@@ -250,6 +250,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     server = org.logstash.beats.Server.new(@host, @port, @client_inactivity_timeout, @executor_threads, @protect_direct_memory)
     server.setSslHandlerProvider(new_ssl_handshake_provider(new_ssl_context_builder)) if @ssl_enabled
     server
+  rescue java.lang.IllegalArgumentException => e
+    configuration_error e.message
   end
 
   def run(output_queue)

@@ -12,6 +12,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
+import io.netty.util.internal.PlatformDependent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.netty.SslHandlerProvider;
@@ -30,16 +31,26 @@ public class Server {
 
     private final int clientInactivityTimeoutSeconds;
 
-//    public Server(String host, int p, int clientInactivityTimeoutSeconds, int threadCount) {
-//        this(host, p, clientInactivityTimeoutSeconds, threadCount, true);
-//    }
-
     public Server(String host, int p, int clientInactivityTimeoutSeconds, int threadCount, boolean protectDirectMemory) {
         this.host = host;
         port = p;
         this.clientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
         beatsHeandlerThreadCount = threadCount;
         this.protectDirectMemory = protectDirectMemory;
+
+        validateMinimumDirectMemory();
+    }
+
+    /**
+     * Validate if the configured available direct memory is enough for safe processing, else throws a ConfigurationException
+     * */
+    private void validateMinimumDirectMemory() {
+        long maxDirectMemoryAllocatable = PlatformDependent.maxDirectMemory();
+        if (maxDirectMemoryAllocatable < 256 * 1024 * 1024) {
+            long roundedMegabytes = Math.round((double) maxDirectMemoryAllocatable / 1024 / 1024);
+            throw new IllegalArgumentException("Max direct memory should be at least 256MB but was " + roundedMegabytes + "MB, " +
+                    "please check your MaxDirectMemorySize and io.netty.maxDirectMemory settings");
+        }
     }
 
     public void setSslHandlerProvider(SslHandlerProvider sslHandlerProvider){
