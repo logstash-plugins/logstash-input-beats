@@ -1,9 +1,11 @@
 package org.logstash.beats;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -114,6 +116,7 @@ public class Server {
         private final int IDLESTATE_WRITER_IDLE_TIME_SECONDS = 5;
 
         private final EventExecutorGroup idleExecutorGroup;
+        private final EventExecutorGroup beatsHandlerExecutorGroup;
         private final IMessageListener localMessageListener;
         private final int localClientInactivityTimeoutSeconds;
 
@@ -122,6 +125,7 @@ public class Server {
             this.localMessageListener = messageListener;
             this.localClientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
+            beatsHandlerExecutorGroup = new DefaultEventExecutorGroup(beatsHandlerThread);
         }
 
         public void initChannel(SocketChannel socket){
@@ -137,8 +141,8 @@ public class Server {
             pipeline.addLast(CONNECTION_HANDLER, new ConnectionHandler());
             pipeline.addLast(new FlowLimiterHandler());
             pipeline.addLast(new ThunderingGuardHandler());
-            pipeline.addLast(new BeatsParser());
-            pipeline.addLast(new BeatsHandler(localMessageListener));
+            pipeline.addLast(beatsHandlerExecutorGroup, new BeatsParser());
+            pipeline.addLast(beatsHandlerExecutorGroup, new BeatsHandler(localMessageListener));
         }
 
 
