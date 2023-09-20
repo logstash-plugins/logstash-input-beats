@@ -126,6 +126,7 @@ public class Server {
 
         public void initChannel(SocketChannel socket){
             ChannelPipeline pipeline = socket.pipeline();
+            pipeline.addLast(new OOMConnectionCloser());
 
             if (isSslEnabled()) {
                 pipeline.addLast(SSL_HANDLER, sslHandlerProvider.sslHandlerForChannel(socket));
@@ -137,7 +138,6 @@ public class Server {
             pipeline.addLast(new FlowLimiterHandler());
             pipeline.addLast(new ThunderingGuardHandler());
             pipeline.addLast(new BeatsParser());
-            pipeline.addLast(new OOMConnectionCloser());
             pipeline.addLast(new BeatsHandler(localMessageListener));
         }
 
