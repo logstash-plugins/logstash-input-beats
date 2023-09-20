@@ -22,6 +22,7 @@ public class Server {
     private final int port;
     private final String host;
     private final int beatsHeandlerThreadCount;
+    private final boolean protectDirectMemory;
     private NioEventLoopGroup workGroup;
     private IMessageListener messageListener = new MessageListener();
     private SslHandlerProvider sslHandlerProvider;
@@ -29,11 +30,16 @@ public class Server {
 
     private final int clientInactivityTimeoutSeconds;
 
-    public Server(String host, int p, int clientInactivityTimeoutSeconds, int threadCount) {
+//    public Server(String host, int p, int clientInactivityTimeoutSeconds, int threadCount) {
+//        this(host, p, clientInactivityTimeoutSeconds, threadCount, true);
+//    }
+
+    public Server(String host, int p, int clientInactivityTimeoutSeconds, int threadCount, boolean protectDirectMemory) {
         this.host = host;
         port = p;
         this.clientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
         beatsHeandlerThreadCount = threadCount;
+        this.protectDirectMemory = protectDirectMemory;
     }
 
     public void setSslHandlerProvider(SslHandlerProvider sslHandlerProvider){
@@ -130,7 +136,9 @@ public class Server {
 
         public void initChannel(SocketChannel socket){
             ChannelPipeline pipeline = socket.pipeline();
-            pipeline.addLast(new OOMConnectionCloser());
+            if (protectDirectMemory) {
+                pipeline.addLast(new OOMConnectionCloser());
+            }
 
             if (isSslEnabled()) {
                 pipeline.addLast(SSL_HANDLER, sslHandlerProvider.sslHandlerForChannel(socket));
@@ -139,8 +147,10 @@ public class Server {
                              new IdleStateHandler(localClientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS, localClientInactivityTimeoutSeconds));
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
             pipeline.addLast(CONNECTION_HANDLER, new ConnectionHandler());
-            pipeline.addLast(new FlowLimiterHandler());
-            pipeline.addLast(new ThunderingGuardHandler());
+            if (protectDirectMemory) {
+                pipeline.addLast(new FlowLimiterHandler());
+                pipeline.addLast(new ThunderingGuardHandler());
+            }
             pipeline.addLast(beatsHandlerExecutorGroup, new BeatsParser());
             pipeline.addLast(beatsHandlerExecutorGroup, new BeatsHandler(localMessageListener));
         }
