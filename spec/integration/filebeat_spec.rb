@@ -222,7 +222,7 @@ describe "Filebeat", :integration => true do
 
             # NOTE: CentOS 7 base image (LS < 7.17) uses OpenSSL 1.0 while later is using Ubuntu 20.04 with OpenSSL 1.1.1
             # the default algorithm for `openssl pkcs8 -topk8` changed to -v2 which Java does not support (see GH-443)
-            cmd = "openssl pkcs8 -topk8 -in #{cert_key} -out #{@cert_key_pkcs8} -v1 PBE-SHA1-RC2-128 -passin pass:#{@passphrase} -passout pass:#{@passphrase}"
+            cmd = "openssl pkcs8 -topk8 -in #{cert_key} -out #{@cert_key_pkcs8} -v1 PBE-SHA1-3DES -passin pass:#{@passphrase} -passout pass:#{@passphrase}"
             unless system(cmd)
               fail "failed to run openssl command: #{$?} \n#{cmd}"
             end
