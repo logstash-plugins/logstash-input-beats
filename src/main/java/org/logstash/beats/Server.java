@@ -181,6 +181,7 @@ public class Server {
         public void shutdownEventExecutor() {
             try {
                 idleExecutorGroup.shutdownGracefully().sync();
+                beatsHandlerExecutorGroup.shutdownGracefully().sync();
             } catch (InterruptedException e) {
                 throw new IllegalStateException(e);
             }
