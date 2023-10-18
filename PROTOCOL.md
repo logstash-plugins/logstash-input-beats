@@ -9,7 +9,7 @@ The needs that lead to this protocol are:
 
 ## Implementation Considerations
 
-# Lumberjack Protocol v1
+# Lumberjack Protocol v2
 
 ## Behavior
 
@@ -38,10 +38,12 @@ This entire protocol is built to be layered on top of TCP or TLS.
       0                   1                   2                   3
       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
      +---------------+---------------+-------------------------------+
-     |   version(1)  |   frame type  |     payload ...               |
+     |   version     |   frame type  |     payload ...               |
      +---------------------------------------------------------------+
      |   payload continued...                                        |
      +---------------------------------------------------------------+
+
+Version is the protocol version in ASCII (0x32 for protocol version 2)
 
 ### 'data' frame type
 
@@ -94,6 +96,7 @@ mean you are acknowledging all data frames before and including '6'.
 
 * SENT FROM WRITER ONLY
 * frame type value: ASCII 'W' aka byte value 0x57
+* Window frame must be set for each new window.  So with a window frame of 1 the window frame must be set before each data frame.
 
 Payload:
 
