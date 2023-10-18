@@ -33,6 +33,10 @@ Currently this is to be handled by TLS.
 
 This entire protocol is built to be layered on top of TCP or TLS.
 
+### Byte Order
+
+All numeric values are in network (big-endian) byte order.
+
 ### Framing
 
       0                   1                   2                   3
