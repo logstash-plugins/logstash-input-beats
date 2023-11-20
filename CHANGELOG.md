@@ -1,3 +1,6 @@
+## 6.7.2
+  - Restore accidentally removed Lumberjack event parse source lines [#486](https://github.com/logstash-plugins/logstash-input-beats/pull/486)
+
 ## 6.7.1
   - bump netty to 4.1.100 and jackson to 2.15.3 [#484](https://github.com/logstash-plugins/logstash-input-beats/pull/484)
 
