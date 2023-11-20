@@ -9,6 +9,7 @@ module LogStash module Inputs class Beats
     include org.logstash.beats.IMessageListener
 
     FILEBEAT_LOG_LINE_FIELD = "message".freeze
+    LSF_LOG_LINE_FIELD = "line".freeze
 
     ConnectionState = Struct.new(:ctx, :codec, :ip_address)
 
@@ -182,11 +183,17 @@ module LogStash module Inputs class Beats
     def extract_target_field(hash)
       if from_filebeat?(hash)
         hash.delete(FILEBEAT_LOG_LINE_FIELD).to_s
+      elsif from_logstash_forwarder?(hash)
+        hash.delete(LSF_LOG_LINE_FIELD).to_s
       end
     end
 
     def from_filebeat?(hash)
       !hash[FILEBEAT_LOG_LINE_FIELD].nil?
+    end
+
+    def from_logstash_forwarder?(hash)
+      !hash[LSF_LOG_LINE_FIELD].nil?
     end
 
     def increment_connection_count

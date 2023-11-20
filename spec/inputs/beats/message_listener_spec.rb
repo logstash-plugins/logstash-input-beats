@@ -199,6 +199,16 @@ describe LogStash::Inputs::Beats::MessageListener do
       end
     end
 
+    context "when the message is from LSF" do
+      let(:message) { MockMessage.new("abc", { "line" => "hello world", '@metadata' => {} } )}
+
+      it "extract the event" do
+        subject.onNewMessage(ctx, message)
+        event = queue.pop
+        expect(event.get("message")).to eq("hello world")
+      end
+    end
+
     it_behaves_like "when the message is from any libbeat", :disabled, "[@metadata][ip_address]"
     it_behaves_like "when the message is from any libbeat", :v1, "[@metadata][input][beats][host][ip]"
     it_behaves_like "when the message is from any libbeat", :v8, "[@metadata][input][beats][host][ip]"
