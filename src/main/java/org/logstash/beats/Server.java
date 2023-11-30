@@ -1,13 +1,18 @@
 package org.logstash.beats;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
+import io.netty.util.internal.PlatformDependent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.netty.SslHandlerProvider;
@@ -18,6 +23,7 @@ public class Server {
     private final int port;
     private final String host;
     private final int beatsHeandlerThreadCount;
+    private final boolean protectDirectMemory;
     private NioEventLoopGroup workGroup;
     private IMessageListener messageListener = new MessageListener();
     private SslHandlerProvider sslHandlerProvider;
@@ -25,11 +31,26 @@ public class Server {
 
     private final int clientInactivityTimeoutSeconds;
 
-    public Server(String host, int p, int clientInactivityTimeoutSeconds, int threadCount) {
+    public Server(String host, int p, int clientInactivityTimeoutSeconds, int threadCount, boolean protectDirectMemory) {
         this.host = host;
         port = p;
         this.clientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
         beatsHeandlerThreadCount = threadCount;
+        this.protectDirectMemory = protectDirectMemory;
+
+        validateMinimumDirectMemory();
+    }
+
+    /**
+     * Validate if the configured available direct memory is enough for safe processing, else throws a ConfigurationException
+     * */
+    private void validateMinimumDirectMemory() {
+        long maxDirectMemoryAllocatable = PlatformDependent.maxDirectMemory();
+        if (maxDirectMemoryAllocatable < 256 * 1024 * 1024) {
+            long roundedMegabytes = Math.round((double) maxDirectMemoryAllocatable / 1024 / 1024);
+            throw new IllegalArgumentException("Max direct memory should be at least 256MB but was " + roundedMegabytes + "MB, " +
+                    "please check your MaxDirectMemorySize and io.netty.maxDirectMemory settings");
+        }
     }
 
     public void setSslHandlerProvider(SslHandlerProvider sslHandlerProvider){
@@ -126,6 +147,9 @@ public class Server {
 
         public void initChannel(SocketChannel socket){
             ChannelPipeline pipeline = socket.pipeline();
+            if (protectDirectMemory) {
+                pipeline.addLast(new OOMConnectionCloser());
+            }
 
             if (isSslEnabled()) {
                 pipeline.addLast(SSL_HANDLER, sslHandlerProvider.sslHandlerForChannel(socket));
@@ -134,7 +158,12 @@ public class Server {
                              new IdleStateHandler(localClientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS, localClientInactivityTimeoutSeconds));
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
             pipeline.addLast(CONNECTION_HANDLER, new ConnectionHandler());
-            pipeline.addLast(beatsHandlerExecutorGroup, new BeatsParser(), new BeatsHandler(localMessageListener));
+            if (protectDirectMemory) {
+                pipeline.addLast(new FlowLimiterHandler());
+                pipeline.addLast(new ThunderingGuardHandler());
+            }
+            pipeline.addLast(beatsHandlerExecutorGroup, new BeatsParser());
+            pipeline.addLast(beatsHandlerExecutorGroup, new BeatsHandler(localMessageListener));
         }
 
 

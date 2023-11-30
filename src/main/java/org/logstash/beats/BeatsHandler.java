@@ -1,5 +1,7 @@
 package org.logstash.beats;
 
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import org.apache.logging.log4j.LogManager;
@@ -92,6 +94,9 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
                     logger.info(format("closing (" + cause.getMessage() + ")"));
                 }
             } else {
+                PooledByteBufAllocator allocator = (PooledByteBufAllocator) ByteBufAllocator.DEFAULT;
+                OOMConnectionCloser.DirectMemoryUsage usageSnapshot = OOMConnectionCloser.DirectMemoryUsage.capture(allocator);
+                logger.info("Connection {}, memory status used: {}, pinned: {}, ratio {}", ctx.channel(), usageSnapshot.used, usageSnapshot.pinned, usageSnapshot.ratio);
                 final Throwable realCause = extractCause(cause, 0);
                 if (logger.isDebugEnabled()){
                     logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"), cause);

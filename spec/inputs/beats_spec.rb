@@ -14,6 +14,7 @@ describe LogStash::Inputs::Beats do
   let(:port) { BeatsInputTest.random_port }
   let(:client_inactivity_timeout) { 400 }
   let(:threads) { 1 + rand(9) }
+  let(:protect_direct_memory) { true }
   let(:queue)  { Queue.new }
   let(:config)   do
     {
@@ -36,7 +37,7 @@ describe LogStash::Inputs::Beats do
       let(:port) { 9001 }
 
       it "sends the required options to the server" do
-        expect(org.logstash.beats.Server).to receive(:new).with(host, port, client_inactivity_timeout, threads)
+        expect(org.logstash.beats.Server).to receive(:new).with(host, port, client_inactivity_timeout, threads, protect_direct_memory)
         subject.register
       end
     end
@@ -529,8 +530,8 @@ describe LogStash::Inputs::Beats do
     subject(:plugin) { LogStash::Inputs::Beats.new(config) }
 
     before do
-      @server = org.logstash.beats.Server.new(host, port, client_inactivity_timeout, threads)
-      expect( org.logstash.beats.Server ).to receive(:new).with(host, port, client_inactivity_timeout, threads).and_return @server
+      @server = org.logstash.beats.Server.new(host, port, client_inactivity_timeout, threads, protect_direct_memory)
+      expect( org.logstash.beats.Server ).to receive(:new).with(host, port, client_inactivity_timeout, threads, protect_direct_memory).and_return @server
       expect( @server ).to receive(:listen)
 
       subject.register

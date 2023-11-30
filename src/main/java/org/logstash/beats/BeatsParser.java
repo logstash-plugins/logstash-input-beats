@@ -2,9 +2,12 @@ package org.logstash.beats;
 
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import io.netty.handler.codec.DecoderException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -14,6 +17,7 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterOutputStream;
 
@@ -48,8 +52,8 @@ public class BeatsParser extends ByteToMessageDecoder {
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws InvalidFrameProtocolException, IOException {
-        if(!hasEnoughBytes(in)) {
-            if (decodingCompressedBuffer){
+        if (!hasEnoughBytes(in)) {
+            if (decodingCompressedBuffer) {
                 throw new InvalidFrameProtocolException("Insufficient bytes in compressed content to decode: " + currentState);
             }
             return;
@@ -182,6 +186,7 @@ public class BeatsParser extends ByteToMessageDecoder {
 
             case READ_COMPRESSED_FRAME: {
                 logger.trace("Running: READ_COMPRESSED_FRAME");
+
                 inflateCompressedFrame(ctx, in, (buffer) -> {
                     transition(States.READ_HEADER);
 
@@ -199,9 +204,18 @@ public class BeatsParser extends ByteToMessageDecoder {
             }
             case READ_JSON: {
                 logger.trace("Running: READ_JSON");
-                ((V2Batch)batch).addMessage(sequence, in, requiredBytes);
-                if(batch.isComplete()) {
-                    if(logger.isTraceEnabled()) {
+                try {
+                    ((V2Batch) batch).addMessage(sequence, in, requiredBytes);
+                } catch (Throwable th) {
+                    // batch has to release its internal buffer before bubbling up the exception
+                    batch.release();
+
+                    // re throw the same error after released the internal buffer
+                    throw th;
+                }
+
+                if (batch.isComplete()) {
+                    if (logger.isTraceEnabled()) {
                         logger.trace("Sending batch size: " + this.batch.size() + ", windowSize: " + batch.getBatchSize() + " , seq: " + sequence);
                     }
                     out.add(batch);

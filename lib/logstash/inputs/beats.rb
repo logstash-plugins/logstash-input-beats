@@ -74,6 +74,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # The port to listen on.
   config :port, :validate => :number, :required => true
 
+  # Proactive checks that keep the beats input active when the memory used by protocol parser and network
+  # related operations is going to terminate.
+  config :protect_direct_memory, :validate => :boolean, :default => true
+
   # Events are by default sent in plain text. You can
   # enable encryption by setting `ssl` to true and configuring
   # the `ssl_certificate` and `ssl_key` options.
@@ -243,9 +247,11 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end # def register
 
   def create_server
-    server = org.logstash.beats.Server.new(@host, @port, @client_inactivity_timeout, @executor_threads)
+    server = org.logstash.beats.Server.new(@host, @port, @client_inactivity_timeout, @executor_threads, @protect_direct_memory)
     server.setSslHandlerProvider(new_ssl_handshake_provider(new_ssl_context_builder)) if @ssl_enabled
     server
+  rescue java.lang.IllegalArgumentException => e
+    configuration_error e.message
   end
 
   def run(output_queue)
