@@ -89,7 +89,7 @@ public class V2BatchTest {
             for (Message message : batch) {
                 assertEquals(message.getSequence(), i++);
             }
-        }finally {
+        } finally {
             batch.release();
         }
     }
