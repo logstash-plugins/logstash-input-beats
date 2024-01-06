@@ -1,3 +1,6 @@
+## 6.8.0
+  - Introduce expert only `event_loop_threads` to tune netty event loop threads count [#490](https://github.com/logstash-plugins/logstash-input-beats/pull/490)
+
 ## 6.7.2
   - Restore accidentally removed Lumberjack event parse source lines [#486](https://github.com/logstash-plugins/logstash-input-beats/pull/486)
 
