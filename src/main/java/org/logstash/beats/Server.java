@@ -1,6 +1,8 @@
 package org.logstash.beats;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -112,7 +114,6 @@ public class Server {
         private final int IDLESTATE_WRITER_IDLE_TIME_SECONDS = 5;
 
         private final EventExecutorGroup idleExecutorGroup;
-        private final EventExecutorGroup beatsHandlerExecutorGroup;
         private final IMessageListener localMessageListener;
         private final int localClientInactivityTimeoutSeconds;
 
@@ -121,7 +122,6 @@ public class Server {
             this.localMessageListener = messageListener;
             this.localClientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
-            beatsHandlerExecutorGroup = new DefaultEventExecutorGroup(beatsHandlerThread);
         }
 
         public void initChannel(SocketChannel socket){
@@ -130,11 +130,29 @@ public class Server {
             if (isSslEnabled()) {
                 pipeline.addLast(SSL_HANDLER, sslHandlerProvider.sslHandlerForChannel(socket));
             }
-            pipeline.addLast(idleExecutorGroup, IDLESTATE_HANDLER,
-                             new IdleStateHandler(localClientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS, localClientInactivityTimeoutSeconds));
-            pipeline.addLast(BEATS_ACKER, new AckEncoder());
-            pipeline.addLast(CONNECTION_HANDLER, new ConnectionHandler());
-            pipeline.addLast(beatsHandlerExecutorGroup, new BeatsParser(), new BeatsHandler(localMessageListener));
+//            pipeline.addLast(idleExecutorGroup, IDLESTATE_HANDLER,
+//                             new IdleStateHandler(localClientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS, localClientInactivityTimeoutSeconds));
+//            pipeline.addLast(BEATS_ACKER, new AckEncoder());
+//            pipeline.addLast(CONNECTION_HANDLER, new ConnectionHandler());
+
+//            pipeline.addLast(new FlowLimiterHandler());
+//            pipeline.addLast(new ThunderingGuardHandler());
+            pipeline.addLast("beats parser", new BeatsParser());
+//            pipeline.addLast(new OOMConnectionCloser());
+//            pipeline.addLast("beats handler", new BeatsHandler(localMessageListener));
+            pipeline.addLast(new ChannelInboundHandlerAdapter() {
+                @Override
+                public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+                    logger.warn("Exception {} received on {}", cause.getMessage(), ctx.channel());
+//                    pipeline.remove("beats parser");
+//                    if (cause instanceof OutOfMemoryError) {
+                        ctx.channel().close();
+//                    }
+                    super.exceptionCaught(ctx, cause);
+                }
+            });
+
+            logger.info("Starting with handlers: {}", pipeline.names());
         }
 
 
@@ -152,7 +170,6 @@ public class Server {
         public void shutdownEventExecutor() {
             try {
                 idleExecutorGroup.shutdownGracefully().sync();
-                beatsHandlerExecutorGroup.shutdownGracefully().sync();
             } catch (InterruptedException e) {
                 throw new IllegalStateException(e);
             }
