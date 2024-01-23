@@ -13,7 +13,8 @@ describe LogStash::Inputs::Beats do
   let(:certificate) { BeatsInputTest.certificate }
   let(:port) { BeatsInputTest.random_port }
   let(:client_inactivity_timeout) { 400 }
-  let(:threads) { 1 + rand(9) }
+  let(:event_loop_threads) { 1 + rand(4) }
+  let(:executor_threads) { 1 + rand(9) }
   let(:queue)  { Queue.new }
   let(:config)   do
     {
@@ -21,7 +22,8 @@ describe LogStash::Inputs::Beats do
         "ssl_certificate" => certificate.ssl_cert,
         "ssl_key" => certificate.ssl_key,
         "client_inactivity_timeout" => client_inactivity_timeout,
-        "executor_threads" => threads,
+        "event_loop_threads" => event_loop_threads,
+        "executor_threads" => executor_threads,
         "type" => "example",
         "tags" => "beats"
     }
@@ -36,7 +38,7 @@ describe LogStash::Inputs::Beats do
       let(:port) { 9001 }
 
       it "sends the required options to the server" do
-        expect(org.logstash.beats.Server).to receive(:new).with(host, port, client_inactivity_timeout, threads)
+        expect(org.logstash.beats.Server).to receive(:new).with(host, port, client_inactivity_timeout, event_loop_threads, executor_threads)
         subject.register
       end
     end
@@ -529,8 +531,8 @@ describe LogStash::Inputs::Beats do
     subject(:plugin) { LogStash::Inputs::Beats.new(config) }
 
     before do
-      @server = org.logstash.beats.Server.new(host, port, client_inactivity_timeout, threads)
-      expect( org.logstash.beats.Server ).to receive(:new).with(host, port, client_inactivity_timeout, threads).and_return @server
+      @server = org.logstash.beats.Server.new(host, port, client_inactivity_timeout, event_loop_threads, executor_threads)
+      expect( org.logstash.beats.Server ).to receive(:new).with(host, port, client_inactivity_timeout, event_loop_threads, executor_threads).and_return @server
       expect( @server ).to receive(:listen)
 
       subject.register

@@ -1,7 +1,11 @@
 package org.logstash.beats;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -17,7 +21,8 @@ public class Server {
 
     private final int port;
     private final String host;
-    private final int beatsHeandlerThreadCount;
+    private final int eventLoopThreadCount;
+    private final int executorThreadCount;
     private NioEventLoopGroup workGroup;
     private IMessageListener messageListener = new MessageListener();
     private SslHandlerProvider sslHandlerProvider;
@@ -25,14 +30,15 @@ public class Server {
 
     private final int clientInactivityTimeoutSeconds;
 
-    public Server(String host, int p, int clientInactivityTimeoutSeconds, int threadCount) {
+    public Server(String host, int port, int clientInactivityTimeoutSeconds, int eventLoopThreadCount, int executorThreadCount) {
         this.host = host;
-        port = p;
+        this.port = port;
         this.clientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
-        beatsHeandlerThreadCount = threadCount;
+        this.eventLoopThreadCount = eventLoopThreadCount;
+        this.executorThreadCount = executorThreadCount;
     }
 
-    public void setSslHandlerProvider(SslHandlerProvider sslHandlerProvider){
+    public void setSslHandlerProvider(SslHandlerProvider sslHandlerProvider) {
         this.sslHandlerProvider = sslHandlerProvider;
     }
 
@@ -45,11 +51,11 @@ public class Server {
                 logger.error("Could not shut down worker group before starting", e);
             }
         }
-        workGroup = new NioEventLoopGroup();
+        workGroup = new NioEventLoopGroup(eventLoopThreadCount);
         try {
             logger.info("Starting server on port: {}", this.port);
 
-            beatsInitializer = new BeatsInitializer(messageListener, clientInactivityTimeoutSeconds, beatsHeandlerThreadCount);
+            beatsInitializer = new BeatsInitializer(messageListener, clientInactivityTimeoutSeconds, executorThreadCount);
 
             ServerBootstrap server = new ServerBootstrap();
             server.group(workGroup)
@@ -57,8 +63,12 @@ public class Server {
                     .childOption(ChannelOption.SO_LINGER, 0) // Since the protocol doesn't support yet a remote close from the server and we don't want to have 'unclosed' socket lying around we have to use `SO_LINGER` to force the close of the socket.
                     .childHandler(beatsInitializer);
 
-            Channel channel = server.bind(host, port).sync().channel();
-            channel.closeFuture().sync();
+            Channel channel = server
+                    .bind(host, port)
+                    .sync()
+                    .channel();
+            channel.closeFuture()
+                    .sync();
         } finally {
             shutdown();
         }
@@ -72,7 +82,7 @@ public class Server {
         logger.debug("Server stopped");
     }
 
-    private void shutdown(){
+    private void shutdown() {
         try {
             if (workGroup != null) {
                 workGroup.shutdownGracefully().sync();
@@ -80,7 +90,7 @@ public class Server {
             if (beatsInitializer != null) {
                 beatsInitializer.shutdownEventExecutor();
             }
-        } catch (InterruptedException e){
+        } catch (InterruptedException e) {
             throw new IllegalStateException(e);
         }
     }
@@ -102,14 +112,14 @@ public class Server {
     }
 
     private class BeatsInitializer extends ChannelInitializer<SocketChannel> {
-        private final String SSL_HANDLER = "ssl-handler";
-        private final String IDLESTATE_HANDLER = "idlestate-handler";
-        private final String CONNECTION_HANDLER = "connection-handler";
-        private final String BEATS_ACKER = "beats-acker";
+        private final static String SSL_HANDLER = "ssl-handler";
+        private final static String IDLESTATE_HANDLER = "idlestate-handler";
+        private final static String CONNECTION_HANDLER = "connection-handler";
+        private final static String BEATS_ACKER = "beats-acker";
 
 
-        private final int DEFAULT_IDLESTATEHANDLER_THREAD = 4;
-        private final int IDLESTATE_WRITER_IDLE_TIME_SECONDS = 5;
+        private final static int DEFAULT_IDLESTATEHANDLER_THREAD = 4;
+        private final static int IDLESTATE_WRITER_IDLE_TIME_SECONDS = 5;
 
         private final EventExecutorGroup idleExecutorGroup;
         private final EventExecutorGroup beatsHandlerExecutorGroup;
@@ -124,20 +134,18 @@ public class Server {
             beatsHandlerExecutorGroup = new DefaultEventExecutorGroup(beatsHandlerThread);
         }
 
-        public void initChannel(SocketChannel socket){
+        public void initChannel(SocketChannel socket) {
             ChannelPipeline pipeline = socket.pipeline();
 
             if (isSslEnabled()) {
                 pipeline.addLast(SSL_HANDLER, sslHandlerProvider.sslHandlerForChannel(socket));
             }
             pipeline.addLast(idleExecutorGroup, IDLESTATE_HANDLER,
-                             new IdleStateHandler(localClientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS, localClientInactivityTimeoutSeconds));
+                    new IdleStateHandler(localClientInactivityTimeoutSeconds, IDLESTATE_WRITER_IDLE_TIME_SECONDS, localClientInactivityTimeoutSeconds));
             pipeline.addLast(BEATS_ACKER, new AckEncoder());
             pipeline.addLast(CONNECTION_HANDLER, new ConnectionHandler());
             pipeline.addLast(beatsHandlerExecutorGroup, new BeatsParser(), new BeatsHandler(localMessageListener));
         }
-
-
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {

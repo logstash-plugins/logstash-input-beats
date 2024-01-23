@@ -217,6 +217,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-client_inactivity_timeout>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-ecs_compatibility>> | <<string,string>>|No
 | <<plugins-{type}s-{plugin}-enrich>> |<<string,string>>|No
+| <<plugins-{type}s-{plugin}-event_loop_threads>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-executor_threads>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-host>> |<<string,string>>|No
 | <<plugins-{type}s-{plugin}-include_codec_tag>> |<<boolean,boolean>>|__Deprecated__
@@ -338,6 +339,20 @@ input {
   }
 }
 --------------------------------------------------
+
+[id="plugins-{type}s-{plugin}-event_loop_threads"]
+===== `event_loop_threads`
+
+* Value type is <<number,number>>
+* Defaults to 0.
+
+When setting `0`, the actual default is `available_processors * 2`
+
+This is an expert-level setting, and generally should not need to be set
+{plugin-uc} plugin is implemented based on a non-blocking mechanism, requiring a number of event loop and executor threads.
+The event loop threads are responsible to communicate with clients (accept incoming connections, enqueue/dequeue tasks and respond) and executor threads handle tasks.
+This configuration intends to limit or increase the number of threads to be created for the event loop.
+See <<plugins-{type}s-{plugin}-executor_threads>> configuration if you need to set executor threads count.
 
 [id="plugins-{type}s-{plugin}-executor_threads"]
 ===== `executor_threads`

@@ -141,6 +141,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # Beats handler executor thread
   config :executor_threads, :validate => :number, :default => LogStash::Config::CpuCoreStrategy.maximum
 
+  # Expert only setting which set's Netty Event Loop Group thread count
+  # defaults to zero where Netty's DEFAULT_EVENT_LOOP_THREADS (NettyRuntime.availableProcessors() * 2) will be applied
+  config :event_loop_threads, :validate => :number, :default => 0
+
   # Flag to determine whether to add host information (provided by the beat in the 'hostname' field) to the event
   config :add_hostname, :validate => :boolean, :default => false, :deprecated => 'This option will be removed in the future as beats determine the event schema'
 
@@ -243,7 +247,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end # def register
 
   def create_server
-    server = org.logstash.beats.Server.new(@host, @port, @client_inactivity_timeout, @executor_threads)
+    server = org.logstash.beats.Server.new(@host, @port, @client_inactivity_timeout, @event_loop_threads, @executor_threads)
     server.setSslHandlerProvider(new_ssl_handshake_provider(new_ssl_context_builder)) if @ssl_enabled
     server
   end
