@@ -346,7 +346,9 @@ input {
 * Value type is <<number,number>>
 * Defaults to 0.
 
-Most of the cases do not require touching this configuration.
+When setting `0`, the actual default is `available_processors * 2`
+
+This is an expert-level setting, and generally should not need to be set
 {plugin-uc} plugin is implemented based on a non-blocking mechanism, requiring a number of event loop and executor threads.
 The event loop threads are responsible to communicate with clients (accept incoming connections, enqueue/dequeue tasks and respond) and executor threads handle tasks.
 This configuration intends to limit or increase the number of threads to be created for the event loop.
