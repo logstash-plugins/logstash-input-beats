@@ -80,7 +80,7 @@ public class V2Batch implements Batch {
 
     /**
      * Adds a message to the batch, which will be constructed into an actual {@link Message} lazily.
-      * @param sequenceNumber sequence number of the message within the batch
+     * @param sequenceNumber sequence number of the message within the batch
      * @param buffer A ByteBuf pointing to serialized JSon
      * @param size size of the serialized Json
      */

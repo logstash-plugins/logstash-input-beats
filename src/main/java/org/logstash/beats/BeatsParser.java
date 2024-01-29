@@ -44,14 +44,53 @@ public class BeatsParser extends ByteToMessageDecoder {
 
     }
 
+    static class ChunkedAccumulator {
+        private ByteBuf payloadAccumulator;
+        private int readBytes; // count of bytes actually read
+        private int payloadSize; // total size of compressed payload
+
+        /**
+         * Return the chunk size to read
+         * */
+        public int startRead(int payloadSize, ChannelHandlerContext ctx) {
+            this.payloadSize = payloadSize;
+            this.readBytes = 0;
+            payloadAccumulator = ctx.alloc().heapBuffer(payloadSize);
+            // read compressed payload at most in chuck of 64Kb and aggregate in Java heap
+            return Math.min(this.payloadSize, CHUNK_SIZE);
+        }
+
+        public void readChunk(ByteBuf in) {
+            int missedBytes = payloadSize - readBytes;
+            int readBytes = Math.min(in.readableBytes(), missedBytes);
+            in.readBytes(payloadAccumulator, readBytes);
+            this.readBytes += readBytes;
+        }
+
+        public boolean isReadComplete() {
+            return readBytes == payloadSize;
+        }
+
+        public void stopAccumulating() {
+            payloadSize = -1;
+            readBytes = -1;
+            payloadAccumulator.release();
+        }
+
+        public ByteBuf getPayload() {
+            return payloadAccumulator;
+        }
+
+        public int getPayloadSize() {
+            return payloadSize;
+        }
+    }
+
     private States currentState = States.READ_HEADER;
     private int requiredBytes = 0;
     private int sequence = 0;
     private boolean decodingCompressedBuffer = false;
-    private ByteBuf compressedAccumulator;
-    private int compressedReadBytes; // count of bytes actually read
-    private int compressedSize; // total size of compressed payload
-
+    private final ChunkedAccumulator accumulator = new ChunkedAccumulator();
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws InvalidFrameProtocolException, IOException {
@@ -173,7 +212,7 @@ public class BeatsParser extends ByteToMessageDecoder {
                 sequence = (int) in.readUnsignedInt();
                 int jsonPayloadSize = (int) in.readUnsignedInt();
 
-                if(jsonPayloadSize <= 0) {
+                if (jsonPayloadSize <= 0) {
                     throw new InvalidFrameProtocolException("Invalid json length, received: " + jsonPayloadSize);
                 }
 
@@ -183,11 +222,7 @@ public class BeatsParser extends ByteToMessageDecoder {
             case READ_COMPRESSED_FRAME_HEADER: {
                 logger.trace("Running: READ_COMPRESSED_FRAME_HEADER");
 
-                compressedSize = in.readInt();
-                compressedReadBytes = 0;
-                compressedAccumulator = ctx.alloc().heapBuffer(compressedSize);
-                // read compressed payload at most in chuck of 64Kb and aggregate in Java heap
-                int bytesToRead = Math.min(compressedSize, CHUNK_SIZE);
+                final int bytesToRead = accumulator.startRead(in.readInt(), ctx);
                 transition(States.READ_COMPRESSED_FRAME_JAVA_HEAP, bytesToRead);
                 break;
             }
@@ -211,20 +246,14 @@ public class BeatsParser extends ByteToMessageDecoder {
             }
             case READ_COMPRESSED_FRAME_JAVA_HEAP: {
                 logger.trace("Running: READ_COMPRESSED_FRAME_JAVA_HEAP");
-                // accumulate in heap
-                int missedBytes = compressedSize - compressedReadBytes;
-                int readBytes = Math.min(in.readableBytes(), missedBytes);
-                in.readBytes(compressedAccumulator, readBytes);
-                compressedReadBytes += readBytes;
+                accumulator.readChunk(in);
 
-                if (compressedReadBytes == compressedSize) {
+                if (accumulator.isReadComplete()) {
                     logger.debug("Finished to accumulate");
                     // inflate compressedAccumulator in heap
-                    inflateCompressedFrame(ctx, compressedAccumulator, compressedSize, (buffer) -> {
+                    inflateCompressedFrame(ctx, accumulator.getPayload(), accumulator.getPayloadSize(), (buffer) -> {
                         transition(States.READ_HEADER);
-                        compressedSize = -1;
-                        compressedReadBytes = -1;
-                        compressedAccumulator.release();
+                        accumulator.stopAccumulating();
 
                         decodingCompressedBuffer = true;
                         try {
