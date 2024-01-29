@@ -21,6 +21,8 @@ import java.util.zip.InflaterOutputStream;
 public class BeatsParser extends ByteToMessageDecoder {
     private final static Logger logger = LogManager.getLogger(BeatsParser.class);
 
+    private static final int CHUNK_SIZE = 64 * 1024; // chuck size of compressed data to be read.
+
     private Batch batch;
 
     private enum States {
@@ -30,6 +32,7 @@ public class BeatsParser extends ByteToMessageDecoder {
         READ_JSON_HEADER(8),
         READ_COMPRESSED_FRAME_HEADER(4),
         READ_COMPRESSED_FRAME(-1), // -1 means the length to read is variable and defined in the frame itself.
+        READ_COMPRESSED_FRAME_JAVA_HEAP(-1), // -1 means the length to read is variable and defined in the frame itself.
         READ_JSON(-1),
         READ_DATA_FIELDS(-1);
 
@@ -45,6 +48,10 @@ public class BeatsParser extends ByteToMessageDecoder {
     private int requiredBytes = 0;
     private int sequence = 0;
     private boolean decodingCompressedBuffer = false;
+    private ByteBuf compressedAccumulator;
+    private int compressedReadBytes; // count of bytes actually read
+    private int compressedSize; // total size of compressed payload
+
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws InvalidFrameProtocolException, IOException {
@@ -176,13 +183,18 @@ public class BeatsParser extends ByteToMessageDecoder {
             case READ_COMPRESSED_FRAME_HEADER: {
                 logger.trace("Running: READ_COMPRESSED_FRAME_HEADER");
 
-                transition(States.READ_COMPRESSED_FRAME, in.readInt());
+                compressedSize = in.readInt();
+                compressedReadBytes = 0;
+                compressedAccumulator = ctx.alloc().heapBuffer(compressedSize);
+                // read compressed payload at most in chuck of 64Kb and aggregate in Java heap
+                int bytesToRead = Math.min(compressedSize, CHUNK_SIZE);
+                transition(States.READ_COMPRESSED_FRAME_JAVA_HEAP, bytesToRead);
                 break;
             }
 
             case READ_COMPRESSED_FRAME: {
                 logger.trace("Running: READ_COMPRESSED_FRAME");
-                inflateCompressedFrame(ctx, in, (buffer) -> {
+                inflateCompressedFrame(ctx, in, requiredBytes, (buffer) -> {
                     transition(States.READ_HEADER);
 
                     decodingCompressedBuffer = true;
@@ -195,6 +207,39 @@ public class BeatsParser extends ByteToMessageDecoder {
                         transition(States.READ_HEADER);
                     }
                 });
+                break;
+            }
+            case READ_COMPRESSED_FRAME_JAVA_HEAP: {
+                logger.trace("Running: READ_COMPRESSED_FRAME_JAVA_HEAP");
+                // accumulate in heap
+                int missedBytes = compressedSize - compressedReadBytes;
+                int readBytes = Math.min(in.readableBytes(), missedBytes);
+                in.readBytes(compressedAccumulator, readBytes);
+                compressedReadBytes += readBytes;
+
+                if (compressedReadBytes == compressedSize) {
+                    logger.debug("Finished to accumulate");
+                    // inflate compressedAccumulator in heap
+                    inflateCompressedFrame(ctx, compressedAccumulator, compressedSize, (buffer) -> {
+                        transition(States.READ_HEADER);
+                        compressedSize = -1;
+                        compressedReadBytes = -1;
+                        compressedAccumulator.release();
+
+                        decodingCompressedBuffer = true;
+                        try {
+                            while (buffer.readableBytes() > 0) {
+                                decode(ctx, buffer, out);
+                            }
+                        } finally {
+                            decodingCompressedBuffer = false;
+                            transition(States.READ_HEADER);
+                        }
+                    });
+                } else {
+                    logger.debug("Read next chunk");
+                    transition(States.READ_COMPRESSED_FRAME_JAVA_HEAP, CHUNK_SIZE);
+                }
                 break;
             }
             case READ_JSON: {
@@ -214,25 +259,25 @@ public class BeatsParser extends ByteToMessageDecoder {
         }
     }
 
-    private void inflateCompressedFrame(final ChannelHandlerContext ctx, final ByteBuf in, final CheckedConsumer<ByteBuf> fn)
+    private void inflateCompressedFrame(final ChannelHandlerContext ctx, final ByteBuf in, int deflatedSize, final CheckedConsumer<ByteBuf> fn)
         throws IOException {
         // Use the compressed size as the safe start for the buffer.
-        ByteBuf buffer = ctx.alloc().buffer(requiredBytes);
+        ByteBuf buffer = ctx.alloc().heapBuffer(deflatedSize);
         try {
-            decompressImpl(in, buffer);
+            decompressImpl(in, buffer, deflatedSize);
             fn.accept(buffer);
         } finally {
             buffer.release();
         }
     }
 
-    private void decompressImpl(final ByteBuf in, final ByteBuf out) throws IOException {
+    private void decompressImpl(final ByteBuf in, final ByteBuf out, int deflatedSize) throws IOException {
         Inflater inflater = new Inflater();
         try (
                 ByteBufOutputStream buffOutput = new ByteBufOutputStream(out);
                 InflaterOutputStream inflaterStream = new InflaterOutputStream(buffOutput, inflater)
         ) {
-            in.readBytes(inflaterStream, requiredBytes);
+            in.readBytes(inflaterStream, deflatedSize);
         } finally {
             inflater.end();
         }

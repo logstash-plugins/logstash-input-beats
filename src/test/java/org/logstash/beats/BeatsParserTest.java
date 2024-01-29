@@ -39,7 +39,7 @@ public class BeatsParserTest {
         this.v1Batch = new V1Batch();
 
         for(int i = 1; i <= numberOfMessage; i++) {
-            Map map = new HashMap<String, String>();
+            Map<String, String> map = new HashMap<>();
             map.put("line", "Another world");
             map.put("from", "Little big Adventure");
 
@@ -50,7 +50,7 @@ public class BeatsParserTest {
         this.byteBufBatch = new V2Batch();
 
         for(int i = 1; i <= numberOfMessage; i++) {
-            Map map = new HashMap<String, String>();
+            Map<String, String> map = new HashMap<>();
             map.put("line", "Another world");
             map.put("from", "Little big Adventure");
             ByteBuf bytebuf = Unpooled.wrappedBuffer(MAPPER.writeValueAsBytes(map));
