@@ -34,6 +34,7 @@ public class BeatsParser extends ByteToMessageDecoder {
         READ_COMPRESSED_FRAME(-1), // -1 means the length to read is variable and defined in the frame itself.
         READ_COMPRESSED_FRAME_JAVA_HEAP(-1), // -1 means the length to read is variable and defined in the frame itself.
         READ_JSON(-1),
+        READ_JSON_JAVA_HEAP(-1),
         READ_DATA_FIELDS(-1);
 
         private int length;
@@ -215,8 +216,9 @@ public class BeatsParser extends ByteToMessageDecoder {
                 if (jsonPayloadSize <= 0) {
                     throw new InvalidFrameProtocolException("Invalid json length, received: " + jsonPayloadSize);
                 }
-
-                transition(States.READ_JSON, jsonPayloadSize);
+                logger.trace("READ_JSON_HEADER: jsonPayloadSize: {}", jsonPayloadSize);
+                final int bytesToRead = accumulator.startRead(jsonPayloadSize, ctx);
+                transition(States.READ_JSON_JAVA_HEAP, bytesToRead);
                 break;
             }
             case READ_COMPRESSED_FRAME_HEADER: {
@@ -274,8 +276,8 @@ public class BeatsParser extends ByteToMessageDecoder {
             case READ_JSON: {
                 logger.trace("Running: READ_JSON");
                 ((V2Batch)batch).addMessage(sequence, in, requiredBytes);
-                if(batch.isComplete()) {
-                    if(logger.isTraceEnabled()) {
+                if (batch.isComplete()) {
+                    if (logger.isTraceEnabled()) {
                         logger.trace("Sending batch size: " + this.batch.size() + ", windowSize: " + batch.getBatchSize() + " , seq: " + sequence);
                     }
                     out.add(batch);
@@ -283,6 +285,32 @@ public class BeatsParser extends ByteToMessageDecoder {
                 }
 
                 transition(States.READ_HEADER);
+                break;
+            }
+            case READ_JSON_JAVA_HEAP: {
+                logger.trace("Running: READ_JSON_JAVA_HEAP");
+                accumulator.readChunk(in);
+
+                if (accumulator.isReadComplete()) {
+                    logger.trace("Finished to accumulate: READ_JSON_JAVA_HEAP");
+
+                    ByteBuf payload = accumulator.getPayload();
+                    ((V2Batch) batch).addMessage(sequence, payload, accumulator.getPayloadSize());
+                    accumulator.stopAccumulating();
+                    if (batch.isComplete()) {
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("Sending batch size: {}, windowSize: {} , seq: {}",
+                                    this.batch.size(), batch.getBatchSize(), sequence);
+                        }
+                        out.add(batch);
+                        batchComplete();
+                    }
+
+                    transition(States.READ_HEADER);
+                } else {
+                    logger.trace("Read next chunk");
+                    transition(States.READ_JSON_JAVA_HEAP, CHUNK_SIZE);
+                }
                 break;
             }
         }

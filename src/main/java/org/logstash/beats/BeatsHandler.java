@@ -1,5 +1,7 @@
 package org.logstash.beats;
 
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import org.apache.logging.log4j.LogManager;
@@ -93,7 +95,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
                 }
             } else {
                 final Throwable realCause = extractCause(cause, 0);
-                if (logger.isDebugEnabled()){
+                if (logger.isDebugEnabled()) {
                     logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"), cause);
                 } else {
                     logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"));
