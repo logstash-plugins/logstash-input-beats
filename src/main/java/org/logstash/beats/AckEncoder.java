@@ -10,6 +10,11 @@ import io.netty.handler.codec.MessageToByteEncoder;
  *
  */
 public class AckEncoder extends MessageToByteEncoder<Ack> {
+
+    public AckEncoder() {
+        super(false);
+    }
+
     @Override
     protected void encode(ChannelHandlerContext ctx, Ack ack, ByteBuf out) throws Exception {
         out.writeByte(ack.getProtocol());
