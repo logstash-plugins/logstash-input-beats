@@ -2,13 +2,23 @@ package org.logstash.beats;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 /**
  * Implementation of {@link Batch} for the v2 protocol backed by ByteBuf. *must* be released after use.
  */
 public class V2Batch implements Batch {
+
+    private final static Logger logger = LogManager.getLogger(V2Batch.class);
+    private final static Set<Integer> MAX_ORDERS_LOGGED = new HashSet<>();
+    // The value 14 comes from PooledByteBufAllocator.validateAndCalculateChunkSize
+    private static final int NETTY_MAXIMUM_ORDER = 14;
+
     private ByteBuf internalBuffer = PooledByteBufAllocator.DEFAULT.buffer();
     private int written = 0;
     private int read = 0;
@@ -80,20 +90,71 @@ public class V2Batch implements Batch {
 
     /**
      * Adds a message to the batch, which will be constructed into an actual {@link Message} lazily.
-      * @param sequenceNumber sequence number of the message within the batch
+     * @param sequenceNumber sequence number of the message within the batch
      * @param buffer A ByteBuf pointing to serialized JSon
      * @param size size of the serialized Json
      */
     void addMessage(int sequenceNumber, ByteBuf buffer, int size) {
         written++;
-        if (internalBuffer.writableBytes() < size + (2 * SIZE_OF_INT)){
-            internalBuffer.capacity(internalBuffer.capacity() + size + (2 * SIZE_OF_INT));
+        if (internalBuffer.writableBytes() < size + (2 * SIZE_OF_INT)) {
+            int requiredSize = internalBuffer.capacity() + size + (2 * SIZE_OF_INT);
+            eventuallyLogIdealMaxOrder(requiredSize, size);
+
+            internalBuffer.capacity(requiredSize);
         }
         internalBuffer.writeInt(sequenceNumber);
         internalBuffer.writeInt(size);
         buffer.readBytes(internalBuffer, size);
-        if (sequenceNumber > highestSequence){
+        if (sequenceNumber > highestSequence) {
             highestSequence = sequenceNumber;
+        }
+    }
+
+    private void eventuallyLogIdealMaxOrder(int requiredSize, int size) {
+        int idealMaxOrder = idealMaxOrder(requiredSize);
+        if (idealMaxOrder <= PooledByteBufAllocator.defaultMaxOrder()) {
+            return;
+        }
+        if (alreadyLogged(idealMaxOrder)) {
+            return;
+        }
+
+        if (idealMaxOrder > NETTY_MAXIMUM_ORDER) {
+            logger.error("Got a batch size of {} bytes that can fit into maximum maxOrder value 14, can't increment more", size);
+        } else {
+            logger.warn("Got a batch size of {} bytes, while this instance expects batches up to {}, please bump maxOrder to {}.",
+                    size, PooledByteBufAllocator.DEFAULT.metric().chunkSize(), idealMaxOrder);
+        }
+        trackAsAlreadyLogged(idealMaxOrder);
+    }
+
+    private void trackAsAlreadyLogged(int maxOrder) {
+        MAX_ORDERS_LOGGED.add(capMaxOrder(maxOrder));
+    }
+
+    private boolean alreadyLogged(int maxOrder) {
+        return MAX_ORDERS_LOGGED.contains(capMaxOrder(maxOrder));
+    }
+
+    private static int capMaxOrder(int maxOrder) {
+        return maxOrder > NETTY_MAXIMUM_ORDER ? Integer.MAX_VALUE : maxOrder;
+    }
+
+    /**
+     * Return the ideal maxOrder value to configure chunks of size where a buffer of requiredSize can fit.
+     * */
+    private int idealMaxOrder(int requiredSize) {
+        int chunkSize = PooledByteBufAllocator.DEFAULT.metric().chunkSize();
+        int defaultMaxOrder = PooledByteBufAllocator.defaultMaxOrder();
+        int defaultPageSize = PooledByteBufAllocator.defaultPageSize();
+        if (requiredSize > chunkSize) {
+            int nextMaxOrder = defaultMaxOrder;
+            do {
+                nextMaxOrder ++;
+            } while (requiredSize > (defaultPageSize << nextMaxOrder));
+            return nextMaxOrder;
+        } else {
+            return defaultMaxOrder;
         }
     }
 
