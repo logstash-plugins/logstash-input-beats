@@ -4,19 +4,38 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.isEmptyString;
+import static org.junit.Assert.*;
 
 public class V2BatchTest {
     public final static ObjectMapper MAPPER = new ObjectMapper().registerModule(new AfterburnerModule());
+    private final PrintStream standardOut = System.out;
+    private final ByteArrayOutputStream outputStreamCaptor = new ByteArrayOutputStream();
+
+    @Before
+    public void setUp() {
+        System.setProperty("log4j.configurationFile", "log4j2-v2bartch-test.properties");
+        System.setOut(new PrintStream(outputStreamCaptor));
+    }
+
+    @After
+    public void tearDown() {
+        System.setOut(standardOut);
+    }
+
 
     @Test
     public void testIsEmpty() {
@@ -113,5 +132,41 @@ public class V2BatchTest {
         } catch (Exception e){
             throw new RuntimeException(e);
         }
+    }
+
+    @Test
+    public void givenBufferSizeThatFitIntoActualMaxOrderThenNoLogLineIsPrinted() {
+        V2Batch sut = new V2Batch();
+
+        sut.eventuallyLogIdealMaxOrder(1024 * 1024);
+
+        final String output = outputStreamCaptor.toString();
+        assertThat("No logging when the buffer size fit into actual maxOrder", output, isEmptyString());
+    }
+
+    @Test
+    public void givenBufferSizeThatDoesntFitIntoActualMaxOrderThenLogLineIsPrintedJustOnce() {
+        V2Batch sut = new V2Batch();
+        int actualChunkSize = PooledByteBufAllocator.DEFAULT.metric().chunkSize();
+        sut.eventuallyLogIdealMaxOrder(actualChunkSize + 1024);
+
+        final String output = outputStreamCaptor.toString();
+        Pattern pattern = Pattern.compile("^.*Got a batch size of \\d* bytes, while this instance expects batches up to \\d*, please bump maxOrder to \\d*.*", Pattern.DOTALL);
+        assertTrue("First time the chunk size is passed a log line is printed", pattern.matcher(output).find());
+
+        sut.eventuallyLogIdealMaxOrder(actualChunkSize + 1024);
+        final String newOutput = outputStreamCaptor.toString();
+        assertTrue("Second time the same chunk size is passed, no log happens", pattern.matcher(newOutput).find());
+    }
+
+    @Test
+    public void givenBufferSizeBiggerThanMaximumNettyChunkSizeThenSpecificErrorLineIsLogged() {
+        V2Batch sut = new V2Batch();
+        int maxChunkSize = PooledByteBufAllocator.defaultPageSize() << 14;
+        sut.eventuallyLogIdealMaxOrder(maxChunkSize + 1024);
+
+        final String output = outputStreamCaptor.toString();
+        Pattern pattern = Pattern.compile("^.*Got a batch size of \\d* bytes that can fit into maximum maxOrder value 14, can't increment more.*", Pattern.DOTALL);
+        assertTrue("Error message to be over the maximum Netty chunk size is printed", pattern.matcher(output).matches());
     }
 }

@@ -98,7 +98,7 @@ public class V2Batch implements Batch {
         written++;
         if (internalBuffer.writableBytes() < size + (2 * SIZE_OF_INT)) {
             int requiredSize = internalBuffer.capacity() + size + (2 * SIZE_OF_INT);
-            eventuallyLogIdealMaxOrder(requiredSize, size);
+            eventuallyLogIdealMaxOrder(requiredSize);
 
             internalBuffer.capacity(requiredSize);
         }
@@ -110,7 +110,8 @@ public class V2Batch implements Batch {
         }
     }
 
-    private void eventuallyLogIdealMaxOrder(int requiredSize, int size) {
+    // package-private for testability reasons
+    void eventuallyLogIdealMaxOrder(int requiredSize) {
         int idealMaxOrder = idealMaxOrder(requiredSize);
         if (idealMaxOrder <= PooledByteBufAllocator.defaultMaxOrder()) {
             return;
@@ -120,10 +121,10 @@ public class V2Batch implements Batch {
         }
 
         if (idealMaxOrder > NETTY_MAXIMUM_ORDER) {
-            logger.error("Got a batch size of {} bytes that can fit into maximum maxOrder value 14, can't increment more", size);
+            logger.error("Got a batch size of {} bytes that can fit into maximum maxOrder value 14, can't increment more", requiredSize);
         } else {
             logger.warn("Got a batch size of {} bytes, while this instance expects batches up to {}, please bump maxOrder to {}.",
-                    size, PooledByteBufAllocator.DEFAULT.metric().chunkSize(), idealMaxOrder);
+                    requiredSize, PooledByteBufAllocator.DEFAULT.metric().chunkSize(), idealMaxOrder);
         }
         trackAsAlreadyLogged(idealMaxOrder);
     }
