@@ -9,6 +9,7 @@ import io.netty.buffer.Unpooled;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -28,6 +29,11 @@ public class V2BatchTest {
     @Before
     public void setUp() {
         loggerSpy = new SpyLogger(logger);
+    }
+
+    @After
+    public void tearDown() {
+        V2Batch.resetReportedOrders();
     }
 
     @Test
@@ -159,5 +165,23 @@ public class V2BatchTest {
         loggerSpy.verifyLogMessage("Error message to be over the maximum Netty chunk size is printed",
                 "Got a batch size of {} bytes that can fit into maximum maxOrder value 14, can't increment more");
         loggerSpy.verifyLevel(Level.ERROR);
+    }
+
+    @Test
+    public void givenWarningLogAlreadyPrintedForMaxOrderThenAnyOtherIdealMaxOrderMinorThanThatArentPrinted() {
+        // actual maxOrder is 8, the system has already reported an ideal maxOrder of 11, then it wouldn't report
+        // any other maxOrder in the range 9..11
+        V2Batch sut = new V2Batch();
+        int maxChunkSize = PooledByteBufAllocator.defaultPageSize() << 12;
+        sut.eventuallyLogIdealMaxOrder(maxChunkSize, loggerSpy);
+
+        loggerSpy.verifyLogMessage("First time the chunk size is passed a log line is printed",
+                "Got a batch size of {} bytes, while this instance expects batches up to {}, please bump maxOrder to {}.");
+        loggerSpy.verifyLevel(Level.WARN);
+
+        maxChunkSize = PooledByteBufAllocator.defaultPageSize() << 10;
+        sut.eventuallyLogIdealMaxOrder(maxChunkSize, loggerSpy);
+
+        loggerSpy.verifyNoLog("MaxOrder lover then the one already reported aren't logged");
     }
 }

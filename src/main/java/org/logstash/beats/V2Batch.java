@@ -15,7 +15,7 @@ import java.util.Set;
 public class V2Batch implements Batch {
 
     private final static Logger logger = LogManager.getLogger(V2Batch.class);
-    private final static Set<Integer> MAX_ORDERS_LOGGED = new HashSet<>();
+    private static volatile int LAST_NOTIFIED_MAX_ORDER = -1;
     // The value 14 comes from PooledByteBufAllocator.validateAndCalculateChunkSize
     private static final int NETTY_MAXIMUM_ORDER = 14;
 
@@ -116,7 +116,7 @@ public class V2Batch implements Batch {
         if (idealMaxOrder <= PooledByteBufAllocator.defaultMaxOrder()) {
             return;
         }
-        if (alreadyLogged(idealMaxOrder)) {
+        if (!needsToBeLogged(idealMaxOrder)) {
             return;
         }
 
@@ -130,11 +130,11 @@ public class V2Batch implements Batch {
     }
 
     private void trackAsAlreadyLogged(int maxOrder) {
-        MAX_ORDERS_LOGGED.add(capMaxOrder(maxOrder));
+        LAST_NOTIFIED_MAX_ORDER = capMaxOrder(maxOrder);
     }
 
-    private boolean alreadyLogged(int maxOrder) {
-        return MAX_ORDERS_LOGGED.contains(capMaxOrder(maxOrder));
+    private boolean needsToBeLogged(int maxOrder) {
+        return capMaxOrder(maxOrder) > LAST_NOTIFIED_MAX_ORDER;
     }
 
     private static int capMaxOrder(int maxOrder) {
@@ -162,5 +162,10 @@ public class V2Batch implements Batch {
     @Override
     public void release() {
         internalBuffer.release();
+    }
+
+    // visible for testing
+    static void resetReportedOrders() {
+        LAST_NOTIFIED_MAX_ORDER = -1;
     }
 }
