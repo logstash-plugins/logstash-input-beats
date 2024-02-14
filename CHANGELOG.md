@@ -1,3 +1,6 @@
+## 6.8.1
+  - Added logging the best Netty's `maxOrder` setting when big payload trigger an unpooled allocation [#493](https://github.com/logstash-plugins/logstash-input-beats/pull/493)
+
 ## 6.8.0
   - Introduce expert only `event_loop_threads` to tune netty event loop threads count [#490](https://github.com/logstash-plugins/logstash-input-beats/pull/490)
 
