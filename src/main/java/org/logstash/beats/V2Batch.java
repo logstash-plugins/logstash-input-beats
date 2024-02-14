@@ -98,7 +98,7 @@ public class V2Batch implements Batch {
         written++;
         if (internalBuffer.writableBytes() < size + (2 * SIZE_OF_INT)) {
             int requiredSize = internalBuffer.capacity() + size + (2 * SIZE_OF_INT);
-            eventuallyLogIdealMaxOrder(requiredSize);
+            eventuallyLogIdealMaxOrder(requiredSize, logger);
 
             internalBuffer.capacity(requiredSize);
         }
@@ -111,7 +111,7 @@ public class V2Batch implements Batch {
     }
 
     // package-private for testability reasons
-    void eventuallyLogIdealMaxOrder(int requiredSize) {
+    void eventuallyLogIdealMaxOrder(int requiredSize, Logger logger) {
         int idealMaxOrder = idealMaxOrder(requiredSize);
         if (idealMaxOrder <= PooledByteBufAllocator.defaultMaxOrder()) {
             return;
