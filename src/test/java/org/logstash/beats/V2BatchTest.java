@@ -18,7 +18,10 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import static org.hamcrest.Matchers.isEmptyString;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class V2BatchTest {
     public final static ObjectMapper MAPPER = new ObjectMapper().registerModule(new AfterburnerModule());
@@ -167,6 +170,7 @@ public class V2BatchTest {
 
         final String output = outputStreamCaptor.toString();
         Pattern pattern = Pattern.compile("^.*Got a batch size of \\d* bytes that can fit into maximum maxOrder value 14, can't increment more.*", Pattern.DOTALL);
-        assertTrue("Error message to be over the maximum Netty chunk size is printed", pattern.matcher(output).matches());
+        boolean matchResult = pattern.matcher(output).matches();
+        assertTrue("Error message to be over the maximum Netty chunk size is printed, but was: |" + output + "|" , matchResult);
     }
 }
