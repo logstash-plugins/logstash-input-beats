@@ -149,7 +149,7 @@ public class V2BatchTest {
         sut.eventuallyLogIdealMaxOrder(actualChunkSize + 1024, loggerSpy);
 
         loggerSpy.verifyLogMessage("First time the chunk size is passed a log line is printed",
-                "Got a batch size of {} bytes, while this instance expects batches up to {}, please bump maxOrder to {}.");
+                "Received batch of size {} bytes that is too large to fit into the pre-allocated memory pool. This will cause a performance degradation. Set 'io.netty.allocator.maxOrder' JVM property to {} to accommodate batches bigger than {} bytes.");
         loggerSpy.verifyLevel(Level.WARN);
 
         sut.eventuallyLogIdealMaxOrder(actualChunkSize + 1024, loggerSpy);
@@ -163,7 +163,7 @@ public class V2BatchTest {
         sut.eventuallyLogIdealMaxOrder(maxChunkSize + 1024, loggerSpy);
 
         loggerSpy.verifyLogMessage("Error message to be over the maximum Netty chunk size is printed",
-                "Got a batch size of {} bytes that can fit into maximum maxOrder value 14, can't increment more");
+                "Received batch of size {} bytes that is too large to fit into the pre-allocated memory pool. Reduce the size of the batch to improve performance and avoid data loss.");
         loggerSpy.verifyLevel(Level.ERROR);
     }
 
@@ -176,7 +176,7 @@ public class V2BatchTest {
         sut.eventuallyLogIdealMaxOrder(maxChunkSize, loggerSpy);
 
         loggerSpy.verifyLogMessage("First time the chunk size is passed a log line is printed",
-                "Got a batch size of {} bytes, while this instance expects batches up to {}, please bump maxOrder to {}.");
+                "Received batch of size {} bytes that is too large to fit into the pre-allocated memory pool. This will cause a performance degradation. Set 'io.netty.allocator.maxOrder' JVM property to {} to accommodate batches bigger than {} bytes.");
         loggerSpy.verifyLevel(Level.WARN);
 
         maxChunkSize = PooledByteBufAllocator.defaultPageSize() << 10;
