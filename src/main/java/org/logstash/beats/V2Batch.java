@@ -121,10 +121,10 @@ public class V2Batch implements Batch {
         }
 
         if (idealMaxOrder > NETTY_MAXIMUM_ORDER) {
-            logger.error("Got a batch size of {} bytes that can fit into maximum maxOrder value 14, can't increment more", requiredSize);
+            logger.error("Received batch of size {} bytes that is too large to fit into the pre-allocated memory pool. Reduce the size of the batch to improve performance and avoid data loss.", requiredSize);
         } else {
-            logger.warn("Got a batch size of {} bytes, while this instance expects batches up to {}, please bump maxOrder to {}.",
-                    requiredSize, PooledByteBufAllocator.DEFAULT.metric().chunkSize(), idealMaxOrder);
+            logger.warn("Received batch of size {} bytes that is too large to fit into the pre-allocated memory pool. This will cause a performance degradation. Set 'io.netty.allocator.maxOrder' JVM property to {} to accommodate batches bigger than {} bytes.",
+                    requiredSize, idealMaxOrder, PooledByteBufAllocator.DEFAULT.metric().chunkSize());
         }
         trackAsAlreadyLogged(idealMaxOrder);
     }
