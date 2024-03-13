@@ -1,3 +1,6 @@
+## 6.8.2
+  - Remove Logstash forwarder test cases and add Lumberjack test cases [#488](https://github.com/logstash-plugins/logstash-input-beats/pull/488)
+
 ## 6.8.1
   - Added logging the best Netty's `maxOrder` setting when big payload trigger an unpooled allocation [#493](https://github.com/logstash-plugins/logstash-input-beats/pull/493)
 

@@ -26,8 +26,8 @@ public class V2Batch implements Batch {
     private int batchSize;
     private int highestSequence = -1;
 
-    public void setProtocol(byte protocol){
-        if (protocol != Protocol.VERSION_2){
+    public void setProtocol(byte protocol) {
+        if (protocol != Protocol.VERSION_2) {
             throw new IllegalArgumentException("Only version 2 protocol is supported");
         }
     }
@@ -37,7 +37,7 @@ public class V2Batch implements Batch {
         return Protocol.VERSION_2;
     }
 
-    public Iterator<Message> iterator(){
+    public Iterator<Message> iterator() {
         internalBuffer.resetReaderIndex();
         return new Iterator<Message>() {
             @Override
@@ -84,7 +84,7 @@ public class V2Batch implements Batch {
     }
 
     @Override
-    public int getHighestSequence(){
+    public int getHighestSequence() {
         return highestSequence;
     }
 

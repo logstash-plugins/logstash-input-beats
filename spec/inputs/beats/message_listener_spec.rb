@@ -199,7 +199,7 @@ describe LogStash::Inputs::Beats::MessageListener do
       end
     end
 
-    context "when the message is from LSF" do
+    context "when the message is from Lumberjack" do
       let(:message) { MockMessage.new("abc", { "line" => "hello world", '@metadata' => {} } )}
 
       it "extract the event" do

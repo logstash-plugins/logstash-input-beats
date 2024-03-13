@@ -9,10 +9,8 @@ bin
 src/github.com/alecthomas/gozmq
 nacl.public
 nacl.secret
-.logstash-forwarder
 .lumberjack.new
 .rbx
-logstash-forwarder
 *.DS_Store
 *.idea
 *.iml

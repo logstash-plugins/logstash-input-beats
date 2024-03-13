@@ -39,7 +39,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency "rspec-wait"
   s.add_development_dependency "logstash-devutils"
   s.add_development_dependency "logstash-codec-json"
-  s.add_development_dependency "childprocess" # To make filebeat/LSF integration test easier to write.
+  s.add_development_dependency "childprocess" # To make filebeat integration test easier to write.
 
   s.platform = 'java'
 end
