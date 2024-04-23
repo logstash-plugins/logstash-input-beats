@@ -15,7 +15,7 @@ targetCompatibility = 1.8
 
 String jacksonVersion = '2.15.3'
 String jacksonDatabindVersion = '2.15.3'
-String nettyVersion = '4.1.100.Final'
+String nettyVersion = '4.1.109.Final'
 
 repositories {
     mavenCentral()
