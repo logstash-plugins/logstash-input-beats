@@ -1,3 +1,6 @@
+## 6.8.3
+  - bump netty to 4.1.109 [#495](https://github.com/logstash-plugins/logstash-input-beats/pull/495)
+
 ## 6.8.2
   - Remove Logstash forwarder test cases and add Lumberjack test cases [#488](https://github.com/logstash-plugins/logstash-input-beats/pull/488)
 
