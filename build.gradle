@@ -1,17 +1,21 @@
 import java.nio.file.Files
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING
 
-apply plugin: 'java'
-apply plugin: 'idea'
-apply plugin: 'maven-publish'
+plugins {
+  id 'java'
+  id 'idea'
+  id 'maven-publish'
+}
 
 group 'org.logstash.beats'
 version "${new File("VERSION").text.trim()}"
 
 description = "Beats/Lumberjack Netty implementation"
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+}
 
 String jacksonVersion = '2.15.3'
 String jacksonDatabindVersion = '2.15.3'
@@ -60,7 +64,7 @@ task run (type: JavaExec, dependsOn: classes){
         args(providedargs.split(','))
     }
     description = "Beats testing"
-    main = "org.logstash.beats.Runner"
+    mainClass = "org.logstash.beats.Runner"
     classpath = sourceSets.main.runtimeClasspath
 }
 
