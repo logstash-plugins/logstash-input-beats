@@ -1,3 +1,7 @@
+## 6.9.0
+  - Fix: avoid plugin crash when connection terminated but processing the message [#500](https://github.com/logstash-plugins/logstash-input-beats/pull/500)
+  - Improve plugin shutdown process by separating netty acceptor and child groups.
+
 ## 6.8.4
   - Fixed to populate the `@metadata` fields even if the source's metadata value is `nil` [#502](https://github.com/logstash-plugins/logstash-input-beats/pull/502)
 

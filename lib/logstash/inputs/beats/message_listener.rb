@@ -49,11 +49,18 @@ module LogStash module Inputs class Beats
         @nocodec_transformer.transform(event)
         @queue << event
       else
-        codec(ctx).accept(CodecCallbackListener.new(target_field,
-                                                    hash,
-                                                    message.getIdentityStream(),
-                                                    @codec_transformer,
-                                                    @queue))
+        current_codec = codec(ctx)
+        if current_codec
+          current_codec.accept(CodecCallbackListener.new(target_field,
+                                                         hash,
+                                                         message.getIdentityStream(),
+                                                         @codec_transformer,
+                                                         @queue))
+        else
+          # the possible cases: connection closed or exception with a connection
+          # let client retry
+          input.logger.warn("No codec available to process the message. This may due to connection termination and message was being processed.")
+        end
       end
     end
 

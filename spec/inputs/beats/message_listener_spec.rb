@@ -218,6 +218,24 @@ describe LogStash::Inputs::Beats::MessageListener do
       end
     end
 
+    context "when connection is terminated" do
+      let(:message) { MockMessage.new("message from Mars", { "message" => "hello world", "@metadata" => {} } )}
+
+      it "handles without crashing" do
+        subject.onConnectionClose(ctx)
+        expect(subject.connections_list[ctx]).to be nil
+
+        expect( input.logger ).to receive(:warn) do |message |
+          expect( message ).to match /No codec available to process the message. This may due to connection termination and message was being processed./
+        end
+
+        subject.onNewMessage(ctx, message)
+        # doesn't push to queue, so should be nil
+        event = queue.pop
+        expect(event.get("message")).to be nil
+      end
+    end
+
     it_behaves_like "when the message is from any libbeat", :disabled, "[@metadata][ip_address]"
     it_behaves_like "when the message is from any libbeat", :v1, "[@metadata][input][beats][host][ip]"
     it_behaves_like "when the message is from any libbeat", :v8, "[@metadata][input][beats][host][ip]"
