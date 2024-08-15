@@ -11,7 +11,9 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.EventExecutorGroup;
+import io.netty.util.concurrent.SingleThreadEventExecutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.netty.SslHandlerProvider;
@@ -23,6 +25,7 @@ public class Server {
     private final String host;
     private final int eventLoopThreadCount;
     private final int executorThreadCount;
+    private NioEventLoopGroup bossGroup;
     private NioEventLoopGroup workGroup;
     private IMessageListener messageListener = new MessageListener();
     private SslHandlerProvider sslHandlerProvider;
@@ -51,6 +54,7 @@ public class Server {
                 logger.error("Could not shut down worker group before starting", e);
             }
         }
+        bossGroup = new NioEventLoopGroup(eventLoopThreadCount); // TODO: add a config to make it adjustable, no need many threads
         workGroup = new NioEventLoopGroup(eventLoopThreadCount);
         try {
             logger.info("Starting server on port: {}", this.port);
@@ -58,7 +62,7 @@ public class Server {
             beatsInitializer = new BeatsInitializer(messageListener, clientInactivityTimeoutSeconds, executorThreadCount);
 
             ServerBootstrap server = new ServerBootstrap();
-            server.group(workGroup)
+            server.group(bossGroup, workGroup)
                     .channel(NioServerSocketChannel.class)
                     .childOption(ChannelOption.SO_LINGER, 0) // Since the protocol doesn't support yet a remote close from the server and we don't want to have 'unclosed' socket lying around we have to use `SO_LINGER` to force the close of the socket.
                     .childHandler(beatsInitializer);
@@ -83,12 +87,29 @@ public class Server {
     }
 
     private void shutdown() {
+        // as much as possible we try to gracefully shut down
+        // no longer accept incoming socket connections
+        // with event loop group (workGroup) declares quite period with `shutdownGracefully` which queued tasks will not receive work for the best cases
+        // executor group threads will be asked and waited to gracefully shutdown if they have pending tasks. This helps each individual handler process the event/exception, especially when multichannel use case.
+        //  there is no guarantee that executor threads will terminate during the shutdown because of many factors such as ack processing
+        //  so any pending tasks which send batches to BeatsHandler will be ignored
         try {
+            // boss group shuts down socket connections
+            // shutting down bossGroup separately gives us faster channel closure
+            if (bossGroup != null) {
+                bossGroup.shutdownGracefully().sync();
+            }
+
             if (workGroup != null) {
-                workGroup.shutdownGracefully().sync();
+                workGroup.shutdownGracefully();
             }
             if (beatsInitializer != null) {
                 beatsInitializer.shutdownEventExecutor();
+            }
+            // we wait for workGroup shutdown this time
+            if (workGroup != null && !workGroup.isShutdown()) {
+                // calling again shutdownGracefully doesn't hurt that it returns terminationFuture if shutdown is under process
+                workGroup.shutdownGracefully().sync();
             }
         } catch (InterruptedException e) {
             throw new IllegalStateException(e);
@@ -160,6 +181,18 @@ public class Server {
         public void shutdownEventExecutor() {
             try {
                 idleExecutorGroup.shutdownGracefully().sync();
+
+                // DefaultEventExecutorGroup internally executes numbers of SingletonEventExecutor
+                // try to gracefully shut down every thread if they have unacked pending batches (pending tasks)
+                for (final EventExecutor eventExecutor : beatsHandlerExecutorGroup) {
+                    if (eventExecutor instanceof SingleThreadEventExecutor) {
+                        final SingleThreadEventExecutor singleExecutor = (SingleThreadEventExecutor) eventExecutor;
+                        if (singleExecutor.pendingTasks() > 0) {
+                            singleExecutor.shutdownGracefully().sync();
+                        }
+                    }
+                }
+                // make sure non-pending tasked executors get terminated
                 beatsHandlerExecutorGroup.shutdownGracefully().sync();
             } catch (InterruptedException e) {
                 throw new IllegalStateException(e);

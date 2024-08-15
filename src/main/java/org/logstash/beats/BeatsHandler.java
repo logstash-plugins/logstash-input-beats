@@ -7,13 +7,19 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Objects;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.net.ssl.SSLHandshakeException;
 
 public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     private final static Logger logger = LogManager.getLogger(BeatsHandler.class);
+    private final static String executorTerminatedMessage = "event executor terminated";
+
     private final IMessageListener messageListener;
     private ChannelHandlerContext context;
 
+    private final AtomicBoolean isQuitePeriod = new AtomicBoolean(false);
 
     public BeatsHandler(IMessageListener listener) {
         messageListener = listener;
@@ -21,8 +27,8 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
 
     @Override
     public void channelActive(final ChannelHandlerContext ctx) throws Exception {
-	    context = ctx;
-        if (logger.isTraceEnabled()){
+        context = ctx;
+        if (logger.isTraceEnabled()) {
             logger.trace(format("Channel Active"));
         }
         super.channelActive(ctx);
@@ -32,7 +38,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         super.channelInactive(ctx);
-        if (logger.isTraceEnabled()){
+        if (logger.isTraceEnabled()) {
             logger.trace(format("Channel Inactive"));
         }
         messageListener.onConnectionClose(ctx);
@@ -41,29 +47,22 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, Batch batch) {
-        if(logger.isDebugEnabled()) {
+        if (logger.isDebugEnabled()) {
             logger.debug(format("Received a new payload"));
         }
         try {
-            if (batch.isEmpty()) {
-                logger.debug("Sending 0-seq ACK for empty batch");
-                writeAck(ctx, batch.getProtocol(), 0);
-            }
-            for (Message message : batch) {
+            if (isQuitePeriod.get()) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug(format("Sending a new message for the listener, sequence: " + message.getSequence()));
+                    logger.debug(format("Received batch but no executors available, ignoring..."));
                 }
-                messageListener.onNewMessage(ctx, message);
-
-                if (needAck(message)) {
-                    ack(ctx, message);
-                }
+            } else {
+                processBatchAndSendAck(ctx, batch);
             }
-        }finally{
+        } finally {
             //this channel is done processing this payload, instruct the connection handler to stop sending TCP keep alive
             ctx.channel().attr(ConnectionHandler.CHANNEL_SEND_KEEP_ALIVE).get().set(false);
             if (logger.isDebugEnabled()) {
-                logger.debug("{}: batches pending: {}", ctx.channel().id().asShortText(),ctx.channel().attr(ConnectionHandler.CHANNEL_SEND_KEEP_ALIVE).get().get());
+                logger.debug("{}: batches pending: {}", ctx.channel().id().asShortText(), ctx.channel().attr(ConnectionHandler.CHANNEL_SEND_KEEP_ALIVE).get().get());
             }
             batch.release();
             ctx.flush();
@@ -93,16 +92,44 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
                 }
             } else {
                 final Throwable realCause = extractCause(cause, 0);
-                if (logger.isDebugEnabled()){
+                if (logger.isDebugEnabled()) {
                     logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"), cause);
                 } else {
                     logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"));
                 }
-                super.exceptionCaught(ctx, cause);
+                // when execution tasks rejected, no need to forward the exception to netty channel handlers
+                if (cause instanceof RejectedExecutionException) {
+                    // we no longer have event executors available since they are terminated, mostly by shutdown process
+                    if (Objects.nonNull(cause.getMessage()) && cause.getMessage().contains(executorTerminatedMessage)) {
+                        this.isQuitePeriod.compareAndSet(false, true);
+                    }
+                } else {
+                    super.exceptionCaught(ctx, cause);
+                }
             }
         } finally {
             ctx.flush();
             ctx.close();
+        }
+    }
+
+    private void processBatchAndSendAck(ChannelHandlerContext ctx, Batch batch) {
+        if (batch.isEmpty()) {
+            logger.debug("Sending 0-seq ACK for empty batch");
+            writeAck(ctx, batch.getProtocol(), 0);
+        }
+        for (Message message : batch) {
+            if (logger.isDebugEnabled()) {
+                logger.debug(format("Sending a new message for the listener, sequence: " + message.getSequence()));
+            }
+            messageListener.onNewMessage(ctx, message);
+
+            if (needAck(message)) {
+                if (logger.isTraceEnabled()) {
+                    logger.trace(format("Acking message number " + message.getSequence()));
+                }
+                writeAck(ctx, message.getBatch().getProtocol(), message.getSequence());
+            }
         }
     }
 
@@ -120,13 +147,6 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         return message.getSequence() == message.getBatch().getHighestSequence();
     }
 
-    private void ack(ChannelHandlerContext ctx, Message message) {
-        if (logger.isTraceEnabled()){
-            logger.trace(format("Acking message number " + message.getSequence()));
-        }
-        writeAck(ctx, message.getBatch().getProtocol(), message.getSequence());
-    }
-
     private void writeAck(ChannelHandlerContext ctx, byte protocol, int sequence) {
         ctx.write(new Ack(protocol, sequence));
     }
@@ -140,20 +160,20 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         InetSocketAddress remote = (InetSocketAddress) context.channel().remoteAddress();
 
         String localhost;
-        if(local != null) {
+        if (local != null) {
             localhost = local.getAddress().getHostAddress() + ":" + local.getPort();
-        } else{
+        } else {
             localhost = "undefined";
         }
 
-        String remotehost;
-        if(remote != null) {
-            remotehost = remote.getAddress().getHostAddress() + ":" + remote.getPort();
-        } else{
-            remotehost = "undefined";
+        String remoteHost;
+        if (remote != null) {
+            remoteHost = remote.getAddress().getHostAddress() + ":" + remote.getPort();
+        } else {
+            remoteHost = "undefined";
         }
 
-        return "[local: " + localhost + ", remote: " + remotehost + "] " + message;
+        return "[local: " + localhost + ", remote: " + remoteHost + "] " + message;
     }
 
     private static final int MAX_CAUSE_NESTING = 10;
