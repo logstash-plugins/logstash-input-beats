@@ -19,7 +19,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     private final IMessageListener messageListener;
     private ChannelHandlerContext context;
 
-    private final AtomicBoolean isQuitePeriod = new AtomicBoolean(false);
+    private final AtomicBoolean isQuietPeriod = new AtomicBoolean(false);
 
     public BeatsHandler(IMessageListener listener) {
         messageListener = listener;
@@ -51,7 +51,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
             logger.debug(format("Received a new payload"));
         }
         try {
-            if (isQuitePeriod.get()) {
+            if (isQuietPeriod.get()) {
                 if (logger.isDebugEnabled()) {
                     logger.debug(format("Received batch but no executors available, ignoring..."));
                 }
@@ -101,7 +101,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
                 if (cause instanceof RejectedExecutionException) {
                     // we no longer have event executors available since they are terminated, mostly by shutdown process
                     if (Objects.nonNull(cause.getMessage()) && cause.getMessage().contains(executorTerminatedMessage)) {
-                        this.isQuitePeriod.compareAndSet(false, true);
+                        this.isQuietPeriod.compareAndSet(false, true);
                     }
                 } else {
                     super.exceptionCaught(ctx, cause);
