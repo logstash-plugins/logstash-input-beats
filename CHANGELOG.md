@@ -1,3 +1,6 @@
+## 6.8.4
+  - Fixed to populate the `@metadata` fields even if the source's metadata value is `nil` [#TBD](https://github.com/logstash-plugins/logstash-input-beats/pull/TBD)
+
 ## 6.8.3
   - bump netty to 4.1.109 [#495](https://github.com/logstash-plugins/logstash-input-beats/pull/495)
 
