@@ -101,15 +101,11 @@ public class Server {
             }
 
             if (workGroup != null) {
-                workGroup.shutdownGracefully();
+                workGroup.shutdownGracefully().sync();
             }
+
             if (beatsInitializer != null) {
                 beatsInitializer.shutdownEventExecutor();
-            }
-            // we wait for workGroup shutdown this time
-            if (workGroup != null && !workGroup.isShutdown()) {
-                // calling again shutdownGracefully doesn't hurt that it returns terminationFuture if shutdown is under process
-                workGroup.shutdownGracefully().sync();
             }
         } catch (InterruptedException e) {
             throw new IllegalStateException(e);
