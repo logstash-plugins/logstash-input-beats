@@ -109,6 +109,15 @@ shared_examples "when the message is from any libbeat" do |ecs_compatibility, ho
       expect(event.get(host_field_name)).to eq(nil)
     end
   end
+
+  context 'when @metadata is nil' do
+    let(:data) { super().reject { |k| '@metadata'.eql?(k) } }
+
+    it 'extracts event with the host field metadata set' do
+      subject.onNewMessage(ctx, message)
+      expect(queue.pop.get(host_field_name)).to eq(ip_address)
+    end
+  end
 end
 
 describe LogStash::Inputs::Beats::MessageListener do

@@ -35,7 +35,7 @@ module LogStash module Inputs class Beats
 
       if @input.include_source_metadata?
         ip_address = ip_address(ctx)
-        unless ip_address.nil? || hash['@metadata'].nil?
+        unless ip_address.nil?
           set_nested(hash, @input.field_hostip, ip_address)
         end
       end
@@ -167,7 +167,7 @@ module LogStash module Inputs class Beats
       field_ref = Java::OrgLogstash::FieldReference.from(field_name)
       # create @metadata sub-hash if needed
       if field_ref.type == Java::OrgLogstash::FieldReference::META_CHILD
-        nesting_hash = hash["@metadata"]
+        nesting_hash = hash['@metadata'] ||= {}
       else
         nesting_hash = hash
       end
