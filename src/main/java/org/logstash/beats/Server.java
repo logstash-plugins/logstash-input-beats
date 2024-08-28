@@ -178,7 +178,7 @@ public class Server {
             try {
                 idleExecutorGroup.shutdownGracefully().sync();
 
-                // DefaultEventExecutorGroup internally executes numbers of SingletonEventExecutor
+                // DefaultEventExecutorGroup internally executes numbers of SingleThreadEventExecutor
                 // try to gracefully shut down every thread if they have unacked pending batches (pending tasks)
                 for (final EventExecutor eventExecutor : beatsHandlerExecutorGroup) {
                     if (eventExecutor instanceof SingleThreadEventExecutor) {
