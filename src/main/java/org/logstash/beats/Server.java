@@ -178,6 +178,17 @@ public class Server {
             try {
                 idleExecutorGroup.shutdownGracefully().sync();
 
+                shutdownEventExecutorsWithPendingTasks();
+
+                // make sure non-pending tasked executors get terminated
+                beatsHandlerExecutorGroup.shutdownGracefully().sync();
+            } catch (InterruptedException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+        private void shutdownEventExecutorsWithPendingTasks() {
+            try {
                 // DefaultEventExecutorGroup internally executes numbers of SingleThreadEventExecutor
                 // try to gracefully shut down every thread if they have unacked pending batches (pending tasks)
                 for (final EventExecutor eventExecutor : beatsHandlerExecutorGroup) {
@@ -188,8 +199,6 @@ public class Server {
                         }
                     }
                 }
-                // make sure non-pending tasked executors get terminated
-                beatsHandlerExecutorGroup.shutdownGracefully().sync();
             } catch (InterruptedException e) {
                 throw new IllegalStateException(e);
             }
