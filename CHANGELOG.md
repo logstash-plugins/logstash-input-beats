@@ -1,3 +1,6 @@
+## 6.9.1
+  - shorten paths inside vendor directory to avoid errors during packaging [#503](https://github.com/logstash-plugins/logstash-input-beats/pull/503)
+
 ## 6.9.0
   - Improvements on plugin's shutdown [#500](https://github.com/logstash-plugins/logstash-input-beats/pull/500)
     - Fix: avoid plugin crash when connection terminated but processing the message
