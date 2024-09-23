@@ -31,6 +31,7 @@ dependencies {
     testImplementation 'org.apache.logging.log4j:log4j-core:2.17.0'
     implementation "io.netty:netty-buffer:${nettyVersion}"
     implementation "io.netty:netty-codec:${nettyVersion}"
+    implementation "io.netty:netty-codec-http:${nettyVersion}"
     implementation "io.netty:netty-common:${nettyVersion}"
     implementation "io.netty:netty-transport:${nettyVersion}"
     implementation "io.netty:netty-handler:${nettyVersion}"
