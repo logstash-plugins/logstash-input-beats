@@ -1,3 +1,6 @@
+## 6.9.1
+  - Upgrade netty to 4.1.115 [#507](https://github.com/logstash-plugins/logstash-input-beats/pull/507)
+
 ## 6.9.0
   - Improvements on plugin's shutdown [#500](https://github.com/logstash-plugins/logstash-input-beats/pull/500)
     - Fix: avoid plugin crash when connection terminated but processing the message
