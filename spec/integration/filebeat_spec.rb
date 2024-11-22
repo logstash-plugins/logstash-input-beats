@@ -51,7 +51,7 @@ describe "Filebeat", :integration => true do
   before :each do
     FileUtils.rm_rf(File.join(File.dirname(__FILE__), "..", "..", "vendor", "filebeat", "data"))
     start_client
-    raise 'Filebeat did not start in alloted time' unless is_alive
+    raise 'Filebeat did not start in allocated time' unless is_alive
     sleep(20) # give some time to FB to send something
   end
 
@@ -76,7 +76,7 @@ describe "Filebeat", :integration => true do
   end
 
   ############################################################
-  # Actuals tests
+  # Actual tests
   context "Plain TCP" do
     include_examples "send events"
 

@@ -209,11 +209,13 @@ e|N/A
 
 This plugin supports the following configuration options plus the <<plugins-{type}s-{plugin}-common-options>> described later.
 
+NOTE: As of version `7.0.0` of this plugin, a number of previously deprecated settings related to SSL have been removed.
+Please check out <<plugins-{type}s-{plugin}-obsolete-options>> for details.
+
 [cols="<,<,<",options="header",]
 |=======================================================================
 |Setting |Input type|Required
 | <<plugins-{type}s-{plugin}-add_hostname>> |<<boolean,boolean>>|__Deprecated__
-| <<plugins-{type}s-{plugin}-cipher_suites>> |<<array,array>>|__Deprecated__
 | <<plugins-{type}s-{plugin}-client_inactivity_timeout>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-ecs_compatibility>> | <<string,string>>|No
 | <<plugins-{type}s-{plugin}-enrich>> |<<string,string>>|No
@@ -222,7 +224,6 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-host>> |<<string,string>>|No
 | <<plugins-{type}s-{plugin}-include_codec_tag>> |<<boolean,boolean>>|__Deprecated__
 | <<plugins-{type}s-{plugin}-port>> |<<number,number>>|Yes
-| <<plugins-{type}s-{plugin}-ssl>> |<<boolean,boolean>>|__Deprecated__
 | <<plugins-{type}s-{plugin}-ssl_certificate>> |a valid filesystem path|No
 | <<plugins-{type}s-{plugin}-ssl_certificate_authorities>> |<<array,array>>|No
 | <<plugins-{type}s-{plugin}-ssl_cipher_suites>> |<<array,array>>|No
@@ -231,11 +232,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-ssl_handshake_timeout>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-ssl_key>> |a valid filesystem path|No
 | <<plugins-{type}s-{plugin}-ssl_key_passphrase>> |<<password,password>>|No
-| <<plugins-{type}s-{plugin}-ssl_peer_metadata>> |<<boolean,boolean>>|__Deprecated__
 | <<plugins-{type}s-{plugin}-ssl_supported_protocols>> |<<array,array>>|No
-| <<plugins-{type}s-{plugin}-ssl_verify_mode>> |<<string,string>>, one of `["none", "peer", "force_peer"]`|__Deprecated__
-| <<plugins-{type}s-{plugin}-tls_max_version>> |<<number,number>>|__Deprecated__
-| <<plugins-{type}s-{plugin}-tls_min_version>> |<<number,number>>|__Deprecated__
 |=======================================================================
 
 Also see <<plugins-{type}s-{plugin}-common-options>> for a list of options supported by all
@@ -252,14 +249,6 @@ input plugins.
   * Default value is `false`
 
 Flag to determine whether to add `host` field to event using the value supplied by the {plugin-singular} in the `hostname` field.
-
-[id="plugins-{type}s-{plugin}-cipher_suites"]
-===== `cipher_suites`
-deprecated[6.4.0, Replaced by <<plugins-{type}s-{plugin}-ssl_cipher_suites>>]
-
-  * Value type is <<array,array>>
-
-The list of cipher suites to use, listed by priorities.
 
 [id="plugins-{type}s-{plugin}-client_inactivity_timeout"]
 ===== `client_inactivity_timeout`
@@ -399,17 +388,6 @@ deprecated[6.5.0, Replaced by <<plugins-{type}s-{plugin}-enrich>>]
 
 The port to listen on.
 
-[id="plugins-{type}s-{plugin}-ssl"]
-===== `ssl`
-deprecated[6.6.0, Replaced by <<plugins-{type}s-{plugin}-ssl_enabled>>]
-
-  * Value type is <<boolean,boolean>>
-  * Default value is `false`
-
-Events are by default sent in plain text. You can
-enable encryption by setting `ssl` to true and configuring
-the `ssl_certificate` and `ssl_key` options.
-
 [id="plugins-{type}s-{plugin}-ssl_certificate"]
 ===== `ssl_certificate`
 
@@ -497,18 +475,6 @@ openssl pkcs8 -inform PEM -in path/to/logstash.key -topk8 -nocrypt -outform PEM 
 
 SSL key passphrase to use.
 
-[id="plugins-{type}s-{plugin}-ssl_peer_metadata"]
-===== `ssl_peer_metadata`
-
-deprecated[6.5.0, Replaced by <<plugins-{type}s-{plugin}-enrich>>]
-
-  * Value type is <<boolean,boolean>>
-  * Default value is `false`
-
-Enables storing client certificate information in event's metadata.
-
-This option is only valid when <<plugins-{type}s-{plugin}-ssl_client_authentication>> is set to `optional` or `required`.
-
 [id="plugins-{type}s-{plugin}-ssl_supported_protocols"]
 ===== `ssl_supported_protocols`
 
@@ -526,45 +492,23 @@ NOTE: If you configure the plugin to use `'TLSv1.1'` on any recent JVM, such as 
 the protocol is disabled by default and needs to be enabled manually by changing `jdk.tls.disabledAlgorithms` in
 the *$JDK_HOME/conf/security/java.security* configuration file. That is, `TLSv1.1` needs to be removed from the list.
 
-[id="plugins-{type}s-{plugin}-ssl_verify_mode"]
-===== `ssl_verify_mode`
-deprecated[6.6.0, Replaced by <<plugins-{type}s-{plugin}-ssl_client_authentication>>]
+[id="plugins-{type}s-{plugin}-obsolete-options"]
+==== Beats Input Obsolete Configuration Options
 
-  * Value can be any of: `none`, `peer`, `force_peer`
-  * Default value is `"none"`
+WARNING: As of version `7.0.0` of this plugin, some configuration options have been replaced.
+The plugin will fail to start if it contains any of these obsolete options.
 
-By default, the server doesn't do any client verification. If the <<plugins-{type}s-{plugin}-ssl_certificate_authorities>>
-is configured, and no value or `none` is provided for this option, it defaults to `force_peer` instead of `none`.
 
-`peer` will make the server ask the client to provide a certificate.
-If the client provides a certificate, it will be validated.
-
-`force_peer` will make the server ask the client to provide a certificate.
-If the client doesn't provide a certificate, the connection will be closed.
-
-When mutual TLS is enabled (`peer` or `force_peer`), the certificate presented by the client must be signed by trusted
-<<plugins-{type}s-{plugin}-ssl_certificate_authorities>> (CAs).
-Please note that the server does not validate the client certificate CN (Common Name) or SAN (Subject Alternative Name).
-
-NOTE: This setting can be used only if <<plugins-{type}s-{plugin}-ssl_certificate_authorities>> is set.
-
-[id="plugins-{type}s-{plugin}-tls_max_version"]
-===== `tls_max_version`
-deprecated[6.4.0, Replaced by <<plugins-{type}s-{plugin}-ssl_supported_protocols>>]
-
-  * Value type is <<number,number>>
-
-The maximum TLS version allowed for the encrypted connections.
-The value must be the one of the following: 1.1 for TLS 1.1, 1.2 for TLS 1.2, 1.3 for TLSv1.3
-
-[id="plugins-{type}s-{plugin}-tls_min_version"]
-===== `tls_min_version`
-deprecated[6.4.0, Replaced by <<plugins-{type}s-{plugin}-ssl_supported_protocols>>]
-
-  * Value type is <<number,number>>
-
-The minimum TLS version allowed for the encrypted connections.
-The value must be one of the following: 1.1 for TLS 1.1, 1.2 for TLS 1.2, 1.3 for TLS 1.3
+[cols="<,<",options="header",]
+|=======================================================================
+|Setting|Replaced by
+| cipher_suites |<<plugins-{type}s-{plugin}-ssl_cipher_suites>>
+| ssl |<<plugins-{type}s-{plugin}-ssl_enabled>>
+| ssl_peer_metadata |<<plugins-{type}s-{plugin}-enrich>>
+| ssl_verify_mode |<<plugins-{type}s-{plugin}-ssl_client_authentication>>
+| tls_max_version |<<plugins-{type}s-{plugin}-ssl_supported_protocols>>
+| tls_min_version |<<plugins-{type}s-{plugin}-ssl_supported_protocols>>
+|=======================================================================
 
 
 [id="plugins-{type}s-{plugin}-common-options"]

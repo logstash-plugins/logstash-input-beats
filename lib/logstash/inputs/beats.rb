@@ -7,7 +7,6 @@ require "logstash/util"
 require "logstash-input-beats_jars"
 require "logstash/plugin_mixins/ecs_compatibility_support"
 require 'logstash/plugin_mixins/plugin_factory_support'
-require "logstash/plugin_mixins/normalize_config_support"
 require 'logstash/plugin_mixins/event_support/event_factory_adapter'
 require_relative "beats/patch"
 
@@ -51,7 +50,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   require "logstash/inputs/beats/decoded_event_transform"
   require "logstash/inputs/beats/raw_event_transform"
   require "logstash/inputs/beats/message_listener"
-  require "logstash/inputs/beats/tls"
 
   java_import 'org.logstash.netty.SslContextBuilder'
 
@@ -62,8 +60,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   include LogStash::PluginMixins::PluginFactorySupport
 
-  include LogStash::PluginMixins::NormalizeConfigSupport
-
   config_name "beats"
 
   default :codec, "plain"
@@ -73,11 +69,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   # The port to listen on.
   config :port, :validate => :number, :required => true
-
-  # Events are by default sent in plain text. You can
-  # enable encryption by setting `ssl` to true and configuring
-  # the `ssl_certificate` and `ssl_key` options.
-  config :ssl, :validate => :boolean, :default => false, :deprecated => "Use 'ssl_enabled' instead."
 
   # SSL certificate to use.
   config :ssl_certificate, :validate => :path
@@ -97,8 +88,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   # Validate client certificates against these authorities. 
   # You can define multiple files or paths. All the certificates will
-  # be read and added to the trust store. You need to configure the `ssl_verify_mode`
-  # to `peer` or `force_peer` to enable the verification.
+  # be read and added to the trust store. You need to configure the `ssl_client_authentication`
+  # to `optional` or `required` to enable the client verification.
   # 
   config :ssl_certificate_authorities, :validate => :array, :default => []
 
@@ -109,21 +100,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   #
   # This option needs to be used with `ssl_certificate_authorities` and a defined list of CAs.
   config :ssl_client_authentication, :validate => %w[none optional required], :default => 'none'
-
-  # By default the server doesn't do any client verification.
-  # 
-  # `peer` will make the server ask the client to provide a certificate. 
-  # If the client provides a certificate, it will be validated.
-  #
-  # `force_peer` will make the server ask the client to provide a certificate.
-  # If the client doesn't provide a certificate, the connection will be closed.
-  #
-  # This option needs to be used with `ssl_certificate_authorities` and a defined list of CAs.
-  config :ssl_verify_mode, :validate => ["none", "peer", "force_peer"], :default => "none", :deprecated => "Set 'ssl_client_authentication' instead."
-
-  # Enables storing client certificate information in event's metadata. You need 
-  # to configure the `ssl_verify_mode` to `peer` or `force_peer` to enable this.
-  config :ssl_peer_metadata, :validate => :boolean, :default => false, :deprecated => "use `enrich` option to configure which enrichments to perform"
 
   config :include_codec_tag, :validate => :boolean, :default => true, :deprecated => "use `enrich` option to configure which enrichments to perform"
 
@@ -148,21 +124,18 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   # Flag to determine whether to add host information (provided by the beat in the 'hostname' field) to the event
   config :add_hostname, :validate => :boolean, :default => false, :deprecated => 'This option will be removed in the future as beats determine the event schema'
 
-  # The list of ciphers suite to use, listed by priorities.
-  config :cipher_suites, :validate => :array, :default => [], :deprecated => "Set 'ssl_cipher_suites' instead."
-
-  # The minimum TLS version allowed for the encrypted connections. The value must be one of the following:
-  # 1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2
-  config :tls_min_version, :validate => :number, :default => TLS.min.version, :deprecated => "Set 'ssl_supported_protocols' instead."
-
-  # The maximum TLS version allowed for the encrypted connections. The value must be the one of the following:
-  # 1.0 for TLS 1.0, 1.1 for TLS 1.1, 1.2 for TLS 1.2
-  config :tls_max_version, :validate => :number, :default => TLS.max.version, :deprecated => "Set 'ssl_supported_protocols' instead."
+  # removed options
+  config :ssl,                :obsolete => "Use 'ssl_enabled' instead."
+  config :ssl_peer_metadata,  :obsolete => "Use 'enrich' instead."
+  config :ssl_verify_mode,    :obsolete => "Use 'ssl_client_authentication' instead."
+  config :cipher_suites,      :obsolete => "Use 'ssl_cipher_suites' instead."
+  config :tls_min_version,    :obsolete => "Use 'ssl_supported_protocols' instead."
+  config :tls_max_version,    :obsolete => "Use 'ssl_supported_protocols' instead."
 
   ENRICH_DEFAULTS = {
     'source_metadata'   => true,
     'codec_metadata'    => true,
-    'ssl_peer_metadata' => false,
+    'ssl_peer_metadata' => false, # adds client certificate information in event's metadata
   }.freeze
 
   ENRICH_ALL = ENRICH_DEFAULTS.keys.freeze
@@ -174,29 +147,16 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
 
   attr_reader :field_hostname, :field_hostip
   attr_reader :field_tls_protocol_version, :field_tls_peer_subject, :field_tls_cipher
+  attr_reader :include_ssl_peer_metadata
   attr_reader :include_source_metadata
-
-  NON_PREFIXED_SSL_CONFIGS = Set[
-    'tls_min_version',
-    'tls_max_version',
-    'cipher_suites',
-  ].freeze
 
   SSL_CLIENT_AUTH_NONE = 'none'.freeze
   SSL_CLIENT_AUTH_OPTIONAL = 'optional'.freeze
   SSL_CLIENT_AUTH_REQUIRED = 'required'.freeze
 
-  SSL_VERIFY_MODE_TO_CLIENT_AUTHENTICATION_MAP = {
-    'none' => SSL_CLIENT_AUTH_NONE,
-    'peer' => SSL_CLIENT_AUTH_OPTIONAL,
-    'force_peer' => SSL_CLIENT_AUTH_REQUIRED
-  }.freeze
-
   private_constant :SSL_CLIENT_AUTH_NONE
   private_constant :SSL_CLIENT_AUTH_OPTIONAL
   private_constant :SSL_CLIENT_AUTH_REQUIRED
-  private_constant :NON_PREFIXED_SSL_CONFIGS
-  private_constant :SSL_VERIFY_MODE_TO_CLIENT_AUTHENTICATION_MAP
 
   def register
     # For Logstash 2.4 we need to make sure that the logger is correctly set for the
@@ -208,15 +168,13 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       LogStash::Logger.setup_log4j(@logger)
     end
 
-    setup_ssl_params!
-
     validate_ssl_config!
 
     active_enrichments = resolve_enriches
 
     @include_source_metadata = active_enrichments.include?('source_metadata')
+    @include_ssl_peer_metadata = active_enrichments.include?('ssl_peer_metadata')
     @include_codec_tag = original_params.include?('include_codec_tag') ? params['include_codec_tag'] : active_enrichments.include?('codec_metadata')
-    @ssl_peer_metadata = original_params.include?('ssl_peer_metadata') ? params['ssl_peer_metadata'] : active_enrichments.include?('ssl_peer_metadata')
 
     # intentionally ask users to provide codec when they want to use the codec metadata
     # second layer enrich is also a controller, provide enrich => ['codec_metadata' or/with 'source_metadata'] with codec if you override event original
@@ -275,9 +233,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
       return client_authentication_optional? || client_authentication_required?
     end
 
-    # Keep backward compatibility with the deprecated `ssl_verify_mode` until it's not removed.
-    # When it's explicitly set (or both settings are absent), it should use the ssl_certificate_authorities
-    # to enable/disable the client authentication. (even if ssl_verify_mode => none)
+    # also uses the ssl_certificate_authorities to enable/disable the client authentication
     certificate_authorities_configured?
   end
 
@@ -286,7 +242,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end
 
   def client_authentication_metadata?
-    @ssl_enabled && @ssl_peer_metadata && ssl_configured? && client_authentication_enabled?
+    @ssl_enabled && @include_ssl_peer_metadata && ssl_configured? && client_authentication_enabled?
   end
 
   def client_authentication_required?
@@ -312,10 +268,10 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   private
 
   def validate_ssl_config!
-    ssl_config_name = original_params.include?('ssl') ? 'ssl' : 'ssl_enabled'
+    ssl_config_name = 'ssl_enabled'
 
     unless @ssl_enabled
-      ignored_ssl_settings = original_params.select { |k| k != 'ssl_enabled' && k.start_with?('ssl_') || NON_PREFIXED_SSL_CONFIGS.include?(k) }
+      ignored_ssl_settings = original_params.select { |k| k != 'ssl_enabled' && k.start_with?('ssl_') }
       @logger.warn("Configured SSL settings are not used when `#{ssl_config_name}` is set to `false`: #{ignored_ssl_settings.keys}") if ignored_ssl_settings.any?
       return
     end
@@ -329,55 +285,16 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     end
 
     if require_certificate_authorities? && !certificate_authorities_configured?
-      config_name, config_value = provided_client_authentication_config
-      configuration_error "ssl_certificate_authorities => is a required setting when #{config_name} => '#{config_value}' is configured"
+      configuration_error "ssl_certificate_authorities => is a required setting when `ssl_client_authentication => '#{@ssl_client_authentication}'` is configured"
     end
 
     if client_authentication_metadata? && !require_certificate_authorities?
-      config_name, optional, required = provided_client_authentication_config([SSL_CLIENT_AUTH_OPTIONAL, SSL_CLIENT_AUTH_REQUIRED])
-      configuration_error "Configuring ssl_peer_metadata => true requires #{config_name} => to be configured with '#{optional}' or '#{required}'"
+      configuration_error "Configuring `enrich => [ssl_peer_metadata]` requires `ssl_client_authentication` to be configured with '#{SSL_CLIENT_AUTH_OPTIONAL}' or '#{SSL_CLIENT_AUTH_REQUIRED}'"
     end
 
     if original_params.include?('ssl_client_authentication') && certificate_authorities_configured? && !require_certificate_authorities?
       configuration_error "Configuring ssl_certificate_authorities requires ssl_client_authentication => to be configured with '#{SSL_CLIENT_AUTH_OPTIONAL}' or '#{SSL_CLIENT_AUTH_REQUIRED}'"
     end
-  end
-
-  def provided_client_authentication_config(values = [@ssl_client_authentication])
-    if original_params.include?('ssl_verify_mode')
-      ['ssl_verify_mode', *values.map { |v| SSL_VERIFY_MODE_TO_CLIENT_AUTHENTICATION_MAP.key(v) }]
-    else
-      ['ssl_client_authentication', *values]
-    end
-  end
-
-  def setup_ssl_params!
-    @ssl_enabled = normalize_config(:ssl_enabled) do |normalizer|
-      normalizer.with_deprecated_alias(:ssl)
-    end
-
-    @ssl_cipher_suites = normalize_config(:ssl_cipher_suites) do |normalizer|
-      normalizer.with_deprecated_alias(:cipher_suites)
-    end
-
-    @ssl_supported_protocols = normalize_config(:ssl_supported_protocols) do |normalizer|
-      normalizer.with_deprecated_mapping(:tls_min_version, :tls_max_version) do |tls_min_version, tls_max_version|
-        TLS.get_supported(tls_min_version..tls_max_version).map(&:name)
-      end
-    end
-
-    @ssl_client_authentication = normalize_config(:ssl_client_authentication) do |normalizer|
-      normalizer.with_deprecated_mapping(:ssl_verify_mode) do |ssl_verify_mode|
-        normalized_value = SSL_VERIFY_MODE_TO_CLIENT_AUTHENTICATION_MAP[ssl_verify_mode.downcase]
-        fail(LogStash::ConfigurationError, "Unsupported value #{ssl_verify_mode} for deprecated option `ssl_verify_mode`") unless normalized_value
-        normalized_value
-      end
-    end
-
-    params['ssl_enabled'] = @ssl_enabled unless @ssl_enabled.nil?
-    params['ssl_cipher_suites'] = @ssl_cipher_suites unless @ssl_cipher_suites.nil?
-    params['ssl_supported_protocols'] = @ssl_supported_protocols unless @ssl_supported_protocols.nil?
-    params['ssl_client_authentication'] = @ssl_client_authentication unless @ssl_client_authentication.nil?
   end
 
   def new_ssl_handshake_provider(ssl_context_builder)
@@ -414,7 +331,6 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     return SslContextBuilder::SslClientVerifyMode::OPTIONAL if client_authentication_optional?
     return SslContextBuilder::SslClientVerifyMode::REQUIRED if client_authentication_required?
 
-    # Backward compatibility with the deprecated `ssl_verify_mode` and the current `none` overrides
     if !original_params.include?('ssl_client_authentication') && certificate_authorities_configured?
       return SslContextBuilder::SslClientVerifyMode::REQUIRED
     end
@@ -444,9 +360,8 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end
 
   def resolve_enriches
-    deprecated_flags_provided = %w(ssl_peer_metadata include_codec_tag) & original_params.keys
-    if deprecated_flags_provided.any? && original_params.include?('enrich')
-      raise LogStash::ConfigurationError, "both `enrich` and (deprecated) #{deprecated_flags_provided.join(',')} were provided; use only `enrich`"
+    if original_params.include?('include_codec_tag') && original_params.include?('enrich')
+      raise LogStash::ConfigurationError, "both `enrich` and (deprecated) `include_codec_tag` were provided; use only `enrich`"
     end
 
     aliases_provided = ENRICH_ALIASES & (@enrich || [])

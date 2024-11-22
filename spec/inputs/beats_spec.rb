@@ -83,92 +83,14 @@ describe LogStash::Inputs::Beats do
       end
 
       context "with invalid ciphers" do
-        let(:config) { super().merge("cipher_suites" => "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA38") }
+        let(:config) { super().merge("ssl_cipher_suites" => "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA38") }
 
         it "should raise a configuration error" do
-          plugin = LogStash::Inputs::Beats.new(config)
-          expect( plugin.logger ).to receive(:error) do |msg, opts|
-            expect( msg ).to match /.*?configuration invalid/
-            expect( opts[:message] ).to match /TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA38.*? not available/
-          end
-          expect { plugin.register }.to raise_error(LogStash::ConfigurationError)
-        end
-      end
-
-      context "deprecated ssl_verify_mode set to 'none'" do
-        let(:config) { super().merge("ssl_verify_mode" => "none") }
-
-        context "and ssl_certificate_authorities is set" do
-          let(:config) { super().merge("ssl_certificate_authorities" => [certificate.ssl_cert]) }
-          it "should ignore the ssl_verify_mode and use force_peer" do
-            plugin = LogStash::Inputs::Beats.new(config)
-            plugin.register
-            context_builder = plugin.send(:new_ssl_context_builder)
-            expect(context_builder.isClientAuthenticationRequired()).to be_truthy
-          end
+          expect { LogStash::Inputs::Beats.new(config) }.to raise_error(LogStash::ConfigurationError, a_string_including("Something is wrong with your configuration."))
         end
       end
 
       context "ssl_client_authentication" do
-        context "normalized from ssl_verify_mode 'none'" do
-          let(:config) { super().merge("ssl_verify_mode" => "none") }
-
-          it "should transform the value to 'none'" do
-            plugin = LogStash::Inputs::Beats.new(config)
-            plugin.register
-
-            expect(plugin.params).to match hash_including("ssl_client_authentication" => "none")
-            expect(plugin.instance_variable_get(:@ssl_client_authentication)).to eql("none")
-          end
-
-          context "and ssl_certificate_authorities is set" do
-            let(:config) { super().merge("ssl_certificate_authorities" => [certificate.ssl_cert]) }
-            it "should not raise an error" do
-              plugin = LogStash::Inputs::Beats.new(config)
-              expect { plugin.register }.to_not raise_error
-            end
-          end
-        end
-
-        context "normalized from ssl_verify_mode 'peer'" do
-          let(:config) { super().merge("ssl_verify_mode" => "peer", "ssl_certificate_authorities" => [certificate.ssl_cert]) }
-
-          it 'should transform the value to OPTIONAL' do
-            plugin = LogStash::Inputs::Beats.new(config)
-            plugin.register
-
-            expect(plugin.params).to match hash_including("ssl_client_authentication" => "optional")
-            expect(plugin.instance_variable_get(:@ssl_client_authentication)).to eql("optional")
-          end
-
-          context "with no ssl_certificate_authorities set " do
-            let(:config) { super().reject { |key| "ssl_certificate_authorities".eql?(key) } }
-            it "raise a configuration error" do
-              plugin = LogStash::Inputs::Beats.new(config)
-              expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "ssl_certificate_authorities => is a required setting when ssl_verify_mode => 'peer' is configured")
-            end
-          end
-        end
-
-        context "normalized from ssl_verify_mode 'force_peer'" do
-          let(:config) { super().merge("ssl_verify_mode" => "force_peer", "ssl_certificate_authorities" => [certificate.ssl_cert]) }
-
-          it "should transform the value to 'required'" do
-            plugin = LogStash::Inputs::Beats.new(config)
-            plugin.register
-
-            expect(plugin.params).to match hash_including("ssl_client_authentication" => "required")
-            expect(plugin.instance_variable_get(:@ssl_client_authentication)).to eql("required")
-          end
-
-          context "with no ssl_certificate_authorities set " do
-            let(:config) { super().reject { |key| "ssl_certificate_authorities".eql?(key) } }
-            it "raise a configuration error" do
-              plugin = LogStash::Inputs::Beats.new(config)
-              expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "ssl_certificate_authorities => is a required setting when ssl_verify_mode => 'force_peer' is configured")
-            end
-          end
-        end
 
         context "configured to 'none'" do
           let(:config) { super().merge("ssl_client_authentication" => "none") }
@@ -193,7 +115,7 @@ describe LogStash::Inputs::Beats do
 
           it "raise a ConfigurationError when certificate_authorities is not set" do
             plugin = LogStash::Inputs::Beats.new(config)
-            expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "ssl_certificate_authorities => is a required setting when ssl_client_authentication => 'required' is configured")
+            expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "ssl_certificate_authorities => is a required setting when `ssl_client_authentication => 'required'` is configured")
           end
 
           context "with certificate_authorities set" do
@@ -211,7 +133,7 @@ describe LogStash::Inputs::Beats do
 
           it "raise a ConfigurationError when certificate_authorities is not set" do
             plugin = LogStash::Inputs::Beats.new(config)
-            expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "ssl_certificate_authorities => is a required setting when ssl_client_authentication => 'optional' is configured")
+            expect {plugin.register}.to raise_error(LogStash::ConfigurationError, "ssl_certificate_authorities => is a required setting when `ssl_client_authentication => 'optional'` is configured")
           end
 
           context "with certificate_authorities set" do
@@ -224,59 +146,10 @@ describe LogStash::Inputs::Beats do
           end
         end
 
-        context "with ssl_cipher_suites and cipher_suites set" do
-          let(:config) do
-            super().merge('ssl_cipher_suites' => ['TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384'],
-                          'cipher_suites' => ['TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384'])
-          end
-
-          it "should raise a configuration error" do
-            plugin = LogStash::Inputs::Beats.new(config)
-            expect { plugin.register }.to raise_error LogStash::ConfigurationError, /Use only .?ssl_cipher_suites.?/i
-          end
-        end
-
-        context "with ssl_supported_protocols and tls_min_version set" do
-          let(:config) do
-            super().merge('ssl_supported_protocols' => ['TLSv1.2'], 'tls_min_version' => 1.2)
-          end
-
-          it "should raise a configuration error" do
-            plugin = LogStash::Inputs::Beats.new(config)
-            expect { plugin.register }.to raise_error LogStash::ConfigurationError, /Use only .?ssl_supported_protocols.?/i
-          end
-        end
-
-        context "with ssl_supported_protocols and tls_max_version set" do
-          let(:config) do
-            super().merge('ssl_supported_protocols' => ['TLSv1.2'], 'tls_max_version' => 1.2)
-          end
-
-          it "should raise a configuration error" do
-            plugin = LogStash::Inputs::Beats.new(config)
-            expect { plugin.register }.to raise_error LogStash::ConfigurationError, /Use only .?ssl_supported_protocols.?/i
-          end
-        end
-
-        context "with ssl_client_authentication and ssl_verify_mode set" do
-          let(:config) { super().merge("ssl_verify_mode" => "none", "ssl_client_authentication" => "none") }
-          it "raise a configuration error" do
-            plugin = LogStash::Inputs::Beats.new(config)
-            expect { plugin.register }.to raise_error LogStash::ConfigurationError, /Use only .?ssl_client_authentication.?/i
-          end
-        end
-      end
-
-      context "with ssl and ssl_enabled set" do
-        let(:config) { super().merge("ssl" => true) }
-        it "raise a configuration error" do
-          plugin = LogStash::Inputs::Beats.new(config)
-          expect { plugin.register }.to raise_error LogStash::ConfigurationError, /Use only .?ssl_enabled.?/i
-        end
       end
     end
 
-    context "with ssl disabled" do
+    context "with SSL disabled" do
       context "and certificate configuration" do
         let(:config) { { "port" => 0, "ssl_enabled" => false, "ssl_certificate" => certificate.ssl_cert, "type" => "example", "tags" => "Beats" } }
 
@@ -305,11 +178,11 @@ describe LogStash::Inputs::Beats do
       end
 
       context "and `ssl_` settings provided" do
-        let(:config) { { "port" => 0, "ssl_enabled" => false, "ssl_certificate" => certificate.ssl_cert, "ssl_client_authentication" => "none", "cipher_suites" => ["FOO"] } }
+        let(:config) { { "port" => 0, "ssl_enabled" => false, "ssl_certificate" => certificate.ssl_cert, "ssl_client_authentication" => "none", "ssl_cipher_suites" => ["TLS_RSA_WITH_AES_128_CBC_SHA256"] } }
 
         it "should warn about not using the configs" do
           plugin = LogStash::Inputs::Beats.new(config)
-          expect( plugin.logger ).to receive(:warn).with('Configured SSL settings are not used when `ssl_enabled` is set to `false`: ["ssl_certificate", "ssl_client_authentication", "cipher_suites"]')
+          expect( plugin.logger ).to receive(:warn).with('Configured SSL settings are not used when `ssl_enabled` is set to `false`: ["ssl_certificate", "ssl_client_authentication", "ssl_cipher_suites"]')
 
           plugin.register
 
@@ -397,28 +270,22 @@ describe LogStash::Inputs::Beats do
       end
 
       shared_examples "ssl_peer_metadata enabled" do
-        it "is configured to enrich ssl_peer_metadata" do
-          expect(registered_plugin.ssl_peer_metadata).to be_truthy
+        it "is configured to include the SSL peer tag" do
+          expect(registered_plugin.include_ssl_peer_metadata).to be true
         end
       end
 
       shared_examples "ssl_peer_metadata disabled" do
-        it "is configured to NOT enrich ssl_peer_metadata" do
-          expect(registered_plugin.ssl_peer_metadata).to be_falsey
+        it "is configured to NOT include the SSL peer tag" do
+          expect(registered_plugin.include_ssl_peer_metadata).to be false
         end
       end
 
-      shared_examples "reject deprecated enrichment flags" do
-        context "with deprecated `ssl_peer_metadata`" do
-          let(:config) { super().merge("ssl_peer_metadata" => true) }
-          it 'rejects the configuration with a helpful error message' do
-            expect { plugin.register }.to raise_exception(LogStash::ConfigurationError, "both `enrich` and (deprecated) ssl_peer_metadata were provided; use only `enrich`")
-          end
-        end
+      shared_examples "reject deprecated enrichment flag" do
         context "with deprecated `include_codec_tag`" do
           let(:config) { super().merge("include_codec_tag" => false) }
           it 'rejects the configuration with a helpful error message' do
-            expect { plugin.register }.to raise_exception(LogStash::ConfigurationError, "both `enrich` and (deprecated) include_codec_tag were provided; use only `enrich`")
+            expect { plugin.register }.to raise_exception(LogStash::ConfigurationError, "both `enrich` and (deprecated) `include_codec_tag` were provided; use only `enrich`")
           end
         end
       end
@@ -428,18 +295,6 @@ describe LogStash::Inputs::Beats do
         include_examples "codec_metadata enabled"
         include_examples "source_metadata enabled"
         include_examples "ssl_peer_metadata disabled"
-
-        # validate interaction with deprecated settings
-        context "with deprecated `ssl_peer_metadata => true`" do
-          let(:config) { super().merge("ssl_peer_metadata" => true) }
-
-          # intended delta
-          include_examples "ssl_peer_metadata enabled"
-
-          # ensure no side-effects
-          include_examples "codec_metadata enabled"
-          include_examples "source_metadata enabled"
-        end
 
         context "with deprecated `include_codec_tag => false`" do
           let(:config) { super().merge("include_codec_tag" => false) }
@@ -463,7 +318,7 @@ describe LogStash::Inputs::Beats do
           include_examples "source_metadata enabled"
           include_examples "ssl_peer_metadata enabled"
 
-          include_examples "reject deprecated enrichment flags"
+          include_examples "reject deprecated enrichment flag"
         end
 
         context "with alias `enrich => none`" do
@@ -473,7 +328,7 @@ describe LogStash::Inputs::Beats do
           include_examples "source_metadata disabled"
           include_examples "ssl_peer_metadata disabled"
 
-          include_examples "reject deprecated enrichment flags"
+          include_examples "reject deprecated enrichment flag"
         end
       end
 
@@ -491,7 +346,7 @@ describe LogStash::Inputs::Beats do
             include_examples "#{enrichment} #{activated.include?(enrichment) ? 'enabled' : 'disabled'}"
           end
 
-          include_examples "reject deprecated enrichment flags"
+          include_examples "reject deprecated enrichment flag"
         end
       end
 
@@ -516,8 +371,8 @@ describe LogStash::Inputs::Beats do
       super().merge(
           "host" => host,
           "ssl_enabled" => true,
-          "ssl_verify_mode" => 'force_peer',
-          "ssl_peer_metadata" => true,
+          "enrich" => ["ssl_peer_metadata"],
+          "ssl_client_authentication" => "required",
           "ssl_certificate_authorities" => [ certificate.ssl_cert ],
           "ecs_compatibility" => 'disabled'
       )
@@ -595,7 +450,7 @@ describe LogStash::Inputs::Beats do
     context 'with ssl disabled' do
       let(:config) { super().merge("ssl_enabled" => false) }
 
-      it 'do not set tls fields' do
+      it 'does not set tls fields' do
         @message_listener.onNewMessage(ctx, message)
 
         expect( queue.size ).to be 1
@@ -608,5 +463,24 @@ describe LogStash::Inputs::Beats do
 
   context "when interrupting the plugin" do
     it_behaves_like "an interruptible input plugin"
+  end
+
+  describe "obsolete settings" do
+    let(:config) { { "port" => 1234 } }
+    [{:name => 'ssl', :canonical_name => 'ssl_enabled'},
+     {:name => 'ssl_peer_metadata', :canonical_name => 'enrich'},
+     {:name => 'ssl_verify_mode', :canonical_name => 'ssl_client_authentication'},
+     {:name => 'cipher_suites', :canonical_name => 'ssl_cipher_suites'},
+     {:name => 'tls_min_version', :canonical_name => 'ssl_supported_protocols'},
+     {:name => 'tls_max_version', :canonical_name => 'ssl_supported_protocols'}
+    ].each do |settings|
+      context "with option #{settings[:name]}" do
+        let(:obsolete_config) { config.merge(settings[:name] => 'test_value') }
+        it "emits an error about the setting `#{settings[:name]}` now being obsolete and provides guidance to use `#{settings[:canonical_name]}`" do
+          error_text = "The setting `#{settings[:name]}` in plugin `beats` is obsolete and is no longer available. Use '#{settings[:canonical_name]}' instead."
+          expect { LogStash::Inputs::Beats.new(obsolete_config) }.to raise_error LogStash::ConfigurationError, a_string_including(error_text)
+        end
+      end
+    end
   end
 end
