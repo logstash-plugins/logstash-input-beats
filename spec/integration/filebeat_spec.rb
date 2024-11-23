@@ -147,7 +147,7 @@ describe "Filebeat", :integration => true do
           let(:input_config) {
             super().merge({
               "ssl_cipher_suites" => [logstash_cipher],
-              "tls_min_version" => "1.2"
+              "ssl_supported_protocols" => ["TLSv1.2"]
             })
           }
 
@@ -193,9 +193,7 @@ describe "Filebeat", :integration => true do
 
           context "when TLSv1.3 enforced in plugin" do
             let(:input_config) {
-              super().merge({
-                "tls_min_version" => "1.3"
-              })
+              super().merge({ "ssl_supported_protocols" => ["TLSv1.3"] })
             }
 
             include_examples "send events"
