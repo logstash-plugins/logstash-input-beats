@@ -1,3 +1,15 @@
+## 7.0.0
+  - Remove deprecated SSL settings
+  - SSL settings that were marked deprecated in version `6.6.0` are now marked obsolete, and will prevent the plugin from starting.
+  - These settings are:
+    - `cipher_suites`, replaced by `ssl_cipher_suites`
+    - `ssl`, replaced by `ssl_enabled`
+    - `ssl_peer_metadata`, replaced by `enrich`
+    - `ssl_verify_mode`, replaced by `ssl_client_authentication`
+    - `tls_max_version`, replaced by `ssl_supported_protocols`
+    - `tls_min_version`, replaced by `ssl_supported_protocols`
+    - [#508](https://github.com/logstash-plugins/logstash-input-beats/pull/508)
+
 ## 6.9.1
   - Upgrade netty to 4.1.115 [#507](https://github.com/logstash-plugins/logstash-input-beats/pull/507)
 
