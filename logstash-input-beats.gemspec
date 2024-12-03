@@ -26,7 +26,6 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "concurrent-ruby", "~> 1.0"
   s.add_runtime_dependency "thread_safe", "~> 0.3.5"
   s.add_runtime_dependency "logstash-codec-multiline", ">= 2.0.5"
-  s.add_runtime_dependency 'jar-dependencies', '~> 0.3', '>= 0.3.4'
   s.add_runtime_dependency 'logstash-mixin-ecs_compatibility_support', '~>1.3'
   s.add_runtime_dependency 'logstash-mixin-event_support', '~>1.0'
   s.add_runtime_dependency 'logstash-mixin-plugin_factory_support', '~>1.0'
