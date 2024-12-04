@@ -40,17 +40,19 @@ namespace :test do
         puts "Filebeat: downloading from #{FILEBEAT_URL} to #{download_destination}"
         download(FILEBEAT_URL, download_destination)
 
-        untar_all(download_destination, File.join(VENDOR_PATH, "filebeat")) { |e| e }
+        untar_all(download_destination, VENDOR_PATH) { |e| e }
       end
     end
   end
 end
 
-# Uncompress all the file from the archive this only work with 
-# one level directory structure and filebeat packaging.
+require 'zlib'
+require 'minitar'
+
 def untar_all(file, destination)
-  untar(file) do |entry| 
-    out = entry.full_name.split("/").last
-    File.join(destination, out)
+  Zlib::GzipReader.open(file) do |reader|
+    Minitar.unpack(reader, destination)
   end
+  filebeat_full_name = Dir.glob(destination + "/filebeat-*").first
+  File.rename(filebeat_full_name, destination + "/filebeat")
 end
