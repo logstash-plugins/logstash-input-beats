@@ -52,7 +52,7 @@ public class ServerTest {
 
         final CountDownLatch latch = new CountDownLatch(concurrentConnections);
 
-        final Server server = new Server(host, randomPort, inactivityTime, eventLoopThreadCount, executorThreadCount);
+        final Server server = new Server("testServer", host, randomPort, inactivityTime, eventLoopThreadCount, executorThreadCount);
 
         final AtomicBoolean otherCause = new AtomicBoolean(false);
 
@@ -118,7 +118,7 @@ public class ServerTest {
 
         final CountDownLatch latch = new CountDownLatch(concurrentConnections);
         final AtomicBoolean exceptionClose = new AtomicBoolean(false);
-        final Server server = new Server(host, randomPort, inactivityTime, eventLoopThreadCount, executorThreadCount);
+        final Server server = new Server("testServer", host, randomPort, inactivityTime, eventLoopThreadCount, executorThreadCount);
         server.setMessageListener(new MessageListener() {
             @Override
             public void onNewConnection(ChannelHandlerContext ctx) {
@@ -174,7 +174,7 @@ public class ServerTest {
 
     @Test
     public void testServerShouldAcceptConcurrentConnection() throws InterruptedException {
-        final Server server = new Server(host, randomPort, 30, eventLoopThreadCount, executorThreadCount);
+        final Server server = new Server("testServer", host, randomPort, 30, eventLoopThreadCount, executorThreadCount);
         SpyListener listener = new SpyListener();
         server.setMessageListener(listener);
         Runnable serverTask = new Runnable() {
