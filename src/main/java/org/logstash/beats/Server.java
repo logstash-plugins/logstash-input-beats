@@ -18,10 +18,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.netty.SslHandlerProvider;
 
+import static org.logstash.beats.util.DaemonThreadFactory.daemonThreadFactory;
+
 public class Server {
     private final static Logger logger = LogManager.getLogger(Server.class);
 
     private final int port;
+
+    private final String id;
     private final String host;
     private final int eventLoopThreadCount;
     private final int executorThreadCount;
@@ -33,7 +37,8 @@ public class Server {
 
     private final int clientInactivityTimeoutSeconds;
 
-    public Server(String host, int port, int clientInactivityTimeoutSeconds, int eventLoopThreadCount, int executorThreadCount) {
+    public Server(String id, String host, int port, int clientInactivityTimeoutSeconds, int eventLoopThreadCount, int executorThreadCount) {
+        this.id = id;
         this.host = host;
         this.port = port;
         this.clientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
@@ -54,12 +59,12 @@ public class Server {
                 logger.error("Could not shut down worker group before starting", e);
             }
         }
-        bossGroup = new NioEventLoopGroup(eventLoopThreadCount); // TODO: add a config to make it adjustable, no need many threads
-        workGroup = new NioEventLoopGroup(eventLoopThreadCount);
+        bossGroup = new NioEventLoopGroup(eventLoopThreadCount, daemonThreadFactory(id + "-bossGroup")); // TODO: add a config to make it adjustable, no need many threads
+        workGroup = new NioEventLoopGroup(eventLoopThreadCount, daemonThreadFactory(id + "-workGroup"));
         try {
             logger.info("Starting server on port: {}", this.port);
 
-            beatsInitializer = new BeatsInitializer(messageListener, clientInactivityTimeoutSeconds, executorThreadCount);
+            beatsInitializer = new BeatsInitializer(id, messageListener, clientInactivityTimeoutSeconds, executorThreadCount);
 
             ServerBootstrap server = new ServerBootstrap();
             server.group(bossGroup, workGroup)
@@ -143,12 +148,14 @@ public class Server {
         private final IMessageListener localMessageListener;
         private final int localClientInactivityTimeoutSeconds;
 
-        BeatsInitializer(IMessageListener messageListener, int clientInactivityTimeoutSeconds, int beatsHandlerThread) {
+        BeatsInitializer(String pluginId, IMessageListener messageListener, int clientInactivityTimeoutSeconds, int beatsHandlerThreadCount) {
             // Keeps a local copy of Server settings, so they can't be modified once it starts listening
             this.localMessageListener = messageListener;
             this.localClientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
-            idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD);
-            beatsHandlerExecutorGroup = new DefaultEventExecutorGroup(beatsHandlerThread);
+            idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD,
+                    daemonThreadFactory(pluginId + "-idleStateHandler"));
+            beatsHandlerExecutorGroup = new DefaultEventExecutorGroup(beatsHandlerThreadCount,
+                    daemonThreadFactory(pluginId + "-beatsHandler"));
         }
 
         public void initChannel(SocketChannel socket) {

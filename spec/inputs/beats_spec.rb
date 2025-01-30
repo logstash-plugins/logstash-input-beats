@@ -38,7 +38,7 @@ describe LogStash::Inputs::Beats do
       let(:port) { 9001 }
 
       it "sends the required options to the server" do
-        expect(org.logstash.beats.Server).to receive(:new).with(host, port, client_inactivity_timeout, event_loop_threads, executor_threads)
+        expect(org.logstash.beats.Server).to receive(:new).with(plugin.id, host, port, client_inactivity_timeout, event_loop_threads, executor_threads)
         subject.register
       end
     end
@@ -531,8 +531,8 @@ describe LogStash::Inputs::Beats do
     subject(:plugin) { LogStash::Inputs::Beats.new(config) }
 
     before do
-      @server = org.logstash.beats.Server.new(host, port, client_inactivity_timeout, event_loop_threads, executor_threads)
-      expect( org.logstash.beats.Server ).to receive(:new).with(host, port, client_inactivity_timeout, event_loop_threads, executor_threads).and_return @server
+      @server = org.logstash.beats.Server.new(plugin.id, host, port, client_inactivity_timeout, event_loop_threads, executor_threads)
+      expect( org.logstash.beats.Server ).to receive(:new).with(plugin.id, host, port, client_inactivity_timeout, event_loop_threads, executor_threads).and_return @server
       expect( @server ).to receive(:listen)
 
       subject.register

@@ -1,3 +1,6 @@
+## 6.9.2
+  - Name netty threads according to their purpose and the plugin id [#511](https://github.com/logstash-plugins/logstash-input-beats/pull/511)
+
 ## 6.9.1
   - Upgrade netty to 4.1.115 [#507](https://github.com/logstash-plugins/logstash-input-beats/pull/507)
 
