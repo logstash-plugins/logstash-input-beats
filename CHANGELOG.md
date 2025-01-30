@@ -1,3 +1,6 @@
+## 7.0.1
+  - Name netty threads according to their purpose and the plugin id [#511](https://github.com/logstash-plugins/logstash-input-beats/pull/511)
+
 ## 7.0.0
   - Remove deprecated SSL settings
   - SSL settings that were marked deprecated in version `6.6.0` are now marked obsolete, and will prevent the plugin from starting.
