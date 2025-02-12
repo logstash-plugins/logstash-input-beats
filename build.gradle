@@ -19,7 +19,7 @@ java {
 
 String jacksonVersion = '2.15.3'
 String jacksonDatabindVersion = '2.15.3'
-String nettyVersion = '4.1.115.Final'
+String nettyVersion = '4.1.118.Final'
 
 repositories {
     mavenCentral()
