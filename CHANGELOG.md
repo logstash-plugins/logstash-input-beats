@@ -1,3 +1,6 @@
+## 6.9.4
+  - Upgrade netty to 4.1.126 [#518](https://github.com/logstash-plugins/logstash-input-beats/pull/518)
+
 ## 6.9.3
   - Upgrade netty to 4.1.118 [#514](https://github.com/logstash-plugins/logstash-input-beats/pull/514)
 
