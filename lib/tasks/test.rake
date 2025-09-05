@@ -4,9 +4,9 @@ VENDOR_PATH = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "ve
 
 #TODO: Figure out better means to keep this version in sync
 if OS_PLATFORM == "linux"
-  FILEBEAT_URL = "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-7.6.0-linux-x86_64.tar.gz"
+  FILEBEAT_URL = "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-8.19.2-linux-x86_64.tar.gz"
 elsif OS_PLATFORM == "darwin"
-  FILEBEAT_URL = "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-7.6.0-darwin-x86_64.tar.gz"
+  FILEBEAT_URL = "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-8.19.2-linux-arm64.tar.gz"
 end
 
 require "fileutils"
