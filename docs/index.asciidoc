@@ -138,7 +138,7 @@ version, for example, +{logstash_version}+.
 Logstash `@timestamp` field.
 
 This configuration results in daily index names like
-+filebeat-{logstash_version}-{localdate}+.
++filebeat-{logstash_version}-{localyear}-01-01+.
 endif::[]
 
 
