@@ -1,3 +1,6 @@
+## 7.0.5
+ - Upgrade netty 4.1.129 [#TBD](https://github.com/logstash-plugins/logstash-input-beats/pull/TBD)
+
 ## 7.0.4
  - [DOC] Update keep-fresh variable in config to reduce noise [#523](https://github.com/logstash-plugins/logstash-input-beats/pull/523)
 
