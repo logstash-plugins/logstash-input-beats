@@ -26,25 +26,24 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'junit:junit:4.12'
-    testImplementation 'org.hamcrest:hamcrest-library:1.3'
-    testImplementation 'org.apache.logging.log4j:log4j-core:2.17.0'
-    implementation "io.netty:netty-buffer:${nettyVersion}"
-    implementation "io.netty:netty-codec:${nettyVersion}"
-    implementation "io.netty:netty-common:${nettyVersion}"
-    implementation "io.netty:netty-transport:${nettyVersion}"
+    // netty-handler pulls netty-buffer, netty-codec, netty-common, netty-transport,
+    // netty-transport-native-unix-common, and netty-resolver as transitive dependencies
     implementation "io.netty:netty-handler:${nettyVersion}"
-    implementation "io.netty:netty-transport-native-unix-common:${nettyVersion}" // this is needed from Netty 4.1.78.Final on
     implementation 'org.javassist:javassist:3.24.0-GA'
-    testImplementation "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
-    testImplementation "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
-    testImplementation "com.fasterxml.jackson.core:jackson-databind:${jacksonDatabindVersion}"
-    testImplementation "com.fasterxml.jackson.module:jackson-module-afterburner:${jacksonVersion}"
+
     compileOnly "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
     compileOnly "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
     compileOnly "com.fasterxml.jackson.core:jackson-databind:${jacksonDatabindVersion}"
     compileOnly "com.fasterxml.jackson.module:jackson-module-afterburner:${jacksonVersion}"
     compileOnly 'org.apache.logging.log4j:log4j-api:2.17.0'
+
+    testImplementation "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
+    testImplementation "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
+    testImplementation "com.fasterxml.jackson.core:jackson-databind:${jacksonDatabindVersion}"
+    testImplementation "com.fasterxml.jackson.module:jackson-module-afterburner:${jacksonVersion}"
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.hamcrest:hamcrest-library:1.3'
+    testImplementation 'org.apache.logging.log4j:log4j-core:2.17.0'
 }
 
 test {
@@ -101,6 +100,12 @@ task vendor {
                 Files.copy(artifact.file.toPath(), newJarFile.toPath(), REPLACE_EXISTING)
             }
         }
+
+        // Copy the project jar into vendor/jar-dependencies
+        String projectGroupPath = project.group.replaceAll('\\.', '/')
+        File projectJarFile = file("${vendorPathPrefix}/${projectGroupPath}/${project.name}/${project.version}/${project.name}-${project.version}.jar")
+        projectJarFile.mkdirs()
+        Files.copy(file("$buildDir/libs/${project.name}-${project.version}.jar").toPath(), projectJarFile.toPath(), REPLACE_EXISTING)
     }
 }
 
