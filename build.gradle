@@ -79,6 +79,7 @@ task generateGemJarRequiresFile {
                     w << "require_jar(\'${id.group}\', \'${id.module}\', \'${id.version}\')\n"
                 }
             }
+            w << "require_jar(\'${project.group}\', \'${project.name}\', \'${project.version}\')\n"
         }
     }
 }
