@@ -32,14 +32,10 @@ dependencies {
     implementation 'org.javassist:javassist:3.24.0-GA'
 
     compileOnly "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
-    compileOnly "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
-    compileOnly "com.fasterxml.jackson.core:jackson-databind:${jacksonDatabindVersion}"
     compileOnly "com.fasterxml.jackson.module:jackson-module-afterburner:${jacksonVersion}"
     compileOnly 'org.apache.logging.log4j:log4j-api:2.17.0'
 
     testImplementation "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
-    testImplementation "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
-    testImplementation "com.fasterxml.jackson.core:jackson-databind:${jacksonDatabindVersion}"
     testImplementation "com.fasterxml.jackson.module:jackson-module-afterburner:${jacksonVersion}"
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.hamcrest:hamcrest-library:1.3'
