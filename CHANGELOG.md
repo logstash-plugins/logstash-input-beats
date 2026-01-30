@@ -1,3 +1,6 @@
+## 7.0.6
+  - Re-packaging the plugin [#527](https://github.com/logstash-plugins/logstash-input-beats/pull/527)
+
 ## 7.0.5
  - Upgrade netty 4.1.129 [#525](https://github.com/logstash-plugins/logstash-input-beats/pull/525)
 
