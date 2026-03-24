@@ -92,18 +92,25 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
                 }
             } else {
                 final Throwable realCause = extractCause(cause, 0);
-                if (logger.isDebugEnabled()) {
-                    logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"), cause);
-                } else {
-                    logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"));
-                }
                 // when execution tasks rejected, no need to forward the exception to netty channel handlers
                 if (cause instanceof RejectedExecutionException) {
+                    if (logger.isDebugEnabled()) {
+                        logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"), cause);
+                    }
+                    else {
+                        logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"));
+                    }
                     // we no longer have event executors available since they are terminated, mostly by shutdown process
                     if (Objects.nonNull(cause.getMessage()) && cause.getMessage().contains(executorTerminatedMessage)) {
                         this.isQuietPeriod.compareAndSet(false, true);
                     }
                 } else {
+                    if (logger.isDebugEnabled()) {
+                        logger.warn(format("Not handling exception: " + cause + " (caused by: " + realCause + ")"), cause);
+                    }
+                    else {
+                        logger.warn(format("Not handling exception: " + cause + " (caused by: " + realCause + ")"));
+                    }
                     super.exceptionCaught(ctx, cause);
                 }
             }
