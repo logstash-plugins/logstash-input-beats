@@ -93,15 +93,23 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
             } else {
                 final Throwable realCause = extractCause(cause, 0);
                 if (logger.isDebugEnabled()) {
-                    logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"), cause);
+                    logger.info(format("Exception occurred: " + cause + " (caused by: " + realCause + ")"), cause);
                 } else {
-                    logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"));
-                }
+                    logger.info(format("Exception occurred: " + cause + " (caused by: " + realCause + ")"));               
                 // when execution tasks rejected, no need to forward the exception to netty channel handlers
                 if (cause instanceof RejectedExecutionException) {
                     // we no longer have event executors available since they are terminated, mostly by shutdown process
                     if (Objects.nonNull(cause.getMessage()) && cause.getMessage().contains(executorTerminatedMessage)) {
                         this.isQuietPeriod.compareAndSet(false, true);
+                    } else {
+                        super.exceptionCaught(ctx, cause);
+                    }
+                } else if (cause instanceof SocketException) {
+                    if (cause.getMessage().equals("Connection reset")) {
+                        // do nothing, the flush and close will take care of the connection, just log the error.
+                        logger.warn(format("Connection reset by client")
+                    } else {
+                        super.exceptionCaught(ctx, cause);
                     }
                 } else {
                     super.exceptionCaught(ctx, cause);
