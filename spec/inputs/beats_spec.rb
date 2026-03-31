@@ -178,7 +178,7 @@ describe LogStash::Inputs::Beats do
       end
 
       context "and `ssl_` settings provided" do
-        let(:config) { { "port" => 0, "ssl_enabled" => false, "ssl_certificate" => certificate.ssl_cert, "ssl_client_authentication" => "none", "ssl_cipher_suites" => ["TLS_RSA_WITH_AES_128_CBC_SHA256"] } }
+        let(:config) { { "port" => 0, "ssl_enabled" => false, "ssl_certificate" => certificate.ssl_cert, "ssl_client_authentication" => "none", "ssl_cipher_suites" => ["TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"] } }
 
         it "should warn about not using the configs" do
           plugin = LogStash::Inputs::Beats.new(config)
