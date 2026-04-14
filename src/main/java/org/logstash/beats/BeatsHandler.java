@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.net.InetSocketAddress;
 import java.util.Objects;
 import java.util.concurrent.RejectedExecutionException;
@@ -99,11 +100,21 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
                 }
                 // when execution tasks rejected, no need to forward the exception to netty channel handlers
                 if (cause instanceof RejectedExecutionException) {
+                    if (logger.isDebugEnabled()) {
+                        logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"), cause);
+                    } else {
+                        logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"));
+                    }
                     // we no longer have event executors available since they are terminated, mostly by shutdown process
                     if (Objects.nonNull(cause.getMessage()) && cause.getMessage().contains(executorTerminatedMessage)) {
                         this.isQuietPeriod.compareAndSet(false, true);
                     }
                 } else {
+                    if (logger.isDebugEnabled()) {
+                        logger.info(format("Deteted exception: " + cause + " (caused by: " + realCause + ")"), cause);
+                    } else {
+                        logger.info(format("Detected exception: " + cause + " (caused by: " + realCause + ")"));
+                    }
                     super.exceptionCaught(ctx, cause);
                 }
             }
@@ -137,6 +148,11 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
         if (ex instanceof IOException) {
             final String message = ex.getMessage();
             if ("Connection reset by peer".equals(message)) {
+                return true;
+            }
+        } else if (ex instanceof SocketException) {
+            final String message = ex.getMessage();
+            if ("Connection reset".equals(message)) {
                 return true;
             }
         }
