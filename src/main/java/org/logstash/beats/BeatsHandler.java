@@ -93,11 +93,6 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
                 }
             } else {
                 final Throwable realCause = extractCause(cause, 0);
-                if (logger.isDebugEnabled()) {
-                    logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"), cause);
-                } else {
-                    logger.info(format("Handling exception: " + cause + " (caused by: " + realCause + ")"));
-                }
                 // when execution tasks rejected, no need to forward the exception to netty channel handlers
                 if (cause instanceof RejectedExecutionException) {
                     if (logger.isDebugEnabled()) {
