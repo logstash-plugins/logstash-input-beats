@@ -106,9 +106,9 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
                     }
                 } else {
                     if (logger.isDebugEnabled()) {
-                        logger.info(format("Deteted exception: " + cause + " (caused by: " + realCause + ")"), cause);
+                        logger.warn(format("Unhandled exception: " + cause + " (caused by: " + realCause + ")"), cause);
                     } else {
-                        logger.info(format("Detected exception: " + cause + " (caused by: " + realCause + ")"));
+                        logger.warn(format("Unhandled exception: " + cause + " (caused by: " + realCause + ")"));
                     }
                     super.exceptionCaught(ctx, cause);
                 }
