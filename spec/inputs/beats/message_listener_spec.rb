@@ -6,6 +6,8 @@ require "logstash/inputs/beats/message_listener"
 require "logstash/instrument/namespaced_null_metric"
 require "thread"
 
+require_relative "../../support/logstash_test"
+
 java_import java.util.HashMap
 
 class MockMessage
@@ -54,9 +56,7 @@ end
 
 shared_examples "when the message is from any libbeat" do |ecs_compatibility, host_field_name|
   let(:input) do
-    input = LogStash::Inputs::Beats.new({ "port" => 5555, "codec" => codec, "ecs_compatibility" => "#{ecs_compatibility}" })
-    input.register
-    input
+    LogStash::Inputs::Beats.new({ "port" => BeatsInputTest.find_available_port, "codec" => codec, "ecs_compatibility" => "#{ecs_compatibility}" })
   end
 
   #Requires data modeled as Java, not Ruby since the actual code pulls from Java backed (Netty) object
@@ -124,10 +124,12 @@ describe LogStash::Inputs::Beats::MessageListener do
   let(:queue)  { Queue.new }
   let(:codec) { DummyCodec.new }
   let(:input) do
-    input = LogStash::Inputs::Beats.new({ "port" => 5555, "codec" => codec })
-    input.register
-    input
+    LogStash::Inputs::Beats.new({ "port" => BeatsInputTest.find_available_port, "codec" => codec })
   end
+  let(:registered_input) do
+    input.tap(&:register)
+  end
+  after(:each) { input.stop }
 
   let(:ip_address) { "10.0.0.1" }
   let(:remote_address) { OngoingMethodMock.new("getHostAddress", ip_address) }
@@ -135,7 +137,7 @@ describe LogStash::Inputs::Beats::MessageListener do
 
   let(:message) { MockMessage.new("abc", { "message" => "hello world"}) }
 
-  subject { described_class.new(queue, input) }
+  subject { described_class.new(queue, registered_input) }
 
   before do
     subject.onNewConnection(ctx)

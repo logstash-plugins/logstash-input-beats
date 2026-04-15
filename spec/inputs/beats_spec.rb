@@ -11,7 +11,7 @@ require "logstash/event"
 describe LogStash::Inputs::Beats do
   let(:connection) { double("connection") }
   let(:certificate) { BeatsInputTest.certificate }
-  let(:port) { BeatsInputTest.random_port }
+  let(:port) { BeatsInputTest.find_available_port(host: "::") }
   let(:client_inactivity_timeout) { 400 }
   let(:event_loop_threads) { 1 + rand(4) }
   let(:executor_threads) { 1 + rand(9) }
@@ -34,11 +34,12 @@ describe LogStash::Inputs::Beats do
   context "#register" do
     context "host related configuration" do
       let(:config) { super().merge("host" => host, "port" => port) }
-      let(:host) { "192.168.1.20" }
-      let(:port) { 9001 }
+      let(:host) { BeatsInputTest.own_ip_address }
+      let(:port) { BeatsInputTest.find_available_port(host: host) }
+      after(:each) { subject.stop }
 
       it "sends the required options to the server" do
-        expect(org.logstash.beats.Server).to receive(:new).with(plugin.id, host, port, client_inactivity_timeout, event_loop_threads, executor_threads)
+        expect(org.logstash.beats.Server).to receive(:new).with(plugin.id, host, port, client_inactivity_timeout, event_loop_threads, executor_threads).and_call_original
         subject.register
       end
     end
@@ -377,8 +378,8 @@ describe LogStash::Inputs::Beats do
           "ecs_compatibility" => 'disabled'
       )
     end
-    let(:host) { "192.168.1.20" }
-    let(:port) { 9002 }
+    let(:host) { BeatsInputTest.own_ip_address }
+    let(:port) { BeatsInputTest.find_available_port(host: host) }
 
     let(:queue) { Queue.new }
     let(:event) { LogStash::Event.new }
