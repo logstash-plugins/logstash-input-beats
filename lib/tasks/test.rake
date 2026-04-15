@@ -1,12 +1,21 @@
 # encoding: utf-8
-OS_PLATFORM = RbConfig::CONFIG["host_os"]
 VENDOR_PATH = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "vendor"))
 
 #TODO: Figure out better means to keep this version in sync
-if OS_PLATFORM == "linux"
-  FILEBEAT_URL = "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-8.19.2-linux-x86_64.tar.gz"
-elsif OS_PLATFORM == "darwin"
-  FILEBEAT_URL = "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-8.19.2-linux-arm64.tar.gz"
+FILEBEAT_VERSION = "8.19.14"
+def filebeat_url
+  @filebeat_url ||= begin
+    host_os = RbConfig::CONFIG['host_os']
+    host_cpu = RbConfig::CONFIG['host_cpu']
+
+    fail("unsupported OS #{host_os}") unless %w(linux darwin).include?(host_os)
+    fail("unsupported CPU #{host_cpu}") unless %w(aarch64 x86_64).include?(host_cpu)
+
+    # for historic reasons aarch64 artifacts for linux are labeled arm64
+    host_cpu = "arm64" if host_os == "linux" && host_cpu == "aarch64"
+
+    "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-#{FILEBEAT_VERSION}-#{host_os}-#{host_cpu}.tar.gz"
+  end
 end
 
 require "fileutils"
@@ -37,8 +46,9 @@ namespace :test do
         FileUtils.rm_rf(download_destination)
         FileUtils.rm_rf(destination)
         FileUtils.rm_rf(File.join(VENDOR_PATH, "filebeat.tar"))
-        puts "Filebeat: downloading from #{FILEBEAT_URL} to #{download_destination}"
-        download(FILEBEAT_URL, download_destination)
+
+        puts "Filebeat: downloading from #{filebeat_url} to #{download_destination}"
+        download(filebeat_url, download_destination)
 
         untar_all(download_destination, VENDOR_PATH) { |e| e }
       end
