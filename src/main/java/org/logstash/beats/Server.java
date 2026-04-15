@@ -18,6 +18,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.netty.SslHandlerProvider;
 
+import java.net.InetSocketAddress;
+import java.util.Objects;
+import java.util.Optional;
+
 import static org.logstash.beats.util.DaemonThreadFactory.daemonThreadFactory;
 
 public class Server {
@@ -31,6 +35,7 @@ public class Server {
     private final int executorThreadCount;
     private NioEventLoopGroup bossGroup;
     private NioEventLoopGroup workGroup;
+    private volatile Channel serverChannel;
     private IMessageListener messageListener = new MessageListener();
     private SslHandlerProvider sslHandlerProvider;
     private BeatsInitializer beatsInitializer;
@@ -50,7 +55,7 @@ public class Server {
         this.sslHandlerProvider = sslHandlerProvider;
     }
 
-    public Server listen() throws InterruptedException {
+    public synchronized void bind() throws InterruptedException {
         if (workGroup != null) {
             try {
                 logger.debug("Shutting down existing worker group before starting");
@@ -64,25 +69,43 @@ public class Server {
         try {
             logger.info("Starting server on port: {}", this.port);
 
-            beatsInitializer = new BeatsInitializer(id, messageListener, clientInactivityTimeoutSeconds, executorThreadCount);
+            beatsInitializer = new BeatsInitializer(id, clientInactivityTimeoutSeconds, executorThreadCount);
 
             ServerBootstrap server = new ServerBootstrap();
             server.group(bossGroup, workGroup)
                     .channel(NioServerSocketChannel.class)
+                    .option(ChannelOption.AUTO_READ, false) //
                     .childOption(ChannelOption.SO_LINGER, 0) // Since the protocol doesn't support yet a remote close from the server and we don't want to have 'unclosed' socket lying around we have to use `SO_LINGER` to force the close of the socket.
                     .childHandler(beatsInitializer);
 
-            Channel channel = server
+            serverChannel = server
                     .bind(host, port)
                     .sync()
                     .channel();
-            channel.closeFuture()
-                    .sync();
+        } catch (InterruptedException e) {
+            shutdown();
+            throw e;
+        }
+    }
+
+    public void run(final IMessageListener messageListener) throws InterruptedException {
+        synchronized (this) {
+            if (serverChannel == null) {
+                bind();
+            }
+        }
+        try {
+            beatsInitializer.setMessageListener(messageListener);
+            serverChannel.config().setAutoRead(true);
+            serverChannel.closeFuture().sync();
         } finally {
             shutdown();
         }
+    }
 
-        return this;
+    @Deprecated // use {@link Server#run}
+    public void listen() throws InterruptedException {
+        this.run(Objects.requireNonNull(this.messageListener));
     }
 
     public void stop() {
@@ -99,13 +122,16 @@ public class Server {
         //  there is no guarantee that executor threads will terminate during the shutdown because of many factors such as ack processing
         //  so any pending tasks which send batches to BeatsHandler will be ignored
         try {
+            if (serverChannel != null && serverChannel.isOpen()) {
+                serverChannel.close().sync();
+            }
             // boss group shuts down socket connections
             // shutting down bossGroup separately gives us faster channel closure
-            if (bossGroup != null) {
+            if (bossGroup != null && !bossGroup.isShutdown()) {
                 bossGroup.shutdownGracefully().sync();
             }
 
-            if (workGroup != null) {
+            if (workGroup != null && !workGroup.isShutdown()) {
                 workGroup.shutdownGracefully().sync();
             }
 
@@ -125,12 +151,27 @@ public class Server {
         return messageListener;
     }
 
-    public void setMessageListener(IMessageListener listener) {
+    public synchronized void setMessageListener(IMessageListener listener) {
         messageListener = listener;
+        if (beatsInitializer != null) {
+            beatsInitializer.setMessageListener(listener);
+        }
     }
 
     public boolean isSslEnabled() {
         return this.sslHandlerProvider != null;
+    }
+
+    @Override
+    public String toString() {
+        final String bindInfo = Optional.ofNullable(serverChannel)
+                .filter(Channel::isOpen)
+                .map(Channel::localAddress)
+                .map(InetSocketAddress.class::cast)
+                .map(InetSocketAddress::toString)
+                .orElse("unbound");
+
+        return String.format("org.logstash.beats.Server{id='%s', host='%s', port=%d, binding=%s}", id, host, port, bindInfo);
     }
 
     private class BeatsInitializer extends ChannelInitializer<SocketChannel> {
@@ -145,10 +186,10 @@ public class Server {
 
         private final EventExecutorGroup idleExecutorGroup;
         private final EventExecutorGroup beatsHandlerExecutorGroup;
-        private final IMessageListener localMessageListener;
+        private IMessageListener localMessageListener;
         private final int localClientInactivityTimeoutSeconds;
 
-        BeatsInitializer(String pluginId, IMessageListener messageListener, int clientInactivityTimeoutSeconds, int beatsHandlerThreadCount) {
+        BeatsInitializer(String pluginId, int clientInactivityTimeoutSeconds, int beatsHandlerThreadCount) {
             // Keeps a local copy of Server settings, so they can't be modified once it starts listening
             this.localMessageListener = messageListener;
             this.localClientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
@@ -158,7 +199,12 @@ public class Server {
                     daemonThreadFactory(pluginId + "-beatsHandler"));
         }
 
+        void setMessageListener(IMessageListener messageListener) {
+            this.localMessageListener = messageListener;
+        }
+
         public void initChannel(SocketChannel socket) {
+            Objects.requireNonNull(localMessageListener, "messageListener");
             ChannelPipeline pipeline = socket.pipeline();
 
             if (isSslEnabled()) {

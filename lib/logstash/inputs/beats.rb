@@ -202,6 +202,12 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     @logger.info("Starting input listener", :address => "#{@host}:#{@port}")
 
     @server = create_server
+    begin
+      @server.bind()
+      ObjectSpace.define_finalizer(self, self.class._server_shutdown_proc(@server))
+    rescue java.net.BindException => bind_exception
+      fail LogStash::ConfigurationError, "could not bind to #{@host}:#{@port}; #{bind_exception.message}"
+    end
   end # def register
 
   def create_server
@@ -211,9 +217,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
   end
 
   def run(output_queue)
-    message_listener = MessageListener.new(output_queue, self)
-    @server.setMessageListener(message_listener)
-    @server.listen
+    @server.run(MessageListener.new(output_queue, self))
   end # def run
 
   def stop
@@ -374,5 +378,22 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     return ENRICH_DEFAULT unless original_params.include?('enrich')
 
     return @enrich
+  end
+
+  # returns a proc to close the provided server without holding any other refs
+  # https://www.mikeperham.com/2010/02/24/the-trouble-with-ruby-finalizers/
+  def self._server_shutdown_proc(server)
+    logger.trace("ObjectSpace::deferring(#{server})")
+    proc do
+      Thread.new do
+        begin
+          logger.trace("ObjectSpace::finalizing(#{server})")
+          server.stop
+          logger.trace("ObjectSpace::finalized(#{server})")
+        rescue Exception => e
+          logger.error("ObjectSpace::finalize_error(#{server}): got '#{e.message}' at #{e.backtrace}")
+        end
+      end
+    end
   end
 end

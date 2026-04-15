@@ -49,6 +49,21 @@ describe LogStash::Inputs::Beats do
       expect { plugin.register }.not_to raise_error
     end
 
+    context "when port is unavailable" do
+      around(:each) do |example|
+        BeatsInputTest.with_bound_port(port: port, &example)
+      end
+
+      after(:each) { subject.stop }
+
+      it "raises a helpful exception" do
+        expect do
+          plugin.register
+        end.to raise_error(LogStash::ConfigurationError)
+                 .with_message(a_string_including("could not bind to #{subject.host}:#{subject.port}"))
+      end
+    end
+
     context "with ssl enabled" do
 
       let(:config) { { "ssl_enabled" => true, "port" => port, "ssl_key" => certificate.ssl_key, "ssl_certificate" => certificate.ssl_cert } }
@@ -389,11 +404,10 @@ describe LogStash::Inputs::Beats do
     before do
       @server = org.logstash.beats.Server.new(plugin.id, host, port, client_inactivity_timeout, event_loop_threads, executor_threads)
       expect( org.logstash.beats.Server ).to receive(:new).with(plugin.id, host, port, client_inactivity_timeout, event_loop_threads, executor_threads).and_return @server
-      expect( @server ).to receive(:listen)
+      expect( @server ).to receive(:run) { |message_listener| @message_listener = message_listener }
 
       subject.register
-      subject.run(queue) # listen does nothing
-      @message_listener = @server.getMessageListener
+      subject.run(queue) # stub impl of run does nothing
 
       allow( ssl_engine = double('ssl_engine') ).to receive(:getSession).and_return ssl_session
       allow( ssl_handler = double('ssl-handler') ).to receive(:engine).and_return ssl_engine
