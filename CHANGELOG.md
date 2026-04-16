@@ -1,5 +1,5 @@
 ## 7.0.9
-  - When configured to use a port that is already in use, the failure is now propagated to the pipeline
+  - When configured to use a port that is already in use, the failure is now propagated to the pipeline [#537](https://github.com/logstash-plugins/logstash-input-beats/pull/537)
     This fixes an issue where a misconfigured input could retry indefinitely while Logstash's health report continued to report the pipeline as healthy.
 
 ## 7.0.8
