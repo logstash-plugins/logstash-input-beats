@@ -36,7 +36,6 @@ public class Server {
     private NioEventLoopGroup bossGroup;
     private NioEventLoopGroup workGroup;
     private volatile Channel serverChannel;
-    private IMessageListener messageListener = new MessageListener();
     private SslHandlerProvider sslHandlerProvider;
     private BeatsInitializer beatsInitializer;
 
@@ -103,11 +102,6 @@ public class Server {
         }
     }
 
-    @Deprecated // use {@link Server#run}
-    public void listen() throws InterruptedException {
-        this.run(Objects.requireNonNull(this.messageListener));
-    }
-
     public void stop() {
         logger.debug("Server shutting down");
         shutdown();
@@ -143,21 +137,6 @@ public class Server {
         }
     }
 
-    /**
-     * @note used in tests
-     * @return the message listener
-     */
-    public IMessageListener getMessageListener() {
-        return messageListener;
-    }
-
-    public synchronized void setMessageListener(IMessageListener listener) {
-        messageListener = listener;
-        if (beatsInitializer != null) {
-            beatsInitializer.setMessageListener(listener);
-        }
-    }
-
     public boolean isSslEnabled() {
         return this.sslHandlerProvider != null;
     }
@@ -186,12 +165,11 @@ public class Server {
 
         private final EventExecutorGroup idleExecutorGroup;
         private final EventExecutorGroup beatsHandlerExecutorGroup;
-        private IMessageListener localMessageListener;
+        private volatile IMessageListener localMessageListener = null;
         private final int localClientInactivityTimeoutSeconds;
 
         BeatsInitializer(String pluginId, int clientInactivityTimeoutSeconds, int beatsHandlerThreadCount) {
             // Keeps a local copy of Server settings, so they can't be modified once it starts listening
-            this.localMessageListener = messageListener;
             this.localClientInactivityTimeoutSeconds = clientInactivityTimeoutSeconds;
             idleExecutorGroup = new DefaultEventExecutorGroup(DEFAULT_IDLESTATEHANDLER_THREAD,
                     daemonThreadFactory(pluginId + "-idleStateHandler"));

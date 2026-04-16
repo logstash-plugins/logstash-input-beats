@@ -36,6 +36,6 @@ public class Runner {
             server.setSslHandlerProvider(sslHandlerProvider);
         }
 
-        server.listen();
+        server.run(new MessageListener());
     }
 }
