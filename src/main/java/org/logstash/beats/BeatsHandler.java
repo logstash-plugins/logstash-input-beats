@@ -140,14 +140,14 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     }
 
     private boolean isNoisyException(final Throwable ex) {
-        if (ex instanceof IOException) {
-            final String message = ex.getMessage();
-            if ("Connection reset by peer".equals(message)) {
-                return true;
-            }
-        } else if (ex instanceof SocketException) {
+        if (ex instanceof SocketException) {
             final String message = ex.getMessage();
             if ("Connection reset".equals(message)) {
+                return true;
+            }
+        } else if (ex instanceof IOException) {
+            final String message = ex.getMessage();
+            if ("Connection reset by peer".equals(message)) {
                 return true;
             }
         }
