@@ -56,7 +56,7 @@ public class ServerTest {
 
         final AtomicBoolean otherCause = new AtomicBoolean(false);
 
-        server.setMessageListener(new MessageListener() {
+        final MessageListener messageListener = new MessageListener() {
             public void onNewConnection(ChannelHandlerContext ctx) {
                 // Make sure connection is closed on exception too.
                 if (random.nextInt(10) < 1) {
@@ -82,13 +82,13 @@ public class ServerTest {
                     otherCause.set(true);
                 }
             }
-        });
+        };
 
         Runnable serverTask = new Runnable() {
             @Override
             public void run() {
                 try {
-                    server.listen();
+                    server.run(messageListener);
                 } catch (InterruptedException e) {
                 }
             }
@@ -119,7 +119,7 @@ public class ServerTest {
         final CountDownLatch latch = new CountDownLatch(concurrentConnections);
         final AtomicBoolean exceptionClose = new AtomicBoolean(false);
         final Server server = new Server("testServer", host, randomPort, inactivityTime, eventLoopThreadCount, executorThreadCount);
-        server.setMessageListener(new MessageListener() {
+        final MessageListener messageListener = new MessageListener() {
             @Override
             public void onNewConnection(ChannelHandlerContext ctx) {
             }
@@ -137,13 +137,13 @@ public class ServerTest {
             public void onException(ChannelHandlerContext ctx, Throwable cause) {
                     exceptionClose.set(true);
             }
-        });
+        };
 
         Runnable serverTask = new Runnable() {
             @Override
             public void run() {
                 try {
-                    server.listen();
+                    server.run(messageListener);
                 } catch (InterruptedException e) {
                 }
             }
@@ -176,12 +176,11 @@ public class ServerTest {
     public void testServerShouldAcceptConcurrentConnection() throws InterruptedException {
         final Server server = new Server("testServer", host, randomPort, 30, eventLoopThreadCount, executorThreadCount);
         SpyListener listener = new SpyListener();
-        server.setMessageListener(listener);
         Runnable serverTask = new Runnable() {
             @Override
             public void run() {
                 try {
-                    server.listen();
+                    server.run(listener);
                 } catch (InterruptedException e) {
                 }
             }

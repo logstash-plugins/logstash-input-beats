@@ -30,6 +30,37 @@ module BeatsInputTest
     def random_port
       rand(2000..10000)
     end
+
+    ##
+    # Returns the IP address of an interfaace we own that is neither loopback nor multicast.
+    def own_ip_address
+      Socket.ip_address_list.lazy
+            .select(&:ip?)
+            .reject(&:ipv4_loopback?).reject(&:ipv6_loopback?)
+            .reject(&:ipv4_multicast?).reject(&:ipv6_multicast?)
+            .map(&:ip_address)
+            .first || fail("no serviceable IP addresses on this host: #{Socket.ip_address_list}")
+    end
+
+    ##
+    # yield the block with a port that is available
+    # @return [Integer]: a port that is available
+    def find_available_port(host:"::")
+      with_bound_port(host: host, &:itself)
+    end
+
+    ##
+    # Yields block with a port that is unavailable
+    # @yieldparam port [Integer]
+    # @yieldreturn [Object]
+    # @return [Object]
+    def with_bound_port(host:"::", port:0, &block)
+      server = TCPServer.new(host, port)
+
+      return yield(server.local_address.ip_port)
+    ensure
+      server.close
+    end
   end
 
   class DummyNeverBlockedQueue < Array
