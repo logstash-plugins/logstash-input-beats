@@ -3,15 +3,15 @@
 set -euo pipefail
 
 if command -v sudo >/dev/null 2>&1; then
-    SUDO="sudo"
+    CMD_PREFIX=(sudo)
 else
-    SUDO=""
+    CMD_PREFIX=()
 fi
 
 if command -v apt >/dev/null 2>&1; then
-    ${SUDO} apt install -y openssl
+    "${CMD_PREFIX[@]}" apt install -y openssl
 elif command -v microdnf >/dev/null 2>&1; then
-    ${SUDO} microdnf install -y openssl
+    "${CMD_PREFIX[@]}" microdnf install -y openssl
 else
     echo "No supported package manager found (expected apt or microdnf)" >&2
     exit 1
