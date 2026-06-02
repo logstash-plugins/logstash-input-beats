@@ -10,11 +10,9 @@ run_with_optional_sudo() {
     fi
 }
 
-if command -v apt >/dev/null 2>&1; then
-    run_with_optional_sudo apt install -y openssl
-elif command -v microdnf >/dev/null 2>&1; then
-    run_with_optional_sudo microdnf install -y openssl
-else
-    echo "No supported package manager found (expected apt or microdnf)" >&2
+if ! command -v apt >/dev/null 2>&1; then
+    echo "Expected apt on GitHub Actions runner, but it was not found" >&2
     exit 1
 fi
+
+run_with_optional_sudo apt install -y openssl
