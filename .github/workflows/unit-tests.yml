@@ -9,7 +9,7 @@ on:
 
 jobs:
   tests:
-    uses: logstash-plugins/.ci/.github/workflows/unit-tests.yml@better-sudo
+    uses: logstash-plugins/.ci/.github/workflows/unit-tests.yml@1.x
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
