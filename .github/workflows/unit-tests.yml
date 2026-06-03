@@ -7,11 +7,14 @@ on:
       - 6.x
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   tests:
-    uses: logstash-plugins/.ci/.github/workflows/unit-tests.yml@1.x
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: ${{ github.ref != 'refs/heads/6.x' }}
+    uses: logstash-plugins/.ci/.github/workflows/unit-tests.yml@1.x
     with:
       timeout-minutes: 60
