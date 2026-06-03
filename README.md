@@ -1,6 +1,7 @@
 # Logstash Plugin
 
-[![Travis Build Status](https://travis-ci.com/logstash-plugins/logstash-input-beats.svg)](https://travis-ci.com/logstash-plugins/logstash-input-beats)
+[![Unit Tests](https://github.com/logstash-plugins/logstash-input-beats/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/logstash-plugins/logstash-input-beats/actions/workflows/unit-tests.yml)
+[![Integration Tests](https://github.com/logstash-plugins/logstash-input-beats/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/logstash-plugins/logstash-input-beats/actions/workflows/integration-tests.yml)
 
 This is a plugin for [Logstash](https://github.com/elastic/logstash).
 
