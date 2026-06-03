@@ -1,0 +1,22 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: ['6.x']
+  pull_request:
+    branches: ['6.x']
+  workflow_dispatch:
+
+# Scheduled (cron) coverage for this branch lives in the workflow file on
+# the default branch (main); it fans out across every active
+# branch via a matrix. Do not add a schedule: block here — it would be
+# silently ignored on non-default branches.
+
+jobs:
+  tests:
+    uses: logstash-plugins/.ci/.github/workflows/unit-tests.yml@1.x
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: ${{ github.ref != 'refs/heads/6.x' }}
+    with:
+      timeout-minutes: 60
