@@ -1,0 +1,36 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: ['6.x', main]
+  pull_request:
+    branches: ['6.x', main]
+  schedule:
+    # Daily run that fans out across every active branch via the matrix
+    # job below. GitHub only fires `schedule:` from the workflow file on
+    # the default branch (main); copies of this file on
+    # non-default branches keep the block for symmetry but it is dormant
+    # there.
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  tests:
+    if: github.event_name != 'schedule'
+    uses: logstash-plugins/.ci/.github/workflows/unit-tests.yml@1.x
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: ${{ github.ref != 'refs/heads/6.x' && github.ref != 'refs/heads/main' }}
+    with:
+      timeout-minutes: 60
+
+  scheduled:
+    if: github.event_name == 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: ['6.x', main]
+    uses: logstash-plugins/.ci/.github/workflows/unit-tests.yml@1.x
+    with:
+      ref: ${{ matrix.branch }}
+      timeout-minutes: 60
