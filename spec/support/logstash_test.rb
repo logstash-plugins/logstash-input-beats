@@ -32,7 +32,7 @@ module BeatsInputTest
     end
 
     ##
-    # Returns the IP address of an interfaace we own that is neither loopback nor multicast.
+    # Returns the IP address of an interface we own that is neither loopback nor multicast.
     def own_ip_address
       Socket.ip_address_list.lazy
             .select(&:ip?)

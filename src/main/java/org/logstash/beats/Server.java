@@ -95,7 +95,9 @@ public class Server {
         }
         try {
             beatsInitializer.setMessageListener(messageListener);
+            // Start accepting/reading connections now that we have a listener
             serverChannel.config().setAutoRead(true);
+            // Block until the server channel is closed.
             serverChannel.closeFuture().sync();
         } finally {
             shutdown();
