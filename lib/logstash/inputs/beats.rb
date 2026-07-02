@@ -205,6 +205,7 @@ class LogStash::Inputs::Beats < LogStash::Inputs::Base
     begin
       @server.bind()
     rescue java.net.BindException => bind_exception
+      @server.stop rescue nil
       fail LogStash::ConfigurationError, "could not bind to #{@host}:#{@port}; #{bind_exception.message}"
     end
   end # def register

@@ -59,7 +59,7 @@ module BeatsInputTest
 
       return yield(server.local_address.ip_port)
     ensure
-      server.close
+      server&.close
     end
   end
 
