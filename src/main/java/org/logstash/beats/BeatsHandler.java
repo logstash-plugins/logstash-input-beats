@@ -6,7 +6,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.net.SocketException;
 import java.net.InetSocketAddress;
 import java.util.Objects;
 import java.util.concurrent.RejectedExecutionException;
@@ -140,12 +139,7 @@ public class BeatsHandler extends SimpleChannelInboundHandler<Batch> {
     }
 
     private boolean isNoisyException(final Throwable ex) {
-        if (ex instanceof SocketException) {
-            final String message = ex.getMessage();
-            if ("Connection reset".equals(message)) {
-                return true;
-            }
-        } else if (ex instanceof IOException) {
+        if (ex instanceof IOException) {
             final String message = ex.getMessage();
             if ("Connection reset by peer".equals(message)) {
                 return true;
