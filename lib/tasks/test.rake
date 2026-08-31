@@ -49,8 +49,18 @@ namespace :test do
 
         puts "Filebeat: downloading from #{filebeat_url} to #{download_destination}"
         download(filebeat_url, download_destination)
+        puts "Filebeat: download completed. Verifying SHA512..."
+
+        computed_sha512 = Digest::SHA512.file(download_destination).hexdigest
+        expected_sha512 = fetch_remote_sha512(filebeat_url, download_destination)
+
+        unless computed_sha512 == expected_sha512
+          raise "Filebeat SHA512 verification failed! expected=#{expected_sha512} got=#{computed_sha512}"
+        end
+        puts "Filebeat: SHA512 verified. Unpacking..."
 
         untar_all(download_destination, VENDOR_PATH) { |e| e }
+        puts "Filebeat: unpack completed."
       end
     end
   end
@@ -58,6 +68,16 @@ end
 
 require 'zlib'
 require 'minitar'
+require 'digest'
+
+def fetch_remote_sha512(artifact_url, artifact_destination)
+  sha512_destination = "#{artifact_destination}.sha512"
+  FileUtils.rm_rf(sha512_destination)
+  download("#{artifact_url}.sha512", sha512_destination)
+  File.read(sha512_destination).split.first
+ensure
+  FileUtils.rm_rf(sha512_destination)
+end
 
 def untar_all(file, destination)
   Zlib::GzipReader.open(file) do |reader|
