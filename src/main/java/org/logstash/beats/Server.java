@@ -187,6 +187,7 @@ public class Server {
             Objects.requireNonNull(localMessageListener, "messageListener");
             ChannelPipeline pipeline = socket.pipeline();
 
+            pipeline.addLast(new FlowLimiterHandler());
             if (isSslEnabled()) {
                 pipeline.addLast(SSL_HANDLER, sslHandlerProvider.sslHandlerForChannel(socket));
             }
