@@ -199,9 +199,17 @@ public class BeatsParser extends ByteToMessageDecoder {
             }
             case READ_JSON: {
                 logger.trace("Running: READ_JSON");
-                ((V2Batch)batch).addMessage(sequence, in, requiredBytes);
-                if(batch.isComplete()) {
-                    if(logger.isTraceEnabled()) {
+                try {
+                    ((V2Batch) batch).addMessage(sequence, in, requiredBytes);
+                } catch (Throwable th) {
+                    // batch has to release its internal buffer before bubbling up the exception
+                    batch.release();
+
+                    // re throw the same error after released the internal buffer
+                    throw th;
+                }
+                if (batch.isComplete()) {
+                    if (logger.isTraceEnabled()) {
                         logger.trace("Sending batch size: " + this.batch.size() + ", windowSize: " + batch.getBatchSize() + " , seq: " + sequence);
                     }
                     out.add(batch);
