@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.lang.Thread.sleep;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.number.IsCloseTo.closeTo;
@@ -94,9 +93,9 @@ public class ServerTest {
             }
         };
 
+        server.bind(); // bind synchronously, so clients never connect before the server is listening
         Thread thread = new Thread(serverTask);
         thread.start();
-        sleep(1000); // give some time to travis..
 
         try {
             for (int i = 0; i < concurrentConnections; i++) {
@@ -149,9 +148,9 @@ public class ServerTest {
             }
         };
 
+        server.bind(); // bind synchronously, so clients never connect before the server is listening
         Thread thread = new Thread(serverTask);
         thread.start();
-        sleep(1000); // give some time to travis..
 
         try {
             long started = System.currentTimeMillis();
@@ -186,8 +185,8 @@ public class ServerTest {
             }
         };
 
+        server.bind(); // bind synchronously, so clients never connect before the server is listening
         new Thread(serverTask).start();
-        sleep(1000); // start server give is some time.
 
         // Each connection is sending 1 batch.
         int ConcurrentConnections = 5;
