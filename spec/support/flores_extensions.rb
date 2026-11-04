@@ -68,6 +68,23 @@ module Flores
       :want_signature_ability => false
     }
 
+    # Flores::PKI.generate gives the certificate a random validity between 1 second and 1 day
+    # (GENERATE_DEFAULT_DURATION_RANGE), so a self-signed/CA certificate can expire before
+    # Filebeat connects ("x509: certificate has expired or is not yet valid"). Use a fixed duration.
+    def self.generate(subject = "CN=localhost", opts = {})
+      key = OpenSSL::PKey::RSA.generate(opts.fetch(:key_size, GENERATE_DEFAULT_KEY_SIZE), GENERATE_DEFAULT_EXPONENT)
+
+      csr = Flores::PKI::CertificateSigningRequest.new
+      csr.subject = subject
+      csr.public_key = key.public_key
+      csr.start_time = Time.now
+      csr.expire_time = csr.start_time + DEFAULT_CERTIFICATE_OPTIONS[:duration]
+      csr.signing_key = key
+      csr.want_signature_ability = true
+
+      [csr.create, key]
+    end
+
     def self.chain_certificates(*certificates)
       certificates.join("\n")
     end
